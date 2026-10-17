@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
 import { errors as syntaxErrors, expr, sx } from './parser-helpers.ts';
+import { moduleProject } from './project.ts';
 
 // `go work(x)`: the call of a function in a worker of the module's pool, with copies of the
 // arguments; a Promise of what the function returns.
@@ -25,9 +25,8 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Runs a program with `rook run`, or builds it and runs the `.js`; returns its output. */
 function run(source: string, how: 'run' | 'build'): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-go-'));
+  const dir = moduleProject('rook-go-');
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
 
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
@@ -151,7 +150,8 @@ describe('code generation', () => {
     expect(code).toContain(
       'return new Worker(new URL("./main.worker.js", import.meta.url), { type: "module" });',
     );
-    expect(code).toContain('function $$pool() {');
+    expect(code).toContain('const $$go = (name, args) => $$goWorker($$startWorker, name, args);');
+    expect(code).toContain('import { $$goWorker } from "rooklang/runtime";');
   });
 
   it('puts into the worker module what the functions reach, and not the rest of the module', () => {
@@ -181,7 +181,7 @@ go work(".")`);
     expect(worker).not.toContain('export');
     expect(worker).not.toContain('UNUSED');
     expect(worker).not.toContain('console.log("main")');
-    expect(worker).toContain('const copies = $$copy(args);');
+    expect(worker).toContain('const $$go = (fn, args) => $$goHere($$goroutines, fn, args);');
     expect(worker).toContain('const $$goroutines = { helper, work };');
   });
 

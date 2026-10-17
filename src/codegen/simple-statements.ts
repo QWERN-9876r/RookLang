@@ -220,7 +220,6 @@ export abstract class SimpleStatementEmitter extends CallEmitter {
       case 'SendStatement': {
         const channel = this.expression(node.channel, ARROW);
 
-        this.helpers.add('chan');
         this.line(`await $$send(${channel}, ${this.expression(node.value, ARROW)});`);
         break;
       }
@@ -289,8 +288,6 @@ export abstract class SimpleStatementEmitter extends CallEmitter {
 
       // An empty queue, as `[]` is an empty array.
       case 'QueueType':
-        this.helpers.add('queue');
-
         return 'new $$Queue()';
 
       case 'FuncType':

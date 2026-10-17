@@ -7,6 +7,7 @@ import { build } from '../src/build.ts';
 import { compile } from '../src/index.ts';
 import { mountWithDom } from './fake-dom.ts';
 import { errors as syntaxErrors, expr, first, sx, ty } from './parser-helpers.ts';
+import { moduleProject } from './project.ts';
 
 // Queues: `queue T`, made by `queue<T>()` or `queue<T>(items)`, with the methods of an array that
 // a queue keeps; `shift()` and `unshift()` do not move the other values.
@@ -16,7 +17,7 @@ function errors(source: string): string[] {
 }
 
 function js(source: string): string {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 
@@ -41,10 +42,9 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds a program with `rook build` and runs it with Node, with workers. */
 function runBuilt(source: string): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-queue-'));
+  const dir = moduleProject('rook-queue-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
 

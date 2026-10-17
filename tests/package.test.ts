@@ -1,11 +1,19 @@
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// The npm package ships dist/, built from src/ by `npm run build`: every entry point of
-// package.json has to name a file that the build makes, or the published package breaks.
+// The npm package ships dist/, built from src/ by `npm run build`, and the runtime of compiled code,
+// src/runtime, as it is: every entry point of package.json has to name a file that the build makes
+// or one that ships, or the published package breaks.
 
 const root = new URL('..', import.meta.url).pathname;
 
@@ -16,8 +24,10 @@ interface PackageJson {
 
 const pkg = JSON.parse(readFileSync(`${root}package.json`, 'utf8')) as PackageJson;
 
-/** The source file in src/ that the build turns into the given file of dist/. */
+/** The source file in src/ that the build turns into the given file of dist/, or the file itself. */
 function sourceOf(target: string): string {
+  if (!target.startsWith('./dist/')) return target.slice('./'.length);
+
   return target.replace(/^\.\/dist\//, 'src/').replace(/\.d\.ts$|\.js$/, '.ts');
 }
 
@@ -56,6 +66,10 @@ describe('package', () => {
       join(dir, 'dist'),
     ]);
     copyFileSync(`${root}package.json`, join(dir, 'package.json'));
+    cpSync(`${root}src/runtime`, join(dir, 'src/runtime'), {
+      recursive: true,
+      filter: (source) => !source.endsWith('.ts'),
+    });
     writeFileSync(
       join(dir, 'main.rk'),
       'func square(x number) number {\n    return x * x\n}\n\nconsole.log(await go square(7))\n',

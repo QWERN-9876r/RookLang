@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
 import { errors as syntaxErrors, first } from './parser-helpers.ts';
+import { moduleProject } from './project.ts';
 
 // `go for i, v in items { ... }`: the array is split into parts, one per processor, each part runs
 // as a goroutine that writes its own elements, and the loop waits for all of them.
@@ -25,11 +25,10 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds a program, with or without checking its types, and runs it with Node. */
 function run(source: string, check = true): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-go-for-'));
+  const dir = moduleProject('rook-go-for-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
   const flags = check ? [] : ['--no-check'];
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', ...flags, 'main.rk'], options).stderr).toBe('');
 
@@ -170,7 +169,7 @@ describe('generated code', () => {
     }
 }`);
 
-    expect(code).toContain('await $$goFor("$$goroutine0", pixels, k);');
+    expect(code).toContain('await $$goFor($$go, "$$goroutine0", pixels, k);');
     expect(worker).toContain(`async function $$goroutine0(pixels, $$from, k) {
   for (let $$i = 0; $$i < pixels.length; $$i++) {
     const i = $$from + $$i;
@@ -213,7 +212,7 @@ go for i, x in xs {
 }`);
 
     expect(code).toContain('$$go("$$goroutine0", [])');
-    expect(code).toContain('await $$goFor("$$goroutine1", xs);');
+    expect(code).toContain('await $$goFor($$go, "$$goroutine1", xs);');
     expect(worker).toContain(`    const x = xs[$$i];
     {
       const x = 2;

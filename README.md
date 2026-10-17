@@ -3,7 +3,8 @@
 **English** · [Русский](README.ru.md)
 
 A language with the semantics of JavaScript, Go-style syntax, goroutines on real threads and static
-types. It compiles to readable JavaScript without a runtime (WebAssembly is planned).
+types. It compiles to readable JavaScript with a small runtime library for channels, goroutines
+and markup (WebAssembly is planned).
 
 ```go
 async func square(jobs <-chan number, results chan<- number) {
@@ -55,11 +56,14 @@ Specification: [docs/spec.md](docs/spec.md), design of components:
 Rook needs Node.js ≥ 24.
 
 ```sh
-npm install --save-dev rooklang
+npm install rooklang
 npx rook build app.rk                # app.js next to the source
 npx rook build src --out-dir dist       # every module of a folder
 npx rook run app.rk                  # compile and run
 ```
+
+The compiled code imports what channels, goroutines and markup need from `rooklang/runtime`, so
+the package is a dependency of the project, not only of its build.
 
 From code, the compiler is `import { compile } from 'rooklang'`. The package also has the
 [Vite](#vite) plugin, `rooklang/vite`, and `rooklang/browser`, the compiler without the

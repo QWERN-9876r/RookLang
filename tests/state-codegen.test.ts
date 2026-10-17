@@ -26,12 +26,14 @@ describe('code generation', () => {
 
 document.body.append(<Counter initialValue={0} />)`),
     ).toBe(
-      `// <Counter>
+      `import { $$element } from "rooklang/runtime";
+
+// <Counter>
 let $$counter1;
 {
   const initialValue = 0;
   let count = initialValue;
-  const $$button3 = document.createElement("button");
+  const $$button3 = $$element("button");
   $$button3.addEventListener("click", () => {
     count++;
     $$text4.data = count;
@@ -56,18 +58,20 @@ document.body.append($$counter1);`,
 }
 document.body.append(<Greeting />)`),
     ).toBe(
-      `// <Greeting>
+      `import { $$element } from "rooklang/runtime";
+
+// <Greeting>
 let $$greeting1;
 {
   let name = "";
-  const $$label3 = document.createElement("label");
-  const $$input4 = document.createElement("input");
+  const $$label3 = $$element("label");
+  const $$input4 = $$element("input");
   $$input4.value = name;
   $$input4.addEventListener("input", () => {
     name = $$input4.value;
     $$updateName2();
   });
-  const $$button5 = document.createElement("button");
+  const $$button5 = $$element("button");
   $$button5.addEventListener("click", () => {
     name = "";
     $$updateName2();
@@ -114,7 +118,9 @@ document.body.append($$greeting1);`,
 
 document.body.append(<Stack />)`),
     ).toBe(
-      `// <Stack>
+      `import { $$element } from "rooklang/runtime";
+
+// <Stack>
 let $$stack1;
 {
   let items = [1, 2];
@@ -135,18 +141,18 @@ let $$stack1;
     $$updateItems2();
   }
 
-  const $$div4 = document.createElement("div");
-  const $$button5 = document.createElement("button");
+  const $$div4 = $$element("div");
+  const $$button5 = $$element("button");
   $$button5.addEventListener("click", () => {
     pop();
   });
   $$button5.append("pop");
-  const $$button6 = document.createElement("button");
+  const $$button6 = $$element("button");
   $$button6.addEventListener("click", () => {
     console.log(take());
   });
   $$button6.append("take");
-  const $$button7 = document.createElement("button");
+  const $$button7 = $$element("button");
   $$button7.addEventListener("click", () => {
     setTimeout(() => {
       const $$0 = items.push(9);
@@ -194,7 +200,9 @@ comp App() {
 let name = "Ann"
 document.body.append(<App />, <input bind:value={name} />)`),
     ).toBe(
-      `let name = "Ann";
+      `import { $$element } from "rooklang/runtime";
+
+let name = "Ann";
 // <App>
 let $$app1;
 {
@@ -212,14 +220,14 @@ let $$app1;
   {
     let value = count;
     const onChange = $$1;
-    const $$span7 = document.createElement("span");
-    const $$button8 = document.createElement("button");
+    const $$span7 = $$element("span");
+    const $$button8 = $$element("button");
     $$button8.addEventListener("click", () => {
       onChange(value - 1);
     });
     $$button8.append("-");
     const $$text9 = document.createTextNode(value);
-    const $$button10 = document.createElement("button");
+    const $$button10 = $$element("button");
     $$button10.addEventListener("click", () => {
       onChange(value + 1);
     });
@@ -233,7 +241,7 @@ let $$app1;
 
     $$stepper4 = $$span7;
   }
-  const $$p11 = document.createElement("p");
+  const $$p11 = $$element("p");
   const $$text12 = document.createTextNode(count * 2);
   $$p11.append($$text12);
   $$children3.append($$stepper4, $$p11);
@@ -242,8 +250,8 @@ let $$app1;
   {
     let title = $$0;
     const children = $$children3;
-    const $$section16 = document.createElement("section");
-    const $$h217 = document.createElement("h2");
+    const $$section16 = $$element("section");
+    const $$h217 = $$element("h2");
     const $$text18 = document.createTextNode(title);
     $$h217.append($$text18);
     $$section16.append($$h217, children);
@@ -265,7 +273,7 @@ let $$app1;
 
   $$app1 = $$card13;
 }
-const $$input19 = document.createElement("input");
+const $$input19 = $$element("input");
 $$input19.value = name;
 $$input19.addEventListener("input", () => {
   name = $$input19.value;
@@ -281,18 +289,18 @@ document.body.append($$app1, $$input19);`,
 }
 document.body.append(<Tags />)`);
 
-    expect(code).toContain('function $$content(value) {');
+    expect(code).toContain('import { $$content, $$element } from "rooklang/runtime";');
     expect(code.slice(code.indexOf('// <Tags>'))).toBe(`// <Tags>
 let $$tags1;
 {
   let tags = ["guava"];
-  const $$ul3 = document.createElement("ul");
+  const $$ul3 = $$element("ul");
   $$ul3.addEventListener("click", () => {
     tags.push("x");
     $$updateContent4();
   });
   const [$$content4, $$updateContent4] = $$content(() => tags.map((tag) => {
-    const $$li5 = document.createElement("li");
+    const $$li5 = $$element("li");
     $$li5.append(tag);
     return $$li5;
   }));
@@ -308,11 +316,13 @@ document.body.append($$tags1);`);
     return <b>{text}</b>
 }
 document.body.append(<Label text="hi" />)`),
-    ).toBe(`// <Label>
+    ).toBe(`import { $$element } from "rooklang/runtime";
+
+// <Label>
 let $$label1;
 {
   const text = "hi";
-  $$label1 = document.createElement("b");
+  $$label1 = $$element("b");
   $$label1.append(text);
 }
 document.body.append($$label1);`);

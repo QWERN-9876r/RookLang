@@ -22,7 +22,7 @@ function jsExpression(source: string): string {
 function run(source: string): string[] {
   const output: string[] = [];
   const fakeConsole = { log: (...args: unknown[]) => output.push(args.map(String).join(' ')) };
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 
@@ -87,17 +87,7 @@ describe('defer', () => {
         defer file.close()
     }
 }`),
-    ).toBe(`function $$runDeferred(deferred) {
-  let failure;
-  for (let i = deferred.length - 1; i >= 0; i--) {
-    try {
-      deferred[i]();
-    } catch (error) {
-      failure = { error };
-    }
-  }
-  if (failure) throw failure.error;
-}
+    ).toBe(`import { $$runDeferred } from "rooklang/runtime";
 
 function closeAll(files) {
   const $$defer = [];

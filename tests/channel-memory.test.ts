@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
-import { appendFileSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { appendFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
+import { moduleProject } from './project.ts';
 
 // What channels keep: a `select` that has gone on leaves the queues of its other channels, and a
 // channel that no value holds any more, in any thread, is forgotten by the registry.
@@ -12,7 +12,7 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** What the registry has for each channel after a program runs in the main thread. */
 async function queues(source: string): Promise<{ receivers: number; senders: number }[]> {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
   const key = Symbol.for('rook.threads');
   const prototype = Object.getPrototypeOf(async () => {}) as { constructor: unknown };
   const AsyncFunction = prototype.constructor as new (...args: string[]) => () => Promise<void>;
@@ -36,10 +36,9 @@ async function queues(source: string): Promise<{ receivers: number; senders: num
  * channels the registry has left.
  */
 function channelsLeft(source: string): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-hold-'));
+  const dir = moduleProject('rook-hold-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
   appendFileSync(join(dir, 'main.worker.js'), 'setInterval(() => globalThis.gc(), 10).unref();\n');

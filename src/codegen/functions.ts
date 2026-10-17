@@ -27,7 +27,6 @@ export abstract class FunctionEmitter extends WebComponentEmitter {
           if (mode === 'try') {
             this.statementsWithDefers(body.body);
           } else if (mode === 'stack') {
-            this.helpers.add('runDeferred');
             this.line('const $$defer = [];');
 
             const statements = this.block(() => this.statements(body.body));
@@ -72,7 +71,6 @@ export abstract class FunctionEmitter extends WebComponentEmitter {
   private effectBody(body: ast.BlockStatement, cleanups: string): string {
     return this.withFunction('effect', [], () => {
       this.fn.deferList = cleanups;
-      this.helpers.add('runDeferred');
 
       return this.block(() =>
         this.withScope(declarationsOf(body.body), () => {

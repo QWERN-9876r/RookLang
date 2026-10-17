@@ -774,7 +774,7 @@ async func lighten(pixels Uint8ClampedArray, amount number) {
 
 ```js
 async function lighten(pixels, amount) {
-  await $$goFor("$$goroutine0", pixels, amount);
+  await $$goFor($$go, "$$goroutine0", pixels, amount);
 }
 
 // app.worker.js
@@ -1376,6 +1376,38 @@ export interface Point {
   файле есть ошибки, не пишется ни один файл.
 - `rook run` компилирует импортируемые `.rk`-файлы на лету.
 
+### Рантайм
+
+```go
+const jobs = chan<number>(10)
+jobs <- 1
+```
+
+```js
+import { $$chan, $$send } from "rooklang/runtime";
+
+const jobs = $$chan(10, 0);
+await $$send(jobs, 1);
+```
+
+То, что код не может сделать одними средствами JS, — каналы, горутины, очереди, `defer` внутри
+цикла и блоки разметки, — делают функции маленькой библиотеки, рантайма: `rooklang/runtime` в
+пакете. Модуль импортирует те из них, которые использует его код, по именам, которые начинаются с
+`$$`, как все имена сгенерированного кода; модуль, которому они не нужны, ничего не импортирует.
+
+- **Один рантайм на все модули:** канал или очередь, созданные одним модулем, так же работают в
+  другом, который импортирует тот же рантайм. У каждого потока своя копия; то, что потоки делят
+  между собой, идёт через сообщения (см. «Горутины»).
+- **`rooklang` — зависимость проекта:** код, который пишет `rook build`, импортирует рантайм при
+  выполнении, поэтому `npm install rooklang` ставит его обычной зависимостью, а не только для
+  сборки. Vite кладёт рантайм в бандл, а `rook run` берёт рантайм компилятора, где бы ни лежала
+  программа.
+- **Своё у модуля** остаётся в нём: запуск его воркеров, URL которых сборщик должен видеть там же
+  (`$$startWorker`), `$$go`, который передаёт его рантайму, и CSS его компонентов (`$$styles`).
+- **Inline:** `compile(source, { runtime: "inline" })` кладёт части рантайма, которые использует
+  код, в сам модуль, — для кода, который выполняется без импортов; так запускает программы
+  песочница сайта, а её вкладка JavaScript показывает код с импортом.
+
 ### Типы из TypeScript
 
 Типы импортов, которые не являются `.rk`-модулями, берутся из объявлений TypeScript: пакеты с
@@ -1485,9 +1517,7 @@ const link = <a href="/" class="nav">Ссылка {name}</a>     // HTMLAnchorEl
 ```
 
 ```js
-const link = document.createElement("a");
-link.href = "/";
-link.className = "nav";
+const link = $$element("a", { href: "/", className: "nav" });
 link.append("Ссылка ", name);
 ```
 
@@ -1501,8 +1531,8 @@ link.append("Ссылка ", name);
   `<g>`...), создаются в пространстве имён SVG через `createElementNS`, а их атрибуты задаются
   через `setAttribute`. `<a>`, `<title>` и другие теги, которые есть и в HTML, — SVG только внутри
   `<svg>`; дети `<foreignObject>` — снова HTML.
-- **Много элементов:** модуль, код которого создаёт больше 20 элементов, создаёт их хелпером,
-  который принимает атрибуты, заданные с самого начала,
+- **Создание элементов:** элемент создаёт функция рантайма, которая принимает атрибуты, заданные
+  с самого начала,
   `$$element("a", { href: "/", className: "nav" }, { "aria-label": label })`, вместо
   `createElement` и оператора на каждый атрибут. Обработчики, `bind:`, стили, атрибуты, которые
   могут быть `null`, и атрибуты после spread остаются операторами.
@@ -1603,7 +1633,7 @@ comp Counter(initialValue number) {
 
 ```js
 let count = initialValue;
-const $$button3 = document.createElement("button");
+const $$button3 = $$element("button");
 $$button3.addEventListener("click", () => {
   count++;
   $$text4.data = count;
@@ -1751,8 +1781,7 @@ comp Search() {
 ```
 
 ```js
-const input = document.createElement("input");
-input.id = "query";
+const input = $$element("input", { id: "query" });
 $$mount(() => $$mountNode2, () => {
   input.focus();
 });

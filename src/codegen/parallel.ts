@@ -7,7 +7,7 @@ import { ControlStatementEmitter } from './control-statements.ts';
 import { ARROW } from './syntax.ts';
 
 // `go for i, v in items { ... }`: `await $$goFor("$$goroutine0", items, ...)` splits the array into
-// parts and runs each as a goroutine (go-helpers.ts). In the worker module, the function of a part
+// parts and runs each as a goroutine (src/runtime/go.js). In the worker module, the function of a part
 // loops over it: `i` is the index in the whole array, from `$$from`, the index of the part's first
 // element, and `items[i]` is `items[$$i]`, the index in the part. The part goes back if the body
 // writes into it; a typed array is moved back, not copied.
@@ -34,9 +34,7 @@ export abstract class ParallelLoopEmitter extends ControlStatementEmitter {
       ...goCaptures(this.program, node).map((name) => this.name(name)),
     ];
 
-    this.helpers.add('goFor');
-    this.helpers.add(this.inWorker ? 'goLocal' : 'go');
-    this.line(`await $$goFor(${args.join(', ')});`);
+    this.line(`await $$goFor($$go, ${args.join(', ')});`);
   }
 
   /** The loop over a part, in the function of the worker module that runs it. */

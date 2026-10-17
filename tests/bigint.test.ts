@@ -13,7 +13,7 @@ function errors(source: string): string[] {
 
 /** Runs compiled code; returns what it printed. */
 function run(source: string): string[] {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 

@@ -330,7 +330,7 @@ export function mountWithDom(source: string): {
   body: FakeNode;
   head: FakeNode;
 } {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 

@@ -138,9 +138,9 @@ document.body.append(<Page />)
 `);
 
     expect(diagnostics).toEqual([]);
-    expect(code).toContain(`  const $$notFound$page = document.createElement("p");
+    expect(code).toContain(`  const $$notFound$page = $$element("p");
   $$notFound$page.append("text");
-  const $$div3 = document.createElement("div");`);
+  const $$div3 = $$element("div");`);
     expect(code).toContain('$$page1 = $$div3;');
   });
 });

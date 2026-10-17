@@ -140,9 +140,7 @@ const link = <a href="/" class="nav">Ссылка {name}</a>
 ```
 
 ```js
-const link = document.createElement("a");
-link.href = "/";
-link.className = "nav";
+const link = $$element("a", { href: "/", className: "nav" });
 link.append("Ссылка ", name);
 ```
 
@@ -156,7 +154,7 @@ document.body.append(<p>Привет</p>)
 ```
 
 ```js
-const $$p1 = document.createElement("p");
+const $$p1 = $$element("p");
 $$p1.append("Привет");
 document.body.append($$p1);
 ```
@@ -180,11 +178,10 @@ func renderItem(todo Todo) HTMLLIElement {
 
 Сейчас та же функция занимает 25 строк вызовов `createElement` и `addEventListener`.
 
-Модуль, код которого создаёт больше 20 элементов, создаёт их хелпером `$$element`, который
-принимает атрибуты, заданные с самого начала: свойства — первым объектом, атрибуты для
-`setAttribute` — вторым. Пять его строк занимают меньше, чем операторы, которые он заменяет.
-Обработчики, `bind:`, стили, атрибуты, которые могут быть `null`, и атрибуты после spread (он
-переопределяет те, что до него) остаются операторами. SVG-элементы создаёт `$$svgElement`.
+Элементы создаёт `$$element` из рантайма, который принимает атрибуты, заданные с самого начала:
+свойства — первым объектом, атрибуты для `setAttribute` — вторым. Обработчики, `bind:`, стили,
+атрибуты, которые могут быть `null`, и атрибуты после spread (он переопределяет те, что до него)
+остаются операторами. SVG-элементы создаёт `$$svgElement`.
 
 ```js
 const $$button3 = $$element("button", { type: "button", className: "close" }, { "aria-label": label });
@@ -293,7 +290,7 @@ let $$counter1;
 {
   const initialValue = 0;
   let count = initialValue;
-  const $$button3 = document.createElement("button");
+  const $$button3 = $$element("button");
   $$button3.addEventListener("click", () => {
     count++;
     $$text4.data = count;
@@ -621,10 +618,8 @@ comp Chat() {
 ```js
 let messages = ["Привет! Напишите что-нибудь"];
 let draft = "";
-const log = document.createElement("ul");
-log.className = "log";
-const input = document.createElement("input");
-input.placeholder = "Сообщение";
+const log = $$element("ul", { className: "log" });
+const input = $$element("input", { placeholder: "Сообщение" });
 // ...effect, mount() и остальная разметка, которая заполняет элементы:
 log.append($$for7);
 input.value = draft;
@@ -653,8 +648,7 @@ function $$Field(label, $$root) {
 }
 
 // <Form>
-const name = document.createElement("label");
-name.className = "field";
+const name = $$element("label", { className: "field" });
 // ...
 const [$$field8] = $$Field("Имя", name);
 ```
@@ -725,7 +719,7 @@ comp Meter(color string) {
 - **В декораторе** стиль — для разметки его обёртки, со своим классом и значениями из декоратора.
 
 ```js
-$$style("rook-meter-1n5i250", `.meter.rook-meter-1n5i250 {
+$$style($$styles, "rook-meter-1n5i250", `.meter.rook-meter-1n5i250 {
   display: grid;
   gap: 8px;
 }
@@ -750,8 +744,8 @@ $$meter1.style.setProperty("--rook-meter-1n5i250-0", `${percent}%`);
 $$meter1.style.setProperty("--rook-meter-1n5i250-1", color);
 ```
 
-`$$style` — хелпер в несколько строк: он один раз добавляет в `<head>` элемент `<style>` с CSS,
-какой бы модуль ни пришёл первым, поэтому у компонента, встроенного в несколько модулей, на
+`$$style` — функция рантайма в несколько строк: она один раз добавляет в `<head>` элемент
+`<style>` с CSS, какой бы модуль ни пришёл первым, поэтому у компонента, встроенного в несколько модулей, на
 странице одна копия стилей. Веб-компонент (`@html-tag`) рисует в shadow root, куда стили страницы
 не доходят, поэтому туда добавляется CSS его модуля.
 
@@ -825,7 +819,7 @@ export comp Button(kind Kind = "primary", children Content) {
   цикл или условие, которые добавляют элементы в родителя.
 
   ```js
-  const $$ul1 = document.createElement("ul");
+  const $$ul1 = $$element("ul");
   for (const [i, product] of products.entries()) {
     if (product != null) {
       // <Product> ...
@@ -859,7 +853,7 @@ export comp Button(kind Kind = "primary", children Content) {
   ```
 
   Обновление блока срабатывает, когда меняется любое состояние, которое блок читает, и обновляет
-  все его части. Помощники попадают в модуль, только если используются, так же как
+  все его части. Модуль импортирует эти функции рантайма, только если использует их, так же как
   `$$runDeferred`.
 
 - При удалении ветки или элемента списка выполняются функции, которые вернули `mount()`
@@ -1384,12 +1378,12 @@ document.body.append(<TodoApp />)
     который компилятор читает сам: типизированные классы с собственными именами, а CSS на страницу
     добавляет модуль, поэтому всё работает без сборщика. Несколько классов соединяют шаблонными
     строками, без отдельного синтаксиса.
-15. **Модуль, код которого создаёт больше 20 элементов, создаёт их через `$$element`,** который
-    принимает атрибуты двумя объектами: свойства и атрибуты для `setAttribute`. На сайте это
-    экономит 7,5 % минифицированного JS, но меньше 1 % после gzip, который хорошо сжимает
-    повторяющиеся операторы, а вызов немного медленнее операторов; в маленьком модуле сам хелпер
-    занял бы больше, чем экономит. Ниже порога код остаётся `createElement` и оператором на
-    атрибут: так его легче читать.
+15. **Элементы создаются через `$$element`,** который принимает атрибуты двумя объектами:
+    свойства и атрибуты для `setAttribute`. На сайте это экономит 7,5 % минифицированного JS, но
+    меньше 1 % после gzip, который хорошо сжимает повторяющиеся операторы, а вызов немного
+    медленнее операторов. Пока хелпер лежал в каждом модуле, модуль пользовался им только начиная с
+    20 элементов, где он экономил больше, чем занимал; импортированный из рантайма, он стоит одно
+    имя, поэтому им пользуется каждый модуль.
 16. **Компоненты — значения типа `comp(title string)`, которые используются как теги:**
     `<section.content />` или `<Page />` с переменной `Page`. Тип записывает имена свойств — это
     имена атрибутов, — а тег передаёт их по позиции, поэтому компонент подходит к типу с теми же

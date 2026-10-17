@@ -1,0 +1,240 @@
+// What threads share: a channel is data, `{ $$chan: id, size, zero }`, copied to other threads like
+// any value, and what it holds lives in the thread that made it, whose key starts its id. Each
+// thread has a registry of its channels and of its ports to the other threads, shared by its
+// modules; the operations of a thread on the channels of another go straight to that thread
+// through a MessagePort, which the main thread sets up on the first need (go.js).
+
+import { $$Queue } from './queue.js';
+
+// The state of this thread that its modules share: the channels it made, its ports to the other
+// threads by their keys, and the requests that wait for an answer.
+export function $$registry() {
+  return (globalThis[Symbol.for('rook.threads')] ??= {
+    key: Math.random().toString(36).slice(2),
+    channels: 0,
+    states: new Map(),
+    held: new FinalizationRegistry((id) => $$hold(id, -1)),
+    ports: new Map(),
+    pins: new Map(),
+    idle: null,
+    waiting: new Map(),
+    gone: new Set(),
+    main: null,
+    requests: new Map(),
+    asks: 0,
+    selects: new Map(),
+    moved: new WeakSet(),
+    cancels: new WeakMap(),
+    handle: null,
+  });
+}
+
+// The key of the thread that made a channel, which keeps what it holds.
+export function $$ownerOf(id) {
+  return id.slice(0, id.lastIndexOf(':'));
+}
+
+// Sends a message to a thread. The channels in it are counted first, as the thread gets copies,
+// and the buffers of transfer() move there. A message waits for the port of a thread that has just
+// started.
+export function $$post(key, message) {
+  const registry = $$registry();
+
+  if (registry.gone.has(key)) return;
+
+  const { channels, moved } = $$walk(message);
+
+  for (const channel of channels) $$hold(channel.$$chan, 1);
+
+  const port = registry.ports.get(key);
+
+  if (port) return port.postMessage(message, moved);
+  if (!registry.waiting.has(key)) registry.waiting.set(key, []);
+  registry.waiting.get(key).push([message, moved]);
+}
+
+// A request to a thread, answered by a message with its number.
+export function $$ask(key, message) {
+  const registry = $$registry();
+
+  if (registry.gone.has(key)) return Promise.reject($$stopped());
+  $$pin(key, 1);
+
+  return new Promise((resolve, reject) => {
+    const ask = registry.asks++;
+
+    registry.requests.set(ask, { resolve, reject, key });
+    $$post(key, { ...message, ask });
+  });
+}
+
+// A thread that this one waits for keeps the program running: in Node, its worker or port is
+// referenced while some request or select waits for it.
+export function $$pin(key, count) {
+  const registry = $$registry();
+  const pins = (registry.pins.get(key) ?? 0) + count;
+
+  registry.pins.set(key, pins);
+
+  const port = registry.ports.get(key);
+
+  if (pins > 0) port?.ref?.();
+  else if (registry.idle) registry.idle(key);
+  else port?.unref?.();
+}
+
+export function $$stopped() {
+  return new Error('the goroutine that made the channel has stopped');
+}
+
+// A port to a thread: messages that waited for it go now.
+export function $$connect(key, port, listen) {
+  const registry = $$registry();
+
+  registry.ports.set(key, port);
+  if (registry.pins.get(key) > 0) port.ref?.();
+  if (listen) {
+    const receive = (data) => $$incoming(key, data);
+
+    if (port.on) {
+      port.on('message', receive);
+      if (!(registry.pins.get(key) > 0)) port.unref?.();
+    } else {
+      port.onmessage = (event) => receive(event.data);
+    }
+  }
+
+  for (const [message, moved] of registry.waiting.get(key) ?? []) port.postMessage(message, moved);
+  registry.waiting.delete(key);
+}
+
+// A thread has stopped: what waits for it fails, and what it waited for is dropped.
+export function $$gone(key) {
+  const registry = $$registry();
+
+  registry.gone.add(key);
+  registry.ports.get(key)?.close?.();
+  registry.ports.delete(key);
+  registry.waiting.delete(key);
+  for (const [ask, request] of registry.requests) {
+    if (request.key !== key) continue;
+    registry.requests.delete(ask);
+    request.reject($$stopped());
+  }
+
+  for (const [id, state] of registry.states) {
+    const alive = (entry) => (entry.select?.key ?? entry.from) !== key;
+
+    state.receivers.$$keep(alive);
+    state.senders.$$keep(alive);
+    registry.handle?.pump(id);
+  }
+}
+
+// A message from another thread: an answer to a request, or an operation on a channel of this one.
+export function $$incoming(key, data) {
+  const registry = $$registry();
+
+  $$adopt(data);
+  if ('answer' in data) {
+    const request = registry.requests.get(data.answer);
+
+    registry.requests.delete(data.answer);
+    if (request) $$pin(request.key, -1);
+    if ('error' in data) request?.reject(data.error);
+    else request?.resolve(data.value);
+  } else if (data.op === 'hold') {
+    $$hold(data.channel, data.count);
+  } else if ('op' in data) {
+    registry.handle.message(key, data);
+  }
+}
+
+// Each value of a channel, in any thread, holds it: the thread that made it forgets it when none
+// is left. A thread counts the channels of a value before a copy of it goes to another thread, and
+// a copy lets go of them when it is collected.
+export function $$hold(id, count) {
+  const registry = $$registry();
+  const owner = $$ownerOf(id);
+
+  if (owner !== registry.key) return $$post(owner, { op: 'hold', channel: id, count });
+
+  const state = registry.states.get(id);
+
+  if (!state) return;
+  state.holders += count;
+  if (state.holders <= 0) registry.states.delete(id);
+}
+
+export function $$adopt(value) {
+  const { held } = $$registry();
+
+  for (const channel of $$walk(value).channels) held.register(channel, channel.$$chan);
+}
+
+// A copy in this thread. One that `own` the runtime, such as the arguments of `go` that wait for
+// a worker, moves its buffers on.
+export function $$copy(value, own = false) {
+  const { channels, moved } = $$walk(value);
+
+  for (const channel of channels) $$hold(channel.$$chan, 1);
+
+  const copy = structuredClone(value, { transfer: moved });
+  const { held } = $$registry();
+
+  for (const channel of $$walk(copy, own).channels) held.register(channel, channel.$$chan);
+
+  return copy;
+}
+
+// `transfer(x)`: the buffer of x moves to the thread that a value with it goes to, instead of a
+// copy; here it is left empty.
+export function $$transfer(value) {
+  $$registry().moved.add(ArrayBuffer.isView(value) ? value.buffer : value);
+
+  return value;
+}
+
+// The channels in a value, each of which becomes a copy in the thread that gets the value, and the
+// buffers that move there. A copy of a queue is its fields: here it gets its class again.
+export function $$walk(
+  value,
+  own = false,
+  found = { channels: new Set(), moved: [] },
+  seen = new Set(),
+) {
+  if (typeof value !== 'object' || value === null || seen.has(value)) return found;
+  seen.add(value);
+
+  const buffer =
+    value instanceof ArrayBuffer ? value : ArrayBuffer.isView(value) ? value.buffer : null;
+
+  // A SharedArrayBuffer is shared with the other thread, not moved.
+  if (buffer && !(buffer instanceof ArrayBuffer)) return found;
+  if (buffer) {
+    const { moved } = $$registry();
+
+    if (own) moved.add(buffer);
+    if (moved.has(buffer) && !found.moved.includes(buffer)) found.moved.push(buffer);
+
+    return found;
+  }
+
+  if (Array.isArray(value.$$queue)) Object.setPrototypeOf(value, $$Queue.prototype);
+  if (typeof value.$$chan === 'string') {
+    found.channels.add(value);
+
+    return found;
+  }
+
+  const items =
+    value instanceof Map
+      ? [...value.keys(), ...value.values()]
+      : value instanceof Set || Array.isArray(value)
+        ? value
+        : Object.values(value);
+
+  for (const item of items) $$walk(item, own, found, seen);
+
+  return found;
+}

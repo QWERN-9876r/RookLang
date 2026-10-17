@@ -96,7 +96,6 @@ export abstract class ComponentEmitter extends StyleEmitter {
    * it changes updates the markup.
    */
   protected override mountStatement(node: ast.MountStatement): void {
-    this.helpers.add('mount');
     this.inHandler++;
     try {
       const [, body] = this.withRendering(0, () => this.func([], node.body));

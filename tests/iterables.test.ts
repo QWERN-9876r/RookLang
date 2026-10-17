@@ -23,7 +23,7 @@ function run(code: string): string[] {
 }
 
 function js(source: string): string {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 
@@ -91,14 +91,18 @@ for i, tag in tags {
   });
 
   it('tell a Map at runtime when its type is unknown', () => {
-    const { code, diagnostics } = compileInBrowser(`const scores = new Map()
+    const { code, diagnostics } = compileInBrowser(
+      `const scores = new Map()
 scores.set("ann", 3)
 for score in scores {
     console.log(score)
 }
 for item in [1, 2] {
     console.log(item)
-}`);
+}`,
+      null,
+      { runtime: 'inline' },
+    );
 
     expect(diagnostics).toEqual([]);
     expect(code).toContain('for (const score of $$values(scores)) {');

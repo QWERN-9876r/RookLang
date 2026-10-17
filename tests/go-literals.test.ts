@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
+import { moduleProject } from './project.ts';
 
 // `go func(x) { ... }(y)`: a function literal in a worker, which gets copies of the local names it
 // uses; and `transfer(x)`, which moves a buffer to the thread it goes to instead of copying it.
@@ -16,11 +16,10 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds a program, with or without checking its types, and runs it with Node. */
 function run(source: string, check = true): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-literal-'));
+  const dir = moduleProject('rook-literal-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
   const flags = check ? [] : ['--no-check'];
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', ...flags, 'main.rk'], options).stderr).toBe('');
 

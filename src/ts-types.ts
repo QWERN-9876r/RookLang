@@ -133,7 +133,7 @@ function objectType(type: ObjectType): string {
     return `{ readonly $$chan: string }`;
   }
 
-  // A queue is an instance of a class of the module (queue-helpers.ts): TypeScript code uses its
+  // A queue is an instance of $$Queue of the runtime (src/runtime/queue.js): TypeScript code uses its
   // members.
   if (isQueue(type)) {
     const value = queueElement(type);

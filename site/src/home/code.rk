@@ -1,7 +1,7 @@
 // The code that the home page shows. The JavaScript is what the compiler gives for the Rook next
-// to it (the helpers of goroutines aside), and the error is its message for TYPE_ERROR_CODE.
+// to it (the runtime it imports aside), and the error is its message for TYPE_ERROR_CODE.
 
-export const INSTALL = "npm install -D rooklang"
+export const INSTALL = "npm install rooklang"
 
 export const GO_FOR = `func isPrime(n number) bool {
     for let d = 2; d * d <= n; d++ {
@@ -92,7 +92,7 @@ console.log(results);`,
     </button>
 }`,
         js: `let count = 0;
-const $$button = document.createElement("button");
+const $$button = $$element("button");
 $$button.addEventListener("click", () => {
   count++;
   $$text.data = count;

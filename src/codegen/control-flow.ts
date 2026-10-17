@@ -36,14 +36,11 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
             ? this.ifBranches(statement, live)
             : this.switchBranches(statement, live);
 
-        this.helpers.add('branches');
         call = `$$branches(${choose}, [${blocks.join(', ')}])`;
         break;
       }
 
       case 'ForInStatement': {
-        this.helpers.add('list');
-
         const items = this.liveFunction(statement.iterable);
 
         call = `$$list(${items}, ${this.blockCreator(statement.body.body, live, statement)})`;
@@ -52,7 +49,6 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
 
       case 'ForStatement':
         // Without items to find the blocks by, the loop runs again and creates new content.
-        this.helpers.add('content');
         call = `$$content(${this.loopContent(statement)})`;
         break;
     }

@@ -10,6 +10,7 @@ import { property, STRING, type Type } from './checker/types.ts';
 import type { ImportedDecorator } from './codegen/emitter.ts';
 import type { ImportedComponent } from './codegen/imported.ts';
 import { generateJs } from './codegen/js.ts';
+import type { RuntimeMode } from './codegen/runtime.ts';
 import { printDeclarations } from './declarations.ts';
 import type { Diagnostic } from './diagnostics.ts';
 import { goroutines, goTarget, workerProgram } from './goroutines.ts';
@@ -38,6 +39,12 @@ export interface CoreCompileOptions {
   readStyleModule?: ((specifier: string) => string | null) | undefined;
   /** Where the worker module of `go` is, relative to the module; see workerUrl(). */
   workerUrl?: string | undefined;
+  /**
+   * How the code gets the runtime of Rook: `import`, the default, imports it from
+   * "rooklang/runtime"; `inline` puts the parts it uses into the module, for code that runs
+   * without imports (src/codegen/runtime.ts).
+   */
+  runtime?: RuntimeMode | undefined;
 }
 
 /**
@@ -99,6 +106,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     rewriteImports,
     types,
     styleModules,
+    runtime: options.runtime,
     ...importedCode(program, options.importModule),
   };
   const code = generateJs(program, {

@@ -70,7 +70,6 @@ export abstract class ComponentValueEmitter extends ComponentPropsEmitter {
       this.fixedComponents.delete(node);
     }
 
-    this.helpers.add('dynamic');
     this.line(`const [${name}, ${update}] = $$dynamic(${this.liveFunction(value)}, ${create});`);
     live.depend(live.dependencies(node), `${update}();`);
 

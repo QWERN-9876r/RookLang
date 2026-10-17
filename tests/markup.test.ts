@@ -284,20 +284,20 @@ describe('types', () => {
 
 describe('code generation', () => {
   it('creates the element right in the variable', () => {
-    expect(
-      js('const name = "на главную"\nconst link = <a href="/" class="nav">Ссылка {name}</a>'),
-    ).toBe(
-      `const name = "на главную";
-const link = document.createElement("a");
-link.href = "/";
-link.className = "nav";
-link.append("Ссылка ", name);`,
+    expect(js('const name = "Rook"\nconst link = <a href="/" class="nav">Home {name}</a>')).toBe(
+      `import { $$element } from "rooklang/runtime";
+
+const name = "Rook";
+const link = $$element("a", { href: "/", className: "nav" });
+link.append("Home ", name);`,
     );
   });
 
   it('creates elements inside an expression before the statement', () => {
     expect(js('document.body.append(<p>Привет</p>)')).toBe(
-      `const $$p1 = document.createElement("p");
+      `import { $$element } from "rooklang/runtime";
+
+const $$p1 = $$element("p");
 $$p1.append("Привет");
 document.body.append($$p1);`,
     );
@@ -305,9 +305,11 @@ document.body.append($$p1);`,
 
   it('creates elements in a branch only when the branch runs', () => {
     expect(js('func f(ok bool) any {\n    return ok ? <b>да</b> : null\n}')).toBe(
-      `function f(ok) {
+      `import { $$element } from "rooklang/runtime";
+
+function f(ok) {
   return ok ? (() => {
-    const $$b1 = document.createElement("b");
+    const $$b1 = $$element("b");
     $$b1.append("да");
     return $$b1;
   })() : null;
@@ -317,9 +319,11 @@ document.body.append($$p1);`,
 
   it('turns arrow functions that return markup into blocks', () => {
     expect(js('const items = ["a"]\nconst lis = items.map(i => <li>{i}</li>)')).toBe(
-      `const items = ["a"];
+      `import { $$element } from "rooklang/runtime";
+
+const items = ["a"];
 const lis = items.map((i) => {
-  const $$li1 = document.createElement("li");
+  const $$li1 = $$element("li");
   $$li1.append(i);
   return $$li1;
 });`,
@@ -332,10 +336,10 @@ const lis = items.map((i) => {
         'let n = 0\nconst x = <label for="name" data-id={7} style="color: red" onClick={n++} onDoubleClick={console.log(event.type)}>a</label>',
       ),
     ).toBe(
-      `let n = 0;
-const x = document.createElement("label");
-x.htmlFor = "name";
-x.setAttribute("data-id", 7);
+      `import { $$element } from "rooklang/runtime";
+
+let n = 0;
+const x = $$element("label", { htmlFor: "name" }, { "data-id": 7 });
 x.style.cssText = "color: red";
 x.addEventListener("click", () => {
   n++;
@@ -351,8 +355,10 @@ x.append("a");`,
     expect(
       js('func f(note ?string) HTMLElement {\n    return <p data-note={note}>{note}</p>\n}'),
     ).toBe(
-      `function f(note) {
-  const $$p1 = document.createElement("p");
+      `import { $$element } from "rooklang/runtime";
+
+function f(note) {
+  const $$p1 = $$element("p");
   if (note != null) $$p1.setAttribute("data-note", note);
   if (note != null) $$p1.append(note);
   return $$p1;

@@ -45,7 +45,8 @@ comp Intro() {
             Rook — язык с семантикой JavaScript, синтаксисом в духе Go и статической
             типизацией. Его главная особенность — горутины: <code>go f(x)</code> запускает функцию в
             отдельном потоке, на другом процессоре, а каналы передают значения между ними, как в Go.
-            Он компилируется в читаемый JavaScript без рантайма: что написано, то и выполняется.
+            Он компилируется в читаемый JavaScript: что написано, то и выполняется, а то, чего JS
+            не умеет сам, например каналы, делает маленький рантайм.
         </p>
         <CardGrid>
             <Card title="Горутины и каналы" icon="cpu">
@@ -335,7 +336,7 @@ comp Modules() {
     </>
 }
 
-const COMMANDS = `npm install --save-dev rooklang
+const COMMANDS = `npm install rooklang
 npx rook build app.rk            # app.js рядом с исходником
 npx rook build src --out-dir dist   # все модули папки
 npx rook run app.rk              # скомпилировать и запустить
@@ -347,7 +348,9 @@ npm run vscode:install   # расширение VS Code из исходнико�
 comp Tools() {
     return <>
         <p>
-            Компилятор — npm-пакет <code>rooklang</code>, он работает в Node.js 24:
+            Компилятор — npm-пакет <code>rooklang</code>, он работает в Node.js 24.
+            {" "}Скомпилированный код импортирует рантайм, <code>rooklang/runtime</code>, поэтому
+            {" "}пакет — зависимость проекта:
         </p>
         <CodeBlock
             code={COMMANDS}

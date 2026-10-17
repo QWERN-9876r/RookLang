@@ -137,9 +137,7 @@ const link = <a href="/" class="nav">Link {name}</a>
 ```
 
 ```js
-const link = document.createElement("a");
-link.href = "/";
-link.className = "nav";
+const link = $$element("a", { href: "/", className: "nav" });
 link.append("Link ", name);
 ```
 
@@ -153,7 +151,7 @@ document.body.append(<p>Hello</p>)
 ```
 
 ```js
-const $$p1 = document.createElement("p");
+const $$p1 = $$element("p");
 $$p1.append("Hello");
 document.body.append($$p1);
 ```
@@ -178,9 +176,8 @@ func renderItem(todo Todo) HTMLLIElement {
 
 Before, the same function took 25 lines of `createElement` and `addEventListener` calls.
 
-A module whose code creates more than 20 elements creates them with a helper, `$$element`, which
-takes the attributes they have from the start: properties in the first object, attributes set with
-`setAttribute` in the second. Its five lines take less than the statements it saves. Handlers,
+Elements are created by `$$element` of the runtime, which takes the attributes they have from the
+start: properties in the first object, attributes set with `setAttribute` in the second. Handlers,
 `bind:`, styles, attributes that may be `null` and the attributes after a spread, which overrides
 those before it, stay statements. SVG elements get `$$svgElement`.
 
@@ -292,7 +289,7 @@ let $$counter1;
 {
   const initialValue = 0;
   let count = initialValue;
-  const $$button3 = document.createElement("button");
+  const $$button3 = $$element("button");
   $$button3.addEventListener("click", () => {
     count++;
     $$text4.data = count;
@@ -619,10 +616,8 @@ comp Chat() {
 ```js
 let messages = ["Hi! Write something"];
 let draft = "";
-const log = document.createElement("ul");
-log.className = "log";
-const input = document.createElement("input");
-input.placeholder = "Message";
+const log = $$element("ul", { className: "log" });
+const input = $$element("input", { placeholder: "Message" });
 // ...the effect, mount() and the rest of the markup, which fills the elements in:
 log.append($$for7);
 input.value = draft;
@@ -651,8 +646,7 @@ function $$Field(label, $$root) {
 }
 
 // <Form>
-const name = document.createElement("label");
-name.className = "field";
+const name = $$element("label", { className: "field" });
 // ...
 const [$$field8] = $$Field("Name", name);
 ```
@@ -724,7 +718,7 @@ comp Meter(color string) {
   from the decorator.
 
 ```js
-$$style("rook-meter-1n5i250", `.meter.rook-meter-1n5i250 {
+$$style($$styles, "rook-meter-1n5i250", `.meter.rook-meter-1n5i250 {
   display: grid;
   gap: 8px;
 }
@@ -749,9 +743,9 @@ $$meter1.style.setProperty("--rook-meter-1n5i250-0", `${percent}%`);
 $$meter1.style.setProperty("--rook-meter-1n5i250-1", color);
 ```
 
-`$$style` is a helper of a few lines: it adds a `<style>` with the CSS to `<head>` once, whichever
-module comes first, so a component inlined into several modules has one copy on the page. A web
-component (`@html-tag`) renders into a shadow root, which the styles of the page do not reach, so
+`$$style` is a function of the runtime of a few lines: it adds a `<style>` with the CSS to `<head>`
+once, whichever module comes first, so a component inlined into several modules has one copy on
+the page. A web component (`@html-tag`) renders into a shadow root, which the styles of the page do not reach, so
 it gets the CSS of its module there.
 
 ### CSS modules
@@ -827,7 +821,7 @@ blocks are the content:
   JS: a loop or a condition that adds elements to the parent.
 
   ```js
-  const $$ul1 = document.createElement("ul");
+  const $$ul1 = $$element("ul");
   for (const [i, product] of products.entries()) {
     if (product != null) {
       // <Product> ...
@@ -861,7 +855,7 @@ blocks are the content:
   ```
 
   The update of a block runs when any state the block reads changes, and it updates all its parts.
-  The helpers get into a module only if used, like `$$runDeferred`.
+  The module imports these functions of the runtime only if it uses them, like `$$runDeferred`.
 
 - When a branch or a list item is removed, the functions returned by the `mount()` of the
   components inside it run, nested blocks included. When `effect` appears, its `defer`s will run
@@ -1388,12 +1382,12 @@ body of `for`: the code of one row of the list is written there once, and no ext
     which the compiler reads itself: typed classes with names of their own, and the CSS added to the
     page by the module, so it works without a bundler. Several classes are joined with template
     strings, without a syntax of their own.
-15. **A module whose code creates more than 20 elements creates them with `$$element`,** which
-    takes their attributes in two objects, properties and attributes for `setAttribute`. On the
-    site it saves 7.5% of the minified JS but less than 1% after gzip, which compresses repeated
-    statements well, and the call is a little slower than the statements; in a small module the
-    helper itself would take more than it saves. Below the threshold the code stays
-    `createElement` and a statement per attribute, which is easier to read.
+15. **Elements are created with `$$element`,** which takes their attributes in two objects,
+    properties and attributes for `setAttribute`. On the site it saves 7.5% of the minified JS but
+    less than 1% after gzip, which compresses repeated statements well, and the call is a little
+    slower than the statements. While the helper was in each module, a module used it only from 20
+    elements, where it saved more than it took; imported from the runtime, it costs a name, so
+    every module uses it.
 16. **Components are values of type `comp(title string)`, used as tags:** `<section.content />`,
     or `<Page />` with a variable `Page`. The type writes the names of the properties, which are
     those of the attributes, and the tag passes them by position, so a component fits a type with

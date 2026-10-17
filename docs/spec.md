@@ -777,7 +777,7 @@ async func lighten(pixels Uint8ClampedArray, amount number) {
 
 ```js
 async function lighten(pixels, amount) {
-  await $$goFor("$$goroutine0", pixels, amount);
+  await $$goFor($$go, "$$goroutine0", pixels, amount);
 }
 
 // app.worker.js
@@ -1377,6 +1377,39 @@ compile time.
   structure. If any file has errors, no file is written.
 - `rook run` compiles the imported `.rk` files on the fly.
 
+### The runtime
+
+```go
+const jobs = chan<number>(10)
+jobs <- 1
+```
+
+```js
+import { $$chan, $$send } from "rooklang/runtime";
+
+const jobs = $$chan(10, 0);
+await $$send(jobs, 1);
+```
+
+What the code cannot do with JS alone, such as channels, goroutines, queues, `defer` inside a loop
+and the blocks of markup, is done by functions of a small library, the runtime: `rooklang/runtime`
+in the package. A module imports the ones its code uses, by their names, which start with `$$`
+like all names of generated code; a module that needs none imports nothing.
+
+- **One runtime for all modules:** a channel or a queue that one module makes works the same in
+  another, which imports the same runtime. Each thread has its own copy; what threads share goes
+  through messages (see "Goroutines").
+- **`rooklang` is a dependency of the project:** the code that `rook build` writes imports the
+  runtime when it runs, so `npm install rooklang` installs it as a dependency, not only for the
+  build. Vite puts the runtime into the bundle, and `rook run` takes the runtime of the compiler,
+  wherever the program is.
+- **What is the module's own** stays in it: the start of its workers, whose URL a bundler needs to
+  see there (`$$startWorker`), the `$$go` that passes it to the runtime, and the CSS of its
+  components (`$$styles`).
+- **Inline:** `compile(source, { runtime: "inline" })` puts the parts of the runtime that the code
+  uses into the module, for code that runs without imports; the playground of the site runs its
+  programs so, while its JavaScript tab shows the code with the import.
+
 ### Types from TypeScript
 
 The types of imports that are not `.rk` modules come from TypeScript declarations: packages with
@@ -1487,9 +1520,7 @@ const link = <a href="/" class="nav">Link {name}</a>     // HTMLAnchorElement
 ```
 
 ```js
-const link = document.createElement("a");
-link.href = "/";
-link.className = "nav";
+const link = $$element("a", { href: "/", className: "nav" });
 link.append("Link ", name);
 ```
 
@@ -1503,8 +1534,8 @@ link.append("Link ", name);
   `<g>`...) are created in the SVG namespace, with `createElementNS`, and their attributes are set
   with `setAttribute`. `<a>`, `<title>` and the other tags HTML has too are SVG only inside `<svg>`;
   the children of `<foreignObject>` are HTML.
-- **Many elements:** a module whose code creates more than 20 elements creates them with a helper
-  that takes the attributes they have from the start,
+- **Creating elements:** an element is created by a function of the runtime that takes the
+  attributes it has from the start,
   `$$element("a", { href: "/", className: "nav" }, { "aria-label": label })`, instead of
   `createElement` and a statement per attribute. Handlers, `bind:`, styles, attributes that may be
   `null` and those after a spread stay statements.
@@ -1604,7 +1635,7 @@ comp Counter(initialValue number) {
 
 ```js
 let count = initialValue;
-const $$button3 = document.createElement("button");
+const $$button3 = $$element("button");
 $$button3.addEventListener("click", () => {
   count++;
   $$text4.data = count;
@@ -1751,8 +1782,7 @@ comp Search() {
 ```
 
 ```js
-const input = document.createElement("input");
-input.id = "query";
+const input = $$element("input", { id: "query" });
 $$mount(() => $$mountNode2, () => {
   input.focus();
 });

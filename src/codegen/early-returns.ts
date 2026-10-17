@@ -122,7 +122,6 @@ export abstract class EarlyReturnEmitter extends ComponentValueEmitter {
     for (const effect of this.effects) {
       this.line(`${effect.name}();`);
       if (effect.cleanups === null) continue;
-      this.helpers.add('owner');
       this.line(`$$onRemove(() => $$runDeferred(${effect.cleanups}.splice(0)));`);
     }
   }

@@ -182,13 +182,13 @@ describe('CSS', () => {
 describe('generated code', () => {
   it('adds the CSS once at the start of the module and the class to every element', () => {
     const code = js(card('        .card { padding: 8px }\n        p { margin: 0 }'));
-    const [, scope] = /\$\$style\("(rook-card-\w+)"/.exec(code)!;
+    const [, scope] = /\$\$style\(\$\$styles, "(rook-card-\w+)"/.exec(code)!;
 
     expect(code).toContain(
-      `$$style("${scope}", \`.card.${scope} {\n  padding: 8px;\n}\np.${scope} {`,
+      `$$style($$styles, "${scope}", \`.card.${scope} {\n  padding: 8px;\n}\np.${scope} {`,
     );
-    expect(code).toContain(`$$card1.className = "card ${scope}";`);
-    expect(code).toContain(`$$p2.className = "${scope}";`);
+    expect(code).toContain(`$$card1 = $$element("section", { className: "card ${scope}" });`);
+    expect(code).toContain(`const $$p2 = $$element("p", { className: "${scope}" });`);
   });
 
   it('keeps the class of the style in a class that changes', () => {
@@ -212,10 +212,8 @@ describe('generated code', () => {
       ),
     );
 
-    expect(code).toMatch(
-      /const box = document\.createElement\("div"\);\n {2}box\.className = "box rook-card-\w+";/,
-    );
-    expect(code).toMatch(/\$\$svg\d+\.setAttribute\("class", "rook-card-\w+"\);/);
+    expect(code).toMatch(/const box = \$\$element\("div", \{ className: "box rook-card-\w+" \}\);/);
+    expect(code).toMatch(/\$\$svgElement\("svg", \{ class: "rook-card-\w+" \}\);/);
   });
 
   it('sets values from code as CSS variables and updates them', () => {

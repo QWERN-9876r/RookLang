@@ -106,7 +106,6 @@ export abstract class RefEmitter extends EarlyReturnEmitter {
       let creation: Creation = { covered: new Set(), scoped: false };
 
       if (preset) {
-        this.createdElements++;
         this.line(`const ${name} = ${preset.name} ?? ${this.createElement(tag, svg)};`);
       } else {
         creation = this.createWith(

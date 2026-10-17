@@ -40,7 +40,7 @@ function compileWithCss(main: string, files: Record<string, string> = {}) {
   for (const [name, text] of Object.entries(files)) writeFileSync(join(dir, name), text);
   writeFileSync(join(dir, 'main.rk'), main);
 
-  return { dir, ...compile(main, { filename: join(dir, 'main.rk') }) };
+  return { dir, ...compile(main, { filename: join(dir, 'main.rk'), runtime: 'inline' }) };
 }
 
 describe('CSS', () => {
@@ -100,7 +100,7 @@ describe('generated code', () => {
     expect(code).toContain(
       `const styles = { button: "button_${id}", primary: "primary_${id}", ghost: "ghost_${id}", "is-active": "is-active_${id}" };`,
     );
-    expect(code).toContain(`$$style("rook-module-${id}", \`:root {`);
+    expect(code).toContain(`$$style($$styles, "rook-module-${id}", \`:root {`);
     expect(dependencies).toEqual(['./button.module.css']);
   });
 

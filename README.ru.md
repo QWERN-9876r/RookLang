@@ -3,7 +3,8 @@
 [English](README.md) · **Русский**
 
 Язык с семантикой JavaScript, синтаксисом в духе Go, горутинами на настоящих потоках и статической
-типизацией. Компилируется в читаемый JavaScript без рантайма (в планах — WebAssembly).
+типизацией. Компилируется в читаемый JavaScript с маленькой библиотекой рантайма для каналов,
+горутин и разметки (в планах — WebAssembly).
 
 ```go
 async func square(jobs <-chan number, results chan<- number) {
@@ -55,11 +56,14 @@ for let i = 0; i < 4; i++ {
 Нужен Node.js ≥ 24.
 
 ```sh
-npm install --save-dev rooklang
+npm install rooklang
 npx rook build app.rk                # app.js рядом с исходником
 npx rook build src --out-dir dist       # все модули папки
 npx rook run app.rk                  # скомпилировать и запустить
 ```
+
+Скомпилированный код импортирует то, что нужно каналам, горутинам и разметке, из
+`rooklang/runtime`, поэтому пакет — зависимость проекта, а не только его сборки.
 
 Из кода компилятор подключается как `import { compile } from 'rooklang'`. Ещё в пакете есть
 плагин для [Vite](#vite) — `rooklang/vite` — и `rooklang/browser`: компилятор без

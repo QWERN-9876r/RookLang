@@ -96,9 +96,7 @@ document.body.append(<Form />)
 `;
     const code = js(source);
 
-    expect(code).toContain(
-      '  const name = document.createElement("label");\n  name.className = "field";',
-    );
+    expect(code).toContain('  const name = $$element("label", { className: "field" });');
     expect(code).toContain('    name.append(label, $$input');
 
     const { output, body } = mountWithDom(source);
@@ -268,12 +266,8 @@ document.body.append(<App />)
     const { code, diagnostics } = compile(readFileSync(filename, 'utf8'), { filename });
 
     expect(diagnostics).toEqual([]);
-    expect(code).toContain(
-      '  const card = document.createElement("section");\n  card.className = "card";',
-    );
-    expect(code).toContain(
-      '  const tree = document.createElement("ul");\n  tree.className = "tree";',
-    );
+    expect(code).toContain('  const card = $$element("section", { className: "card" });');
+    expect(code).toContain('  const tree = $$element("ul", { className: "tree" });');
     expect(code).toMatch(/= \$\$Tree\(\$\$0, tree\);/);
     expect(code).toContain('$$card');
   });

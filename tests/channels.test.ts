@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
 import { errors as syntaxErrors, expr, first, sx, ty } from './parser-helpers.ts';
+import { moduleProject } from './project.ts';
 
 // Channels: `chan T`, `chan<T>(size)`, `ch <- v`, `<-ch`, `for v in ch` and `close(ch)`. After
 // close a channel gives the zero value of its type, as in Go.
@@ -14,7 +14,7 @@ function errors(source: string): string[] {
 }
 
 function js(source: string): string {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 
@@ -39,10 +39,9 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds a program with `rook build` and runs it with Node, with workers. */
 function runBuilt(source: string): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-chan-'));
+  const dir = moduleProject('rook-chan-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
 
@@ -234,8 +233,8 @@ case <-chan<number>():
 });
 
 describe('code generation', () => {
-  it('writes channels with the helpers of the main thread', () => {
-    const code = js(`const ch = chan<number>(2)
+  it('writes channels with the runtime of the main thread', () => {
+    const { code } = compile(`const ch = chan<number>(2)
 ch <- 1
 const v = <-ch
 const w, ok = <-ch
@@ -250,19 +249,19 @@ close(ch)`);
     expect(code).toContain('const [w, ok] = await $$receive(ch, true);');
     expect(code).toContain('for await (const x of $$range(ch)) {');
     expect(code).toContain('$$close(ch);');
-    expect(code).toContain('return (globalThis[Symbol.for("rook.threads")] ??= {');
+    expect(code.split('\n')[0]).toBe(
+      'import { $$chan, $$close, $$range, $$receive, $$send } from "rooklang/runtime";',
+    );
   });
 
-  it('gives the worker module the same helpers, which ask the thread that made a channel', () => {
+  it('gives the worker module the same runtime, which asks the thread that made a channel', () => {
     const { worker } = compile(`async func fill(c chan string) {
     c <- "x"
     close(c)
 }
 go fill(chan<string>())`);
 
-    expect(worker).toContain(
-      'if (owner !== $$registry().key) return $$ask(owner, { op: "send", channel: id, value });',
-    );
+    expect(worker).toContain('import { $$close, $$send, $$serve } from "rooklang/runtime";');
     expect(worker).toContain('await $$send(c, "x");');
   });
 });

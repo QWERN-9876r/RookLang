@@ -11,7 +11,7 @@ function errors(source: string): string[] {
 
 /** Runs a program in the main thread; returns what it printed. */
 async function run(source: string): Promise<string[]> {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
   const output: string[] = [];
   const log = (...args: unknown[]) => output.push(args.map(String).join(' '));
   const prototype = Object.getPrototypeOf(async () => {}) as { constructor: unknown };

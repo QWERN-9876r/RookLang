@@ -5,11 +5,11 @@ import type { Live } from './reactive.ts';
 import { ARROW } from './syntax.ts';
 
 /**
- * The creation of elements. In a module that creates many of them (see ELEMENT_HELPER_LIMIT in
- * js.ts) an element is created by a helper together with the attributes it has from the start:
- * `$$element("a", { href: "/", className: "link" }, { "aria-label": label })` takes the place of
- * a `createElement` and a statement for each attribute. The first object holds properties, the
- * second attributes set with setAttribute; an SVG element has only attributes.
+ * The creation of elements. An element is created by a function of the runtime together with the
+ * attributes it has from the start: `$$element("a", { href: "/", className: "link" },
+ * { "aria-label": label })` takes the place of a `createElement` and a statement for each
+ * attribute. The first object holds properties, the second attributes set with setAttribute; an
+ * SVG element has only attributes.
  */
 
 /** Attributes given to the helper that creates an element, which need no statements of their own. */
@@ -27,11 +27,8 @@ interface Entry {
 }
 
 export abstract class CreationEmitter extends AttributeEmitter {
-  /** The elements the code creates, counted where it creates them, not as often as it runs. */
-  createdElements = 0;
-
   /**
-   * Writes `declaration = <a new element>`. With the helper it is given the attributes before the
+   * Writes `declaration = <a new element>`. It is given the attributes before the
    * first spread, which may override them, except those that need more than a value: handlers,
    * `bind:`, styles, properties of web components and attributes that may be null. `scopeClass`
    * is the class of the style for an element without a class attribute.
@@ -47,13 +44,6 @@ export abstract class CreationEmitter extends AttributeEmitter {
     scopeClass: string | null,
   ): Creation {
     const covered = new Set<ast.JsxAttribute | ast.JsxSpreadAttribute>();
-
-    this.createdElements++;
-    if (!this.options.elementHelper) {
-      this.line(`${declaration} = ${this.createElement(tag, svg)};`);
-
-      return { covered, scoped: false };
-    }
 
     const entries: Entry[] = [];
 
@@ -92,11 +82,9 @@ export abstract class CreationEmitter extends AttributeEmitter {
     const args = [JSON.stringify(tag)];
 
     if (svg) {
-      this.helpers.add('svgElement');
       if (attributesObject) args.push(attributesObject);
       this.line(`${declaration} = $$svgElement(${args.join(', ')});`);
     } else {
-      this.helpers.add('element');
       if (properties || attributesObject) args.push(properties ?? '{}');
       if (attributesObject) args.push(attributesObject);
       this.line(`${declaration} = $$element(${args.join(', ')});`);

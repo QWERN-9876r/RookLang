@@ -226,8 +226,8 @@ document.body.append(<Field name="a" />, <Icon />)
 `;
     const user = compileIn(project({ 'card.rk': card, 'main.rk': main }), 'main.rk');
 
-    expect(user.code).toContain('document.createElement("input")');
-    expect(user.code).toContain('document.createElement("p")');
+    expect(user.code).toContain('$$element("input", { value: $$Field$PREFIX + name })');
+    expect(user.code).toContain('$$icon3 = $$element("p");');
   });
 });
 

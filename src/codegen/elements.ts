@@ -150,7 +150,6 @@ export abstract class ElementEmitter extends CreationEmitter {
       if (tag === null) {
         this.line(`${target} = document.createDocumentFragment();`);
       } else if (preset) {
-        this.createdElements++;
         this.line(`${target} = ${preset.name} ?? ${this.createElement(tag, svg)};`);
       } else {
         const creation = this.createWith(
@@ -294,7 +293,6 @@ export abstract class ElementEmitter extends CreationEmitter {
 
             case 'unknown':
               flush();
-              this.helpers.add('append');
               this.line(`$$append(${element}, ${this.expression(expression, ARROW)});`);
               break;
           }
@@ -349,7 +347,6 @@ export abstract class ElementEmitter extends CreationEmitter {
     const name = `$$content${id}`;
     const update = `$$updateContent${id}`;
 
-    this.helpers.add('content');
     this.line(`const [${name}, ${update}] = $$content(${this.liveFunction(expression)});`);
     live.depend(sources, `${update}();`);
 

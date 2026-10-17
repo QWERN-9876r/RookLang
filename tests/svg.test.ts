@@ -23,8 +23,6 @@ function js(source: string): string {
   return code;
 }
 
-const NS = '"http://www.w3.org/2000/svg"';
-
 describe('types', () => {
   it('types SVG elements and lets them be appended', () => {
     expect(
@@ -46,16 +44,15 @@ describe('generated code', () => {
       'const size = 16\ndocument.body.append(<svg class="icon" width={size}><path d="M2 2" /></svg>)',
     );
 
-    expect(code).toContain(`const $$svg1 = document.createElementNS(${NS}, "svg");`);
-    expect(code).toContain('$$svg1.setAttribute("class", "icon");');
-    expect(code).toContain('$$svg1.setAttribute("width", size);');
-    expect(code).toContain(`document.createElementNS(${NS}, "path");`);
+    // An SVG element takes its attributes, which have no properties of the DOM.
+    expect(code).toContain('const $$svg1 = $$svgElement("svg", { class: "icon", width: size });');
+    expect(code).toContain('const $$path2 = $$svgElement("path", { d: "M2 2" });');
   });
 
   it('knows tags that only SVG has, also in a component outside <svg>', () => {
     expect(
       js('comp Dot() {\n    return <circle r="2" />\n}\nconst s = <svg><Dot /></svg>'),
-    ).toContain(`document.createElementNS(${NS}, "circle");`);
+    ).toContain('$$dot1 = $$svgElement("circle", { r: "2" });');
   });
 
   it('makes <a> SVG inside <svg> and HTML again inside <foreignObject>', () => {
@@ -63,9 +60,8 @@ describe('generated code', () => {
       'const s = <svg><a href="#x" /><foreignObject><a href="#y" /></foreignObject></svg>',
     );
 
-    expect(code).toContain(`document.createElementNS(${NS}, "a");`);
-    expect(code).toContain('setAttribute("href", "#x");');
-    expect(code).toContain('const $$a3 = document.createElement("a");\n$$a3.href = "#y";');
+    expect(code).toContain('const $$a1 = $$svgElement("a", { href: "#x" });');
+    expect(code).toContain('const $$a3 = $$element("a", { href: "#y" });');
   });
 
   it('creates the element of a ref in SVG', () => {
@@ -73,8 +69,7 @@ describe('generated code', () => {
       'comp A() {\n    ref line\n    return <svg><g><line ref={line} x2="4" /></g></svg>\n}\ndocument.body.append(<A />)',
     );
 
-    expect(code).toContain(`const line = document.createElementNS(${NS}, "line");`);
-    expect(code).toContain('line.setAttribute("x2", "4");');
+    expect(code).toContain('const line = $$svgElement("line", { x2: "4" });');
   });
 });
 

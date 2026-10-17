@@ -82,14 +82,14 @@ export abstract class StyleEmitter extends RefEmitter {
   }
 
   /**
-   * The objects of the CSS modules, and `$$style(id, css)` for them and for every style of a
+   * The objects of the CSS modules, and `$$style($$styles, id, css)` for them and for every style of a
    * component the module uses: modules first, so that components can override them.
    */
   protected styleRegistrations(): string[] {
     const register = (id: string, css: string) => {
       const text = css.replace(/[`\\]|\$\{/g, (match) => `\\${match}`);
 
-      return `$$style(${JSON.stringify(id)}, \`${text}\`);`;
+      return `$$style($$styles, ${JSON.stringify(id)}, \`${text}\`);`;
     };
 
     return [

@@ -34,6 +34,11 @@ export interface BrowserCompileResult {
 export interface BrowserOptions {
   /** Markup and components; off by default, as in a package without them. */
   markup?: boolean;
+  /**
+   * Import the runtime from "rooklang/runtime", the default, or put it into the module: code that
+   * runs without imports, as in the playground, needs it there.
+   */
+  runtime?: 'import' | 'inline';
 }
 
 /** Compiles a program; `workerUrl` is where its worker module of `go` will be, if not next to it. */
@@ -46,6 +51,7 @@ export function compile(
     rewriteImports: false,
     workerUrl: workerUrl ?? undefined,
     markup: options.markup ?? false,
+    runtime: options.runtime,
   });
   const file = new SourceFile('', source);
   const located = (diagnostic: Diagnostic) => {

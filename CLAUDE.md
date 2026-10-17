@@ -1,7 +1,7 @@
 # Rook — rules for Claude Code
 
 Rook is a language with JavaScript semantics, Go-style syntax and static types. It compiles
-to readable JavaScript without a runtime library. The compiler is written in TypeScript and runs on
+to readable JavaScript that imports a small runtime library, `rooklang/runtime`. The compiler is written in TypeScript and runs on
 Node 24. The specification with the reasons for its decisions is in `docs/spec.md`, the design of
 markup and components in `docs/components.md`.
 
@@ -29,7 +29,7 @@ npm run site:dev / site:build / site  # the docs site: Vite dev server / build /
 npm run site:images                   # redraw the og:image pictures of site/public (needs Chrome)
 npm run vscode:build                  # bundle the VS Code extension and its language server
 npm run vscode:install                # rebuild and install the VS Code extension
-npm run format                        # prettier --write, then eslint --fix for blank lines
+npm run format                        # prettier --write, eslint --fix for blank lines, src/runtime/sources.ts
 ```
 
 ## Code rules
@@ -57,8 +57,12 @@ npm run format                        # prettier --write, then eslint --fix for 
 - `src/browser.ts` is the compiler of the site's playground: it has no TypeScript compiler. Code in
   `src/typescript/` (types from `.d.ts` and `lib.dom`) is Node-only and must not be imported from
   it; without it the checker falls back to `src/checker/builtins.ts` and `src/checker/dom.ts`.
-- Names in generated JS start with `$$`; Rook code cannot use such names. Runtime helpers
-  are in `src/codegen/helpers.ts`, with their dependencies in `HELPER_NEEDS`.
+- Names in generated JS start with `$$`; Rook code cannot use such names. The runtime that
+  generated code imports from `rooklang/runtime` is plain JS in `src/runtime/` (exported as is,
+  without a build); the generator imports the names its output uses (`src/codegen/runtime.ts`).
+  `src/runtime/sources.ts` has the text of these files for `runtime: 'inline'` (the playground,
+  tests that run code without imports): `npm run format` writes it again, and a test fails if it is
+  out of date.
 - Diagnostics: English, lowercase, and say how to fix the problem, with an example where it helps:
   `"page" ... must have a hyphen; give one, e.g. @html-tag("app-page")`.
 - Comments are in English and explain why, at the density of the surrounding code.
@@ -97,7 +101,7 @@ Go through the whole list; tests must cover each layer that changed.
 
 1. Lexer, AST (`src/ast/`), parser; `src/walk.ts` if the AST has new children.
 2. Checker: types, error messages.
-3. Code generator; runtime helpers if needed.
+3. Code generator; the runtime in `src/runtime/` if needed.
 4. Tests in `tests/` by area. DOM behaviour is tested with the small fake DOM in
    `tests/fake-dom.ts` (`mountWithDom`, `runWithDom`): extend it rather than adding jsdom.
 5. `docs/spec.md` (and `docs/components.md` for markup and components), in both languages.

@@ -140,7 +140,6 @@ export abstract class AttributeEmitter extends UpdateEmitter {
     if (this.typeOf(value)?.kind !== 'nullable') {
       this.setLive(live, value, (text) => `${element}.setAttribute(${quoted}, ${text});`);
     } else if (live && live.dependencies(value).size > 0) {
-      this.helpers.add('attribute');
       this.setLive(live, value, (text) => `$$attribute(${element}, ${quoted}, ${text});`);
     } else {
       // A null value leaves the attribute out.

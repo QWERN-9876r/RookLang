@@ -124,8 +124,6 @@ export abstract class CallEmitter extends ExpressionEmitter {
         ? this.expression(node.length, ARROW)
         : `${size} * ${this.expression(node.length, BINARY['*'] + 1)}`;
 
-    this.helpers.add('shared');
-
     return `new ${typed}($$shared(${bytes}))`;
   }
 
@@ -137,15 +135,11 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected override chan(node: ast.ChanExpression): string {
     const size = node.size ? this.expression(node.size, ARROW) : '0';
 
-    this.helpers.add('chan');
-
     return `$$chan(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /** `queue<number>(items)`: the queue copies the values, as `[...items]` would. */
   protected override queue(node: ast.QueueExpression): string {
-    this.helpers.add('queue');
-
     return `new $$Queue(${node.items ? this.expression(node.items, ARROW) : ''})`;
   }
 
@@ -159,8 +153,6 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const type = this.options.types?.get(node);
     const channel = type?.kind === 'tuple' ? type.types[0] : undefined;
     const element = channel?.kind === 'object' ? channel.instanceOf?.args[0] : undefined;
-
-    this.helpers.add('streams');
 
     return `$$fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
   }

@@ -1,13 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { ELEMENT_HELPER_LIMIT } from '../src/codegen/js.ts';
 import { compile } from '../src/index.ts';
 import { mountWithDom } from './fake-dom.ts';
 
-// A module that creates more than ELEMENT_HELPER_LIMIT elements creates them with $$element, which
-// takes the attributes they have from the start.
-
-/** Markup that is never created, but makes the module create enough elements for the helper. */
-const FILLER = `\nconst filler = () => <div>${'<i />'.repeat(ELEMENT_HELPER_LIMIT)}</div>`;
+// Elements are created with $$element of the runtime, which takes the attributes they have from
+// the start.
 
 function js(source: string): string {
   const { code, diagnostics } = compile(source);
@@ -18,16 +14,13 @@ function js(source: string): string {
 }
 
 describe('the element helper', () => {
-  it('is used only when the module creates more elements than the limit', () => {
-    const source = 'document.body.append(<div id="app"><p>Hi</p></div>)';
-    const few = js(source);
-    const many = js(source + FILLER);
+  it('creates every element', () => {
+    const code = js('document.body.append(<div id="app"><p>Hi</p></div>)');
 
-    expect(few).toContain('const $$div1 = document.createElement("div");\n$$div1.id = "app";');
-    expect(few).not.toContain('$$element');
-    expect(many).toContain('const $$div1 = $$element("div", { id: "app" });');
-    expect(many).toContain('const $$p2 = $$element("p");');
-    expect(many.match(/function \$\$element\(/g)).toHaveLength(1);
+    expect(code).toContain('const $$div1 = $$element("div", { id: "app" });');
+    expect(code).toContain('const $$p2 = $$element("p");');
+    expect(code).toContain('import { $$element } from "rooklang/runtime";');
+    expect(code).not.toContain('document.createElement');
   });
 
   it('takes properties and attributes; the rest are statements after it', () => {
@@ -45,7 +38,7 @@ document.body.append(<button
     onClick={console.log(1)}
     {...extra}
     id="after"
->x</button>)` + FILLER,
+>x</button>)`,
     );
 
     expect(code).toContain(
@@ -59,13 +52,11 @@ document.body.append(<button
   });
 
   it('creates SVG elements with their attributes', () => {
-    const code = js(
-      'document.body.append(<svg viewBox="0 0 8 8"><path d="M0 0" /></svg>)' + FILLER,
-    );
+    const code = js('document.body.append(<svg viewBox="0 0 8 8"><path d="M0 0" /></svg>)');
 
     expect(code).toContain('const $$svg1 = $$svgElement("svg", { viewBox: "0 0 8 8" });');
     expect(code).toContain('const $$path2 = $$svgElement("path", { d: "M0 0" });');
-    expect(code).toContain('document.createElementNS("http://www.w3.org/2000/svg", tag)');
+    expect(code).toContain('import { $$svgElement } from "rooklang/runtime";');
   });
 
   it('creates the element of a ref with its constant attributes', () => {
@@ -75,7 +66,7 @@ document.body.append(<button
     input.focus()
     return <label>Find <input ref={input} type="search" class="field" placeholder={hint} /></label>
 }
-document.body.append(<Search hint="Fruit" />)` + FILLER,
+document.body.append(<Search hint="Fruit" />)`,
     );
 
     expect(code).toContain(
@@ -100,9 +91,9 @@ document.body.append(<Search hint="Fruit" />)` + FILLER,
 }
 document.body.append(<div id="app"><Panel title="A" class="wide" hidden /></div>)`;
     const plain = mountWithDom(source);
-    const helped = mountWithDom(source + FILLER);
+    const helped = mountWithDom(source);
 
-    expect(js(source + FILLER)).toContain('$$element("section"');
+    expect(js(source)).toContain('$$element("section"');
     expect(String(helped.body)).toBe(String(plain.body));
     expect(String(plain.body)).toContain('wide');
 

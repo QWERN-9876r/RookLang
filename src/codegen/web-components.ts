@@ -24,8 +24,6 @@ export abstract class WebComponentEmitter extends ComponentEmitter {
   }
 
   protected webComponentClass(component: ast.ComponentDeclaration): void {
-    this.helpers.add('owner');
-
     const name = component.name.name;
     const className = `$$${name}Element`;
     const props = component.params.filter((param) => param.name.name !== 'children');

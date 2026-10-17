@@ -100,7 +100,7 @@ describe('the setting', () => {
       spawnSync(process.execPath, [cli, ...args, file], { encoding: 'utf8' });
 
     expect(rook('build', '--stdout').stderr).toContain('markup is off');
-    expect(rook('build', '--stdout', '--markup').stdout).toContain('createElement("h1")');
+    expect(rook('build', '--stdout', '--markup').stdout).toContain('$$element("h1")');
     expect(rook('build', '--stdout', '--markup', '--no-markup').stderr).toContain(
       '--markup and --no-markup cannot be used together',
     );

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainThread } from 'node:worker_threads';
 import { displayPath } from './build.ts';
+import { RUNTIME_MODULE } from './codegen/runtime.ts';
 import { compileFile } from './compile-file.ts';
 
 // `rook run` imports this module first (`node --import`): Node then imports `.rk` files,
@@ -25,7 +26,15 @@ function cached(url: string): string | null {
   return cache ? join(cache, `${createHash('sha1').update(url).digest('hex')}.js`) : null;
 }
 
+// The compiled code imports the runtime of this compiler, wherever the program is.
+const runtime = import.meta.resolve(RUNTIME_MODULE);
+
 registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === RUNTIME_MODULE) return { url: runtime, shortCircuit: true };
+
+    return nextResolve(specifier, context);
+  },
   load(url, context, nextLoad) {
     const { protocol, pathname, search } = new URL(url);
 

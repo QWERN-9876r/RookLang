@@ -180,8 +180,10 @@ document.body.append(<ul>{for i, product in products {
         <li>{i}: нет</li>
     }
 }}</ul>)`),
-    ).toBe(`const products = [];
-const $$ul1 = document.createElement("ul");
+    ).toBe(`import { $$element } from "rooklang/runtime";
+
+const products = [];
+const $$ul1 = $$element("ul");
 for (const [i, product] of products.entries()) {
   if (product != null) {
     // <Product>
@@ -189,12 +191,12 @@ for (const [i, product] of products.entries()) {
     {
       const title = product.title;
       const price = product.price;
-      $$product2 = document.createElement("li");
+      $$product2 = $$element("li");
       $$product2.append(title, ": ", price, " ₽");
     }
     $$ul1.append($$product2);
   } else {
-    const $$li3 = document.createElement("li");
+    const $$li3 = $$element("li");
     $$li3.append(i, ": нет");
     $$ul1.append($$li3);
   }
@@ -219,18 +221,17 @@ document.body.append($$ul1);`);
 }
 document.body.append(<Todos />)`);
 
-    expect(code).toContain('function $$branches(choose, blocks) {');
-    expect(code).toContain('function $$list(items, create) {');
+    expect(code).toContain('import { $$branches, $$element, $$list } from "rooklang/runtime";');
     expect(code.slice(code.indexOf('// <Todos>'))).toBe(`// <Todos>
 let $$todos1;
 {
   let todos = ["a"];
   let done = false;
-  const $$ul4 = document.createElement("ul");
+  const $$ul4 = $$element("ul");
   const [$$for5, $$updateFor5] = $$list(() => todos, (todo, i) => {
     const $$block6 = document.createDocumentFragment();
     let label = \`\${i + 1}. \${todo}\`;
-    const $$li7 = document.createElement("li");
+    const $$li7 = $$element("li");
     const $$text8 = document.createTextNode(label);
     $$li7.append($$text8);
     $$block6.append($$li7);
@@ -242,12 +243,12 @@ let $$todos1;
   });
   const [$$if9, $$updateIf9] = $$branches(() => done ? 0 : -1, [() => {
     const $$block10 = document.createDocumentFragment();
-    const $$li11 = document.createElement("li");
+    const $$li11 = $$element("li");
     $$li11.append("Готово");
     $$block10.append($$li11);
     return [$$block10];
   }]);
-  const $$li12 = document.createElement("li");
+  const $$li12 = $$element("li");
   $$li12.addEventListener("click", () => {
     todos.push("b");
     $$updateFor5();

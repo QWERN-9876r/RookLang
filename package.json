@@ -1,6 +1,6 @@
 {
   "name": "rooklang",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A language with JavaScript semantics, Go-style syntax, goroutines on real threads and static types that compiles to readable JavaScript",
   "keywords": [
     "rooklang",
@@ -47,10 +47,12 @@
       "types": "./dist/browser.d.ts",
       "default": "./dist/browser.js"
     },
+    "./runtime": "./src/runtime/index.js",
     "./package.json": "./package.json"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/runtime/*.js"
   ],
   "scripts": {
     "rook": "node src/cli.ts",
@@ -68,7 +70,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "format": "prettier --write . && eslint --fix --fix-type layout .",
+    "format": "prettier --write . && eslint --fix --fix-type layout . && node scripts/runtime-sources.ts",
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
     "prepare": "husky"

@@ -1,11 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile as compileInBrowser } from '../src/browser.ts';
 import { compile } from '../src/index.ts';
 import { errors as parseErrors, expr, sx } from './parser-helpers.ts';
+import { moduleProject } from './project.ts';
 
 // Streams and channels: `chan(stream, size)` receives the chunks of a ReadableStream into a
 // channel, with a second channel for the error of the stream, and `stream(ch)` is a ReadableStream
@@ -19,7 +19,7 @@ function errors(source: string): string[] {
 async function run(program: string, globals: Record<string, unknown> = {}): Promise<string[]> {
   const names = Object.keys(globals);
   const preamble = names.map((name) => `const ${name} = (globalThis as any).${name}\n`).join('');
-  const { code, diagnostics } = compile(preamble + program);
+  const { code, diagnostics } = compile(preamble + program, { runtime: 'inline' });
   const output: string[] = [];
   const log = (...args: unknown[]) => output.push(args.map(String).join(' '));
   const prototype = Object.getPrototypeOf(async () => {}) as { constructor: unknown };
@@ -42,10 +42,9 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds a program and runs it with Node, with workers; returns what it printed. */
 function runBuilt(source: string): string {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-streams-'));
+  const dir = moduleProject('rook-streams-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
 
@@ -154,8 +153,7 @@ const body = stream(chunks)`);
       'const [chunks, failed] = $$fromStream(new Response("x").body, 2, new Uint8Array());',
     );
     expect(code).toContain('const body = $$stream(chunks);');
-    expect(code).toContain('function $$fromStream(');
-    expect(code).toContain('function $$chan(');
+    expect(code).toContain('import { $$fromStream, $$stream } from "rooklang/runtime";');
   });
 });
 

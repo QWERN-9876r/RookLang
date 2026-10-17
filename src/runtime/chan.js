@@ -1,0 +1,277 @@
+// Channels: sending, receiving and closing, here or in the thread that made the channel
+// (threads.js), and the queues of a channel. Receiving from a closed channel gives
+// the zero value of its type, as in Go.
+
+import { $$Queue } from './queue.js';
+import { $$commit, $$lock, $$select, $$try, $$unlock, $$unwait } from './select.js';
+import { $$adopt, $$ask, $$ownerOf, $$post, $$registry, $$stopped } from './threads.js';
+
+$$registry().handle ??= { message: $$message, pump: $$pump };
+
+export function $$chan(size, zero) {
+  const registry = $$registry();
+  const id = `${registry.key}:${registry.channels++}`;
+  const channel = { $$chan: id, size, zero };
+
+  registry.states.set(id, {
+    size,
+    zero,
+    buffer: new $$Queue(),
+    receivers: new $$Queue(),
+    senders: new $$Queue(),
+    closed: false,
+    holders: 1,
+    busy: false,
+  });
+  $$adopt(channel);
+
+  return channel;
+}
+
+// A local operation waits in the queue of its channel; one of another thread asks the thread
+// that made the channel.
+export function $$send(channel, value) {
+  const id = channel.$$chan;
+  const owner = $$ownerOf(id);
+
+  if (owner !== $$registry().key) return $$ask(owner, { op: 'send', channel: id, value });
+
+  return new Promise((resolve, reject) =>
+    $$wait(id, 'senders', { value, done: resolve, fail: reject }),
+  );
+}
+
+export function $$receive(channel, withOk = false) {
+  const id = channel.$$chan;
+  const owner = $$ownerOf(id);
+  const received =
+    owner !== $$registry().key
+      ? $$ask(owner, { op: 'receive', channel: id })
+      : new Promise((resolve, reject) => $$wait(id, 'receivers', { done: resolve, fail: reject }));
+
+  return withOk ? received : received.then(([value]) => value);
+}
+
+// Closing a channel of another thread fails this one if it was closed already, as a panic would.
+export function $$close(channel) {
+  const id = channel.$$chan;
+  const owner = $$ownerOf(id);
+
+  if (owner === $$registry().key) return $$closeHere(id);
+  $$ask(owner, { op: 'close', channel: id }).catch((error) => {
+    setTimeout(() => {
+      throw error;
+    });
+  });
+}
+
+export function $$closeHere(id) {
+  const state = $$registry().states.get(id);
+
+  if (state.closed) throw new Error('close of a closed channel');
+  state.closed = true;
+  $$pump(id);
+}
+
+// What a closed channel gives: a value of its own for each receiver, if it is an array or a queue.
+export function $$zero({ zero }) {
+  return Array.isArray(zero) ? [] : zero instanceof $$Queue ? new $$Queue() : zero;
+}
+
+export async function* $$range(channel) {
+  while (true) {
+    const [value, ok] = await $$receive(channel, true);
+
+    if (!ok) return;
+    yield value;
+  }
+}
+
+export function $$wait(id, queue, entry) {
+  const state = $$registry().states.get(id);
+
+  if (!state) return entry.fail?.($$stopped());
+  state[queue].push(entry);
+  $$pump(id);
+}
+
+// The operations of other threads on the channels of this one.
+export function $$message(from, data) {
+  const answer = (value) => $$post(from, { answer: data.ask, value });
+  const fail = (error) => $$post(from, { answer: data.ask, error });
+  const select = { key: from, sid: data.sid };
+
+  switch (data.op) {
+    case 'send':
+      return $$wait(data.channel, 'senders', { from, value: data.value, done: answer, fail });
+
+    case 'receive':
+      return $$wait(data.channel, 'receivers', { from, done: answer, fail });
+
+    case 'close':
+      try {
+        $$closeHere(data.channel);
+
+        return answer();
+      } catch (error) {
+        return fail(error);
+      }
+
+    case 'try':
+      try {
+        return answer($$try(data.channel, data.send, data.value));
+      } catch (error) {
+        return fail(error);
+      }
+
+    case 'select':
+      return $$select(data.cases, data.hasDefault).then(answer, fail);
+
+    case 'wait':
+      return $$wait(data.channel, data.send ? 'senders' : 'receivers', {
+        select,
+        case: data.case,
+        value: data.value,
+      });
+
+    case 'cancel':
+      return $$unwait(select, data.channels);
+
+    case 'lock':
+      return answer($$lock(data.sid));
+
+    case 'unlock':
+      return $$unlock(data.sid);
+
+    case 'commit':
+      return $$commit(data.sid, data.case, data.result, data.error);
+  }
+}
+
+// Matches what waits in a channel: a receiver with a value of the buffer, a sender or the zero value
+// after close; a sender with room in the buffer. A case of a select goes on only if its select
+// has not gone on with another case, which the thread of the select tells.
+export function $$pump(id) {
+  const state = $$registry().states.get(id);
+
+  while (state && !state.busy) {
+    const receiver = state.receivers.at(0);
+    const sender = state.senders.at(0);
+
+    if (receiver && (state.buffer.length > 0 || state.closed)) {
+      if (!$$pair(id, state, receiver, null)) return;
+    } else if (receiver && sender) {
+      if (!$$pair(id, state, receiver, sender)) return;
+    } else if (sender && (state.closed || state.buffer.length < state.size)) {
+      if (!$$pair(id, state, null, sender)) return;
+    } else {
+      return;
+    }
+  }
+}
+
+// Whether the pump can go on at once: a pair whose selects are all in this thread is decided here.
+export function $$pair(id, state, receiver, sender) {
+  const entries = [receiver, sender].filter((entry) => entry !== null);
+  const key = $$registry().key;
+
+  if (entries.some((entry) => entry.select && entry.select.key !== key)) {
+    $$pairLater(id, state, receiver, sender);
+
+    return false;
+  }
+
+  const locks = entries.map((entry) => (entry.select ? $$lock(entry.select.sid) : 'locked'));
+
+  if (locks.every((lock) => lock === 'locked')) {
+    $$complete(state, receiver, sender);
+
+    return true;
+  }
+
+  entries.forEach((entry, i) => locks[i] === 'locked' && $$unlockAt(entry.select));
+
+  return $$settle(id, state, entries, locks);
+}
+
+// A pair with a select of another thread: the channel waits for the answers of that thread.
+export async function $$pairLater(id, state, receiver, sender) {
+  state.busy = true;
+
+  const entries = [receiver, sender].filter((entry) => entry !== null);
+  const locks = [];
+
+  for (const { select } of entries) {
+    const lock = !select
+      ? 'locked'
+      : select.key === $$registry().key
+        ? $$lock(select.sid)
+        : await $$ask(select.key, { op: 'lock', sid: select.sid }).catch(() => 'done');
+
+    locks.push(lock);
+    if (lock !== 'locked') break;
+  }
+
+  state.busy = false;
+  if (locks.length === entries.length && locks.every((lock) => lock === 'locked')) {
+    $$complete(state, receiver, sender);
+  } else {
+    entries.forEach((entry, i) => locks[i] === 'locked' && $$unlockAt(entry.select));
+    if (!$$settle(id, state, entries, locks)) return;
+  }
+
+  $$pump(id);
+}
+
+// After a pair that could not go on: a select that has gone on leaves the queue; one that another
+// channel is deciding is tried again a little later.
+export function $$settle(id, state, entries, locks) {
+  entries.forEach((entry, i) => {
+    if (locks[i] === 'done') $$remove(state, entry);
+  });
+  if (locks.includes('done')) return true;
+  setTimeout(() => $$pump(id), 1 + Math.random() * 4);
+
+  return false;
+}
+
+export function $$remove(state, entry) {
+  state.receivers.$$delete(entry);
+  state.senders.$$delete(entry);
+}
+
+// Takes the pair off the queues and passes the value.
+export function $$complete(state, receiver, sender) {
+  if (receiver) state.receivers.$$delete(receiver);
+  if (sender) state.senders.$$delete(sender);
+  if (receiver) {
+    const result =
+      state.buffer.length > 0
+        ? [state.buffer.shift(), true]
+        : sender
+          ? [sender.value, true]
+          : [$$zero(state), false];
+
+    $$finish(receiver, result);
+    if (sender) $$finish(sender);
+  } else if (state.closed) {
+    $$finish(sender, undefined, new Error('send on a closed channel'));
+  } else {
+    state.buffer.push(sender.value);
+    $$finish(sender);
+  }
+}
+
+export function $$finish(entry, result, error) {
+  const { select } = entry;
+
+  if (!select) return error ? entry.fail(error) : entry.done(result);
+  if (select.key === $$registry().key) return $$commit(select.sid, entry.case, result, error);
+  $$post(select.key, { op: 'commit', sid: select.sid, case: entry.case, result, error });
+}
+
+export function $$unlockAt(select) {
+  if (!select) return;
+  if (select.key === $$registry().key) $$unlock(select.sid);
+  else $$post(select.key, { op: 'unlock', sid: select.sid });
+}

@@ -33,6 +33,8 @@ export interface CompileOptions {
   workerUrl?: string;
   /** Markup and components; by default as the package.json of the file says (src/config.ts). */
   markup?: boolean;
+  /** Import the runtime from "rooklang/runtime", the default, or put it into the module. */
+  runtime?: 'import' | 'inline';
 }
 
 export function compile(source: string, options: CompileOptions = {}): CompileResult {
@@ -48,6 +50,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     workerUrl: options.workerUrl ?? workerUrl(filename ?? 'main.rk', rewriteImports),
     typeCheck: options.typeCheck ?? true,
     declarations: options.declarations ?? false,
+    runtime: options.runtime,
   });
 }
 

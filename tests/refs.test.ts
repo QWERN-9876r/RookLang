@@ -151,18 +151,17 @@ describe('generated code', () => {
 }
 document.body.append(<Card title="Profile" />)
 `),
-    ).toBe(`// <Card>
+    ).toBe(`import { $$element } from "rooklang/runtime";
+
+// <Card>
 let $$card1;
 {
   const title = "Profile";
-  const container = document.createElement("div");
-  container.className = "root";
-  container.hidden = true;
+  const container = $$element("div", { className: "root", hidden: true });
 
   console.log(container.className);
 
-  const $$h22 = document.createElement("h2");
-  $$h22.title = title;
+  const $$h22 = $$element("h2", { title });
   $$h22.append(title);
   container.append($$h22);
   $$card1 = container;
@@ -176,9 +175,7 @@ document.body.append($$card1);
       `${component('    ref box\n    const extra = { title: "x" }', '<div class="a" {...extra} title="b" ref={box} />')}document.body.append(<A items={[]} />)`,
     );
 
-    expect(code).toContain(
-      '  const box = document.createElement("div");\n  box.className = "a";\n  const extra',
-    );
+    expect(code).toContain('  const box = $$element("div", { className: "a" });\n  const extra');
     expect(code).toContain('  Object.assign(box, extra);\n  box.title = "b";\n');
   });
 

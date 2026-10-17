@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
+import { moduleProject } from './project.ts';
 
 // `after(ms)` and `tick(ms)`, channels of time as in Go, and `cancel(task)`, which stops a
 // goroutine of `go`.
@@ -14,7 +14,7 @@ function errors(source: string): string[] {
 
 /** Runs a program in the main thread; returns what it printed. */
 async function run(source: string): Promise<string[]> {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
   const output: string[] = [];
   const log = (...args: unknown[]) => output.push(args.map(String).join(' '));
   const prototype = Object.getPrototypeOf(async () => {}) as { constructor: unknown };
@@ -32,10 +32,9 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds a program and runs it with Node, with workers. */
 function runBuilt(source: string): { stdout: string; stderr: string; time: number } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-timers-'));
+  const dir = moduleProject('rook-timers-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   writeFileSync(join(dir, 'main.rk'), source);
   expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
 

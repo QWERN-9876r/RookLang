@@ -79,7 +79,7 @@ export function notCopied(type: Type, seen = new Set<Type>()): string | null {
         : `a copy of ${typeToString(type)} would lose its class and methods`;
 
     case 'object': {
-      // A queue goes as its values, and the other thread makes a queue of them (thread-helpers.ts).
+      // A queue goes as its values, and the other thread makes a queue of them (src/runtime/threads.js).
       if (isQueue(type)) return inner([queueElement(type)]);
 
       const name = type.instanceOf?.template.name ?? type.name;

@@ -1,8 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { moduleProject } from './project.ts';
 
 // The pool of workers and the threads of channels: calls wait in one queue for a free worker, the
 // modules of a program share the pool, a channel lives in the thread that made it, and the other
@@ -12,10 +12,9 @@ const cli = new URL('../src/cli.ts', import.meta.url).pathname;
 
 /** Builds the files of a program, `main.rk` first, and runs it with Node. */
 function run(files: Record<string, string>): { stdout: string; stderr: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'rook-threads-'));
+  const dir = moduleProject('rook-threads-');
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 30_000 };
 
-  writeFileSync(join(dir, 'package.json'), '{ "type": "module" }');
   for (const [name, source] of Object.entries(files)) writeFileSync(join(dir, name), source);
   expect(spawnSync(process.execPath, [cli, 'build', ...Object.keys(files)], options).stderr).toBe(
     '',

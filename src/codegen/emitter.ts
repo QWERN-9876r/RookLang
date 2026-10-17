@@ -10,7 +10,7 @@ import type { Root } from '../refs.ts';
 import type { StyleModule } from '../style-modules.ts';
 import { forEachChild } from '../walk.ts';
 import type { BindingKind } from './analysis.ts';
-import type { Helper } from './helpers.ts';
+import type { RuntimeMode } from './runtime.ts';
 import { JS_RESERVED, JS_UNDECLARABLE } from './syntax.ts';
 
 export interface JsOptions {
@@ -28,10 +28,10 @@ export interface JsOptions {
   functions?: ReadonlySet<string> | undefined;
   /** The CSS modules the module imports, by their paths as written. */
   styleModules?: ReadonlyMap<string, StyleModule> | undefined;
-  /** Create elements with their attributes by a helper, $$element; see creation.ts. */
-  elementHelper?: boolean | undefined;
   /** For `go`: where the worker module is (`./app.worker.js`), or in it, the functions it runs. */
   goroutines?: { workerUrl: string } | { targets: readonly string[] } | undefined;
+  /** How the module gets the runtime it uses: imported, by default, or in it (runtime.ts). */
+  runtime?: RuntimeMode | undefined;
 }
 
 /** A decorator of another module, with the types of the expressions of that module. */
@@ -86,8 +86,6 @@ export abstract class Emitter {
     temps: 0,
     breakTargets: [],
   };
-  /** Helpers that the module must define, such as $$runDeferred. */
-  protected readonly helpers = new Set<Helper>();
   /**
    * Whether code for the current expression may be written before the statement that contains it.
    * Elements use this to be created in statements of their own; it is off where an expression is

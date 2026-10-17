@@ -23,7 +23,7 @@ function browserErrors(source: string): string[] {
 }
 
 function js(source: string): string {
-  const { code, diagnostics } = compile(source);
+  const { code, diagnostics } = compile(source, { runtime: 'inline' });
 
   expect(diagnostics).toEqual([]);
 

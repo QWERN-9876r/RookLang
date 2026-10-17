@@ -45,7 +45,8 @@ comp Intro() {
             Rook is a language with the semantics of JavaScript, Go-style syntax and static
             types. Its main feature is goroutines: <code>go f(x)</code> runs a function in a thread
             of its own, on another processor, and channels pass values between them, as in Go. It
-            compiles to readable JavaScript without a runtime: what you write is what runs.
+            compiles to readable JavaScript: what you write is what runs, and what JS cannot do
+            alone, such as channels, a small runtime does.
         </p>
         <CardGrid>
             <Card title="Goroutines and channels" icon="cpu">
@@ -329,7 +330,7 @@ comp Modules() {
     </>
 }
 
-const COMMANDS = `npm install --save-dev rooklang
+const COMMANDS = `npm install rooklang
 npx rook build app.rk            # app.js next to the source
 npx rook build src --out-dir dist   # every module of a folder
 npx rook run app.rk              # compile and run
@@ -341,7 +342,9 @@ npm run vscode:install   # the VS Code extension from the source`
 comp Tools() {
     return <>
         <p>
-            The compiler is the npm package <code>rooklang</code>, and it runs on Node.js 24:
+            The compiler is the npm package <code>rooklang</code>, and it runs on Node.js 24. The
+            {" "}compiled code imports the runtime, <code>rooklang/runtime</code>, so the package is
+            {" "}a dependency of the project:
         </p>
         <CodeBlock
             code={COMMANDS}

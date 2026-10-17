@@ -154,10 +154,12 @@ describe('code generation', () => {
     expect(
       js(`${card}const name = "Ann"\ndocument.body.append(<Card title={name}><p>text</p></Card>)`),
     ).toBe(
-      `const name = "Ann";
+      `import { $$element } from "rooklang/runtime";
+
+const name = "Ann";
 // <Card>
 const $$children1 = document.createDocumentFragment();
-const $$p2 = document.createElement("p");
+const $$p2 = $$element("p");
 $$p2.append("text");
 $$children1.append($$p2);
 let $$card3;
@@ -166,9 +168,8 @@ let $$card3;
   const kind = "info";
   const children = $$children1;
   const icon = kind === "warning" ? "!" : "i";
-  $$card3 = document.createElement("section");
-  $$card3.className = kind;
-  const $$h24 = document.createElement("h2");
+  $$card3 = $$element("section", { className: kind });
+  const $$h24 = $$element("h2");
   $$h24.append(icon, " ", title);
   $$card3.append($$h24, children);
 }
@@ -182,13 +183,15 @@ document.body.append($$card3);`,
         `comp Badge(count number) {\n    return <b>{count}</b>\n}\nconst count = 2\nconst b = <Badge count={count} />`,
       ),
     ).toBe(
-      `const count = 2;
+      `import { $$element } from "rooklang/runtime";
+
+const count = 2;
 // <Badge>
 const $$0 = count;
 let $$badge1;
 {
   const count = $$0;
-  $$badge1 = document.createElement("b");
+  $$badge1 = $$element("b");
   $$badge1.append(count);
 }
 const b = $$badge1;`,
@@ -201,12 +204,14 @@ const b = $$badge1;`,
         `comp Dot() {\n    return <i>•</i>\n}\nfunc f(ok bool) any {\n    return ok ? <Dot /> : null\n}`,
       ),
     ).toBe(
-      `function f(ok) {
+      `import { $$element } from "rooklang/runtime";
+
+function f(ok) {
   return ok ? (() => {
     // <Dot>
     let $$dot1;
     {
-      $$dot1 = document.createElement("i");
+      $$dot1 = $$element("i");
       $$dot1.append("•");
     }
     return $$dot1;

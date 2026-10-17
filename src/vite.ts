@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
+import { RUNTIME_MODULE } from './codegen/runtime.ts';
 import { formatDiagnostic } from './diagnostics.ts';
 import { compile } from './index.ts';
 import { SourceFile } from './source.ts';
@@ -9,7 +11,8 @@ import { SourceFile } from './source.ts';
 // checking, so `import { App } from "./app.rk"` works in a Vite project. Type errors stop the
 // build and show up in the browser overlay of the dev server. `app.rk.goroutines.js` is the
 // worker module of `go` in app.rk, which Vite bundles as a worker: it is not a file, and its
-// path has no query, since Vite drops the query of a worker's URL.
+// path has no query, since Vite drops the query of a worker's URL. The compiled code imports the
+// runtime, "rooklang/runtime", of the plugin's own package.
 
 const GOROUTINES = '.goroutines.js';
 
@@ -42,6 +45,9 @@ export function rook(options: RookPluginOptions = {}): Plugin {
       root = config.root;
     },
     resolveId(source, importer) {
+      // The runtime of the compiled code is the one of this compiler, whichever the project has.
+      if (source === RUNTIME_MODULE) return fileURLToPath(import.meta.resolve(RUNTIME_MODULE));
+
       const [path = source] = source.split('?');
 
       if (!path.endsWith(`.rk${GOROUTINES}`)) return null;

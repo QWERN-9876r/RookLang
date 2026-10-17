@@ -14,8 +14,12 @@ export interface Compiled {
     worker string
 }
 
-/** Compiles a program whose worker module of `go` will be at the URL; "" means next to it. */
-type Compile func(string, string) Compiled
+/**
+ * Compiles a program whose worker module of `go` will be at the URL; "" means next to it. Inline,
+ * the code has the runtime of Rook in it, to run without imports; else it imports the runtime, as
+ * the code of rook build does, which the JavaScript tab shows.
+ */
+type Compile func(string, string, bool) Compiled
 
 // The compiler is loaded on the first run, when a JavaScript tab is opened and when the playground
 // comes into view; null until then. Compilations asked for while it loads wait in `waiting`.
@@ -28,7 +32,7 @@ export func compileRook(source string, done func(Compiled)) {
         if compile == null {
             done({ code: "", errors: [text().compilerFailed], worker: "" })
         } else {
-            done(compile(source, ""))
+            done(compile(source, "", false))
         }
     })
 }
@@ -45,10 +49,11 @@ func withCompiler(use func(?Compile)) {
     }
     loadCompiler().then(
         module => {
-            compiler = (source, workerUrl) => {
+            compiler = (source, workerUrl, inline) => {
                 // The page is the DOM: its programs have markup and components.
                 const url = workerUrl == "" ? null : workerUrl
-                const result = module.compile(source, url, { markup: true })
+                const runtime "import" | "inline" = inline ? "inline" : "import"
+                const result = module.compile(source, url, { markup: true, runtime: runtime })
                 return {
                     code: result.code,
                     errors: result.diagnostics.map(d => `${text().position(d.line, d.column)}: ${d.message}`),
@@ -76,7 +81,7 @@ interface Owner {
 }
 
 // The program runs as the owner of its components, with the same key as {if} and {for} in
-// compiled code (owner in src/codegen/helpers.ts). Before the next run, what the mount() of the
+// compiled code ($$owned in src/runtime/markup.js). Before the next run, what the mount() of the
 // previous one returned runs, so its timers stop.
 const OWNER = Symbol.for("rook.owner")
 let owners Map<HTMLElement, Owner> = new Map()
@@ -112,7 +117,12 @@ let allRuns = 0
  * after the run and then with every new line. Compile errors and exceptions are lines too.
  */
 export func runProgram(source string, preview HTMLElement, output func([]string)) {
-    compileRook(source, compiled => {
+    withCompiler(compile => {
+        if compile == null {
+            output([text().compilerFailed])
+            return
+        }
+        const compiled = compile(source, "", true)
         if compiled.errors.length > 0 {
             output(compiled.errors)
         } else if source.includes("import ") {
@@ -126,11 +136,7 @@ export func runProgram(source string, preview HTMLElement, output func([]string)
             const channel = `rooklang-sandbox-${channels}`
             const worker = workerConsole(channel) + compiled.worker
             const url = URL.createObjectURL(new Blob([worker], { type: "text/javascript" }))
-            withCompiler(compile => {
-                if compile != null {
-                    runCompiled(compile(source, url).code, channel, preview, output)
-                }
-            })
+            runCompiled(compile(source, url, true).code, channel, preview, output)
         }
     })
 }

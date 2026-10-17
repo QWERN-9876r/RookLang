@@ -4,7 +4,7 @@ import { goCaptures, goParams, goTarget } from '../goroutines.ts';
 import { isIterator, usesThis } from '../iterators.ts';
 import { containsElement, startsWithObjectLiteral } from './analysis.ts';
 import { Emitter } from './emitter.ts';
-import { PREDECLARED } from './helpers.ts';
+import { PREDECLARED } from './runtime.ts';
 import { ARROW, BINARY, CONDITIONAL, POSTFIX, PRIMARY, UNARY } from './syntax.ts';
 
 /** Expressions, with the parentheses that JS operator precedence requires. */
@@ -47,7 +47,7 @@ export abstract class ExpressionEmitter extends Emitter {
   /** `items[i]` in a part of `go for`, which is `items[$$i]` there (parallel.ts). */
   protected readonly partElements = new Set<ast.Expression>();
 
-  /** In the worker module, `go` runs in the same worker (go-helpers.ts). */
+  /** In the worker module, `go` runs in the same worker (runtime.ts). */
   protected get inWorker(): boolean {
     return this.options.goroutines !== undefined && 'targets' in this.options.goroutines;
   }
@@ -110,11 +110,7 @@ export abstract class ExpressionEmitter extends Emitter {
         }
 
         // `close(ch)` and the like are predeclared; JS has a `close` of its own, the window's.
-        const helper = Object.hasOwn(PREDECLARED, node.name) ? PREDECLARED[node.name] : undefined;
-
-        if (helper && this.lookup(node.name) === undefined) {
-          this.helpers.add(helper);
-
+        if (PREDECLARED.has(node.name) && this.lookup(node.name) === undefined) {
           return [`$$${node.name}`, PRIMARY];
         }
 
@@ -207,8 +203,6 @@ export abstract class ExpressionEmitter extends Emitter {
                 ARROW,
               )
             : JSON.stringify(goTarget(this.program, node));
-
-        this.helpers.add(this.inWorker ? 'goLocal' : 'go');
 
         return [`$$go(${fn}, [${args.filter((arg) => arg !== '').join(', ')}])`, POSTFIX];
       }
@@ -338,8 +332,6 @@ export abstract class ExpressionEmitter extends Emitter {
 
   private unary(node: ast.UnaryExpression): string {
     if (node.operator === '<-') {
-      this.helpers.add('chan');
-
       const channel = this.expression(node.argument, ARROW);
 
       return `await $$receive(${channel}${this.commaOk.has(node) ? ', true' : ''})`;
