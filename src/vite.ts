@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-import { RUNTIME_MODULE } from './codegen/runtime.ts';
+import { RUNTIME_MODULE } from './runtime-module.ts';
 import { formatDiagnostic } from './diagnostics.ts';
 import { compile } from './index.ts';
 import { SourceFile } from './source.ts';

@@ -1,20 +1,22 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { registerHooks } from 'node:module';
-import { join } from 'node:path';
+import { createRequire, registerHooks } from 'node:module';
+import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainThread } from 'node:worker_threads';
-import { displayPath } from './build.ts';
-import { RUNTIME_MODULE } from './codegen/runtime.ts';
-import { compileFile } from './compile-file.ts';
+import type * as Build from './build.ts';
+import type * as CompileFile from './compile-file.ts';
+import { RUNTIME_MODULE } from './runtime-module.ts';
 
 // `rook run` imports this module first (`node --import`): Node then imports `.rk` files,
 // compiled when they load, and `app.rk?goroutines` is the worker module of `go` in app.rk.
 // The worker threads of `go` import it too, since they get the `--import` of the process. The main
 // thread compiles a module before any worker needs it, so it leaves the code of each module and
 // of its worker module in ROOK_RUN_CACHE, a directory of the run, and the workers take it from
-// there: compiling again, with the types, would take each of them as long. ROOK_NO_CHECK turns
-// type checking off, and ROOK_MARKUP, 1 or 0, markup and components on or off for every file.
+// there: compiling again, with the types, would take each of them as long. So a worker does not
+// even load the compiler, which takes ~80 ms, unless a module is missing from the cache; the hooks
+// are synchronous, so it is loaded with require(). ROOK_NO_CHECK turns type checking off, and
+// ROOK_MARKUP, 1 or 0, markup and components on or off for every file.
 
 const typeCheck = process.env['ROOK_NO_CHECK'] === undefined;
 const markupSetting = process.env['ROOK_MARKUP'];
@@ -28,6 +30,9 @@ function cached(url: string): string | null {
 
 // The compiled code imports the runtime of this compiler, wherever the program is.
 const runtime = import.meta.resolve(RUNTIME_MODULE);
+const require = createRequire(import.meta.url);
+// The files next to this one: .ts in src, .js in the dist of the package.
+const extension = extname(fileURLToPath(import.meta.url));
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -47,6 +52,8 @@ registerHooks({
     }
 
     const moduleUrl = new URL(pathname, url).href;
+    const { displayPath } = require(`./build${extension}`) as typeof Build;
+    const { compileFile } = require(`./compile-file${extension}`) as typeof CompileFile;
     const path = displayPath(fileURLToPath(moduleUrl));
     const result = compileFile(path, {
       rewriteImports: false,

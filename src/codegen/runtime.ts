@@ -1,3 +1,4 @@
+import { RUNTIME_MODULE } from '../runtime-module.ts';
 import { RUNTIME_FILES } from '../runtime/sources.ts';
 
 // The runtime of generated code, src/runtime. A module imports the names of it that its code uses
@@ -5,9 +6,6 @@ import { RUNTIME_FILES } from '../runtime/sources.ts';
 // module instead, for code that runs without imports, such as that of the playground. A module
 // keeps what is its own: the start of its workers, whose URL a bundler must see in it, the `go`
 // that uses it, and the CSS of its components.
-
-/** Where compiled code imports the runtime from. */
-export const RUNTIME_MODULE = 'rooklang/runtime';
 
 /** How a module gets the runtime: by an import, or with the code of the runtime in it. */
 export type RuntimeMode = 'import' | 'inline';
