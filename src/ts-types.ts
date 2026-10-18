@@ -1,4 +1,5 @@
 import { CONTENT } from './checker/dom.ts';
+import { guardedByError } from './checker/error-results.ts';
 import {
   ERROR_CLASS,
   isQueue,
@@ -19,11 +20,27 @@ export function property(name: string, type: Type): string {
   return `${name}${optional}: ${tsType(type)};`;
 }
 
+/**
+ * `(User, error)` → `[User, null] | [null, Error]`: the value is null only together with an error
+ * (error-results.ts), and TypeScript narrows such a tuple when it is unpacked into constants.
+ */
 export function resultType(results: readonly Type[]): string {
   if (results.length === 0) return 'void';
   if (results.length === 1) return tsType(results[0]!);
 
-  return `[${results.map((result) => tsType(result)).join(', ')}]`;
+  const guarded = guardedByError(results);
+  const tuple = (types: readonly string[]): string => `[${types.join(', ')}]`;
+  const types = results.map((result) => tsType(result));
+
+  if (guarded.length === 0) return tuple(types);
+
+  const last = results.length - 1;
+  const ok = types.map((type, i) => (i === last ? 'null' : type));
+  const failed = types.map((type, i) =>
+    i === last ? 'Error' : guarded.includes(i) ? 'null' : type,
+  );
+
+  return `${tuple(ok)} | ${tuple(failed)}`;
 }
 
 /**
@@ -59,8 +76,9 @@ export function tsType(type: Type, expand = false): string {
     case 'array':
       return `${element(type.element)}[]`;
 
+    // The results of an async function, in its Promise.
     case 'tuple':
-      return `[${type.types.map((each) => tsType(each)).join(', ')}]`;
+      return resultType(type.types);
 
     case 'function':
       return functionType(type);

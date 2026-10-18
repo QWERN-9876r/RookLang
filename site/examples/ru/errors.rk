@@ -7,11 +7,31 @@ func parseAge(text string) (number, error) {
     return age, null
 }
 
-for text in ["42", "сорок два"] {
-    const age, err = parseAge(text)
+class Person {
+    name string
+    age number
+
+    constructor(name string, age number) {
+        this.name = name
+        this.age = age
+    }
+}
+
+// У класса нет нулевого значения: null возвращается вместе с ошибкой
+func parsePerson(line string) (Person, error) {
+    const parts = line.split(" ")
+    const age, err = parseAge(parts[1])
+    if err != null {
+        return null, err
+    }
+    return new Person(parts[0], age), null
+}
+
+for line in ["Аня 42", "Боря сорок-два"] {
+    const person, err = parsePerson(line)
     if err != null {
         console.log("ошибка:", err.message)
         continue
     }
-    console.log("возраст:", age)
+    console.log(person.name, "—", person.age) // err равен null, значит, person тоже не null
 }

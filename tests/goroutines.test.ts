@@ -71,6 +71,7 @@ describe('types', () => {
 func nothing() {}
 const n number = await go square(2)
 const s, err = await go load(1)
+if err != null { throw err }
 const t string = s
 await go nothing()
 go square(3)

@@ -77,6 +77,9 @@ export abstract class CheckerBase {
 
   protected abstract narrowableBinding(node: ast.Expression): Binding | undefined;
 
+  /** The error for a value that may be null where it must not be. */
+  protected abstract nullError(node: ast.Expression): void;
+
   protected abstract checkFunction(
     params: readonly ast.Parameter[],
     type: FunctionType,
@@ -247,17 +250,6 @@ export abstract class CheckerBase {
     }
 
     this.error(message, node);
-  }
-
-  protected nullError(node: ast.Expression): void {
-    const name = node.kind === 'Identifier' ? node.name : null;
-
-    this.error(
-      name !== null
-        ? `"${name}" may be null: check it with "if ${name} != null" or use "?."`
-        : 'this value may be null: check it for null or use "?."',
-      node,
-    );
   }
 
   protected withScope<T>(check: () => T): T {

@@ -1,4 +1,5 @@
 import type * as ast from '../ast.ts';
+import { guardedByError, unpackedResults } from './error-results.ts';
 import { isUntyped, countValues, callName, isCall } from './helpers.ts';
 import { InitializerChecker } from './initializers.ts';
 import {
@@ -7,6 +8,7 @@ import {
   isAssignable,
   isNullable,
   nonNull,
+  nullable,
   typeToString,
   UNKNOWN,
   type Type,
@@ -50,13 +52,17 @@ export abstract class AssignmentChecker extends InitializerChecker {
       return Array<Type>(count).fill(UNKNOWN);
     }
 
-    if (declared) {
-      for (const element of type.types) this.expectAssignable(element, declared, value);
+    // `return f()` passes the results on as they are; variables get the values before an error
+    // as nullable (error-results.ts).
+    const types = context === 'return' ? type.types : unpackedResults(type.types);
 
-      return type.types.map(() => declared);
+    if (declared) {
+      for (const element of types) this.expectAssignable(element, declared, value);
+
+      return types.map(() => declared);
     }
 
-    return type.types;
+    return types;
   }
 
   protected checkAssignment(node: ast.AssignmentStatement): void {
@@ -268,11 +274,48 @@ export abstract class AssignmentChecker extends InitializerChecker {
       );
     }
 
-    values.forEach((value, i) => {
-      const target = expected[i];
-      const type = this.checkValue(value, target ?? null);
+    const types = values.map((value, i) => this.checkValue(value, expected[i] ?? null));
 
-      if (target) this.expectAssignable(type, target, value, ' in return');
+    types.forEach((type, i) => {
+      const target = expected[i];
+
+      if (!target) return;
+      if (type.kind === 'null' && this.nullWithError(expected, types, values, i)) return;
+      this.expectAssignable(type, target, values[i]!, ' in return');
     });
+  }
+
+  /**
+   * `return null, err` in a function of `(User, error)`: null takes the place of a value only
+   * together with an error that is not null. Returns whether the null is checked here.
+   */
+  private nullWithError(
+    expected: readonly Type[],
+    types: readonly Type[],
+    values: readonly ast.Expression[],
+    i: number,
+  ): boolean {
+    const last = expected.length - 1;
+
+    if (!guardedByError(expected).includes(i) || types.length !== expected.length) return false;
+
+    const error = types[last]!;
+    const target = typeToString(expected[i]!);
+
+    if (error.kind === 'null') {
+      this.error(
+        `cannot return null with no error: make the result ${typeToString(nullable(expected[i]!))} if the value may be null without an error`,
+        values[i]!,
+      );
+    } else if (isNullable(error)) {
+      const name = values[last]!.kind === 'Identifier' ? values[last].name : 'err';
+
+      this.error(
+        `null in place of ${target} needs an error that is not null: check it first, e.g. if ${name} != null { return null, ${name} }`,
+        values[i]!,
+      );
+    }
+
+    return true;
   }
 }

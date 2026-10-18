@@ -153,7 +153,7 @@ export interface Box<T> {
     value: T;
 }
 export declare const VERSION: string;
-export declare function divide(a: number, b: number): [number, Error | null];
+export declare function divide(a: number, b: number): [number, null] | [null, Error];
 export declare function first<T>(xs: T[]): T | null;
 export declare function filterTodos(todos: Todo[], filter: Filter): Todo[];
 export declare function makeInternal(): Internal;
@@ -183,7 +183,8 @@ export declare class Dog extends Animal {
       typescriptErrors(`import { divide, first, filterTodos, origin, Stack, Dog, VERSION } from "./todos.js";
 import type { Todo, Filter, Box } from "./todos.js";
 
-const [quotient, error]: [number, Error | null] = divide(1, 2);
+const [quotient, error] = divide(1, 2);
+const q: number = error == null ? quotient : 0;
 const head: number | null = first([1, 2]);
 const todos: Todo[] = filterTodos([{ title: "a", done: false, tags: [], rename: (title) => todos[0]! }], "done");
 const filter: Filter = "active";
@@ -194,7 +195,7 @@ const top: string | null = stack.pop();
 const sound: string = new Dog("Rex").speak();
 const x: number = origin().x;
 const version: string = VERSION;
-console.log(quotient, error, head, filter, box, top, sound, x, version);
+console.log(q, error, head, filter, box, top, sound, x, version);
 `),
     ).toEqual([]);
   });

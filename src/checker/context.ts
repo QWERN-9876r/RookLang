@@ -122,6 +122,12 @@ export interface Binding {
   type: Type | null;
   /** For components, which exist only at compile time and are used as tags. */
   component?: ComponentInfo;
+  /**
+   * `const user, err = loadUser(id)` of `(User, error)`: the error has the values that are not null
+   * once it is null, and each of them has the error (error-results.ts).
+   */
+  guards?: Binding[];
+  guardedBy?: Binding;
 }
 
 export interface ComponentInfo {

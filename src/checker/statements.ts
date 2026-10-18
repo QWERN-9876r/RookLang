@@ -1,5 +1,7 @@
 import type * as ast from '../ast.ts';
+import { guardedByError } from './error-results.ts';
 import { AssignmentChecker } from './assignments.ts';
+import type { Binding } from './context.ts';
 import { isUntyped, isNumeric, ownStatements } from './helpers.ts';
 import {
   func,
@@ -254,8 +256,26 @@ export abstract class StatementChecker extends AssignmentChecker {
             this.flow.set(binding, nonNull(type));
           }
         });
+        if (node.keyword === 'const' && !declared) this.linkError(node, bindings);
       },
     );
+  }
+
+  /**
+   * `const user, err = loadUser(id)` of `(User, error)`: `user` is not null once `err` is found to
+   * be null. Variables of `let` may be assigned apart, so only constants are linked.
+   */
+  private linkError(node: ast.VariableDeclaration, bindings: readonly (Binding | null)[]): void {
+    const results = node.values.length === 1 ? this.typeOfChecked(node.values[0]!) : null;
+    const error = bindings.at(-1);
+
+    if (results?.kind !== 'tuple' || results.types.length !== bindings.length || !error) return;
+
+    const guarded = guardedByError(results.types).flatMap((i) => bindings[i] ?? []);
+
+    if (guarded.length === 0) return;
+    error.guards = guarded;
+    for (const binding of guarded) binding.guardedBy = error;
   }
 
   /** The types of the variables of a declaration: the written one, or those of their values. */

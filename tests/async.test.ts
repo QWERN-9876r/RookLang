@@ -113,7 +113,9 @@ async func pair() (number, error) { return 1, null }
       [],
     );
     expect(
-      errors(`${source}await save()\nconst n, err = await pair()\nconst m number = n`),
+      errors(
+        `${source}await save()\nconst n, err = await pair()\nif err != null { throw err }\nconst m number = n`,
+      ),
     ).toEqual([]);
     expect(errors(`${source}const s number = await load(1)`)).toEqual([
       'cannot use string as number',
@@ -184,6 +186,7 @@ comp A() {
     expect(
       browserErrors(`async func load() (string, error) { return "x", null }
 const s, err = await load()
+if err != null { throw err }
 const n number = s
 const p number = load()`),
     ).toEqual(['cannot use string as number', 'cannot use Promise<(string, error)> as number']);
@@ -231,7 +234,7 @@ const g = async (n) => {
     );
 
     expect(declarations).toContain(
-      'export declare function load(): Promise<[number, Error | null]>;',
+      'export declare function load(): Promise<[number, null] | [null, Error]>;',
     );
   });
 });

@@ -236,6 +236,17 @@ export abstract class ControlFlowChecker extends StatementChecker {
       if (binding?.type) return [[binding, nonNull(this.flow.get(binding) ?? binding.type)]];
     }
 
+    // `err == null` when true, `err != null` when false: the values returned with `err` are not
+    // null (error-results.ts).
+    if ((operator === '==' && assumeTrue) || (operator === '!=' && !assumeTrue)) {
+      const target =
+        right.kind === 'NullLiteral' ? left : left.kind === 'NullLiteral' ? right : null;
+      const guards = target ? this.narrowableBinding(target)?.guards : undefined;
+
+      if (guards)
+        return guards.map((value) => [value, nonNull(this.flow.get(value) ?? value.type!)]);
+    }
+
     if (operator === 'instanceof') return this.narrowInstanceof(left, right, assumeTrue);
     if (operator !== '==' && operator !== '!=') return [];
 
@@ -303,6 +314,20 @@ export abstract class ControlFlowChecker extends StatementChecker {
     );
 
     return [[binding, union(isNullable(current) ? [...kept, NULL] : kept)]];
+  }
+
+  protected override nullError(node: ast.Expression): void {
+    const name = node.kind === 'Identifier' ? node.name : null;
+    const error = name !== null ? this.lookupValue(name)?.guardedBy?.name : undefined;
+
+    this.error(
+      error !== undefined
+        ? `"${name}" may be null until "${error}" is checked: e.g. if ${error} != null { return }`
+        : name !== null
+          ? `"${name}" may be null: check it with "if ${name} != null" or use "?."`
+          : 'this value may be null: check it for null or use "?."',
+      node,
+    );
   }
 
   protected override narrowableBinding(node: ast.Expression): Binding | undefined {

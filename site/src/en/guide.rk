@@ -223,7 +223,11 @@ comp Errors() {
     return <>
         <p>
             Ordinary errors need no exceptions: a function returns an error as its second value, and
-            the caller checks it. An error is made with <code>error("...")</code>.
+            the caller checks it. An error is made with <code>error("...")</code>. With an error, a
+            function of <code>(Person, error)</code> may return <code>null</code> in place of the
+            value: until <code>err</code> is checked the value may be <code>null</code>, after the
+            check it is not. Where the value may be <code>null</code> without an error too, the
+            result is <code>(?Person, error)</code>.
         </p>
         {example("errors")}
         <p>

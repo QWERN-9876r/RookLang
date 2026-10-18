@@ -2,7 +2,7 @@
 
 **English** · [Русский](spec.ru.md)
 
-> Status: a draft, anything may change. Unresolved questions are collected under "Open questions".
+> Status: a draft, anything may change.
 
 Rook is a language with the semantics of JavaScript, Go-style syntax and static types. Its
 main feature is goroutines: `go f(x)` runs a function as a goroutine, on another processor, and
@@ -1216,6 +1216,41 @@ if (err != null) {
 
 `error(msg)` creates `new Error(msg)`.
 
+### A value or an error
+
+Together with an error, a function may return `null` in place of any value before it: a class has
+no zero value, and `(User, error)` says that the value is `null` only when there is an error.
+
+```go
+func loadUser(id number) (User, error) {
+    const data, err = readFile(`users/${id}.json`)
+    if err != null {
+        return null, err             // err is an Error here, not null
+    }
+    return new User(JSON.parse(data)), null
+}
+
+const user, err = loadUser(id)
+console.log(user.name)               // error: "user" may be null until "err" is checked
+if err != null {
+    return
+}
+console.log(user.name)               // err is null, so user is a User
+```
+
+- `return null, err` needs an error that is not null: `return null, null` is an error, and so is an
+  `err` that has not been checked.
+- After `const user, err = loadUser(id)` the value has the type `?User`; once `err` is found to be
+  `null` (`if err != null { return }`, `if err == null { ... }`), it is a `User`. This works for
+  `const` only: variables of `let` may be assigned apart. With `const user, _ = ...` the value
+  stays `?User`.
+- Where the value may be `null` without an error too, the result is nullable: `(?User, error)`, and
+  the value is checked by itself.
+- The same holds for several values, `(A, B, error)`, and for numbers and strings: `(number, error)`
+  may return `null, err` as well as `0, err`.
+- Nothing changes at runtime. In the `.d.ts` the result is `[User, null] | [null, Error]`, which
+  TypeScript narrows the same way.
+
 Exceptions remain for JS code that throws and for real emergencies:
 
 ```go
@@ -2122,36 +2157,3 @@ Planned next, around goroutines and what the browser has:
   `const cart = topic<CartEvent>("cart")`. It is a type of its own, not a `chan`: every tab that
   listens gets each value, and sending waits for nobody, so the promises of `chan` would not hold.
 - **State that survives a reload,** see Stages in [components.md](components.md).
-
-## Open questions
-
-1. **Functions that return an object and an error.** A class has no zero value, so a function that
-   may return an error must return `(?User, error)`. The caller then needs two checks:
-
-   ```go
-   const user, err = loadUser(id)
-   if err != null {
-       return
-   }
-   if user != null {                 // the second check is only for the type
-       console.log(user.name)
-   }
-   ```
-
-   Proposal: allow the signature `(User, error)` with `return null, err` and consider the value not
-   `null` after the check `err != null`. Nothing changes at runtime; it is a rule of type checking
-   only.
-
-## Known problems
-
-1. **Types of TypeScript that extend `Array` cannot be indexed:** `match[1]` of a
-   `RegExpExecArray` is an error, `cannot index RegExpExecArray`. For now, put the value into an
-   `any` variable first. To be fixed.
-
-## Implementation order
-
-1. ~~A lexer that inserts `;` automatically.~~
-2. ~~A parser → AST.~~
-3. ~~JS generation.~~
-4. ~~Type checking.~~
-5. The features from "Not in v0".
