@@ -791,9 +791,9 @@ async function $$goroutine0(pixels, $$from, amount) {
 }
 ```
 
-`go for i, v in items` is a parallel loop over an array: the array is split into parts, one per
-processor, each part runs as a goroutine, and the loop waits for all of them, as a `WaitGroup`
-would. After it, the array has what the body wrote into it.
+`go for i, v in items` is a parallel loop over an array: the array is split into parts, each part
+runs as a goroutine, and the loop waits for all of them, as a `WaitGroup` would. After it, the
+array has what the body wrote into it.
 
 - **What it goes over:** an array `[]T` or a typed array (`[]float64`, `[]byte` and the others)
   whose elements can be copied, as the arguments of `go`. `i` is the index in the
@@ -809,6 +809,10 @@ would. After it, the array has what the body wrote into it.
   module. An exception in a part fails the loop, as in `Promise.all`. `continue` skips an element;
   `break`, `return` and `defer` are errors, since the parts run at once and apart from the
   function.
+- **Parts:** four per processor, each to the first worker that is free, so that the workers end at
+  about the same time when some elements take longer than others (in `isPrime(i)` the large `i`)
+  or some processors are slower. The other names are copied with each part, so if one of them is an
+  object or an array, there is one part per processor.
 - **Memory:** the part of a typed array is a copy that moves to its worker and back with
   `transfer`, and goes into the array with `set`; the part of a `[]T` is copied there and back. If
   the body writes nothing into the array, nothing comes back. A typed array on a

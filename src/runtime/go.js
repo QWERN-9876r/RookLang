@@ -238,12 +238,18 @@ export function $$goHere(functions, fn, args) {
   return task;
 }
 
-// `go for`: the array is split into parts, one per processor, each part runs as a goroutine of `go`
-// of the module, and
-// the loop waits for all of them. A typed array on a SharedArrayBuffer is shared with the workers,
-// which write into it; other parts are copies, moved to the workers and back into the array.
+// `go for`: the array is split into parts, each part runs as a goroutine of `go` of the module, and
+// the loop waits for all of them. The pool gives a part to the first worker that is free, so with
+// several parts per processor the workers end at about the same time, also when some elements take
+// longer than others or some processors are slower. The names that the body uses are copied with
+// each part: if one of them is an object, which may be large, there is one part per processor. A
+// typed array on a SharedArrayBuffer is shared with the workers, which write into it; other parts
+// are copies, moved to the workers and back into the array.
 export async function $$goFor(go, name, items, ...captured) {
-  const count = Math.min(globalThis.navigator?.hardwareConcurrency ?? 4, items.length);
+  const partsPerProcessor = 4;
+  const processors = globalThis.navigator?.hardwareConcurrency ?? 4;
+  const small = captured.every((value) => typeof value !== 'object' || value === null);
+  const count = Math.min(small ? processors * partsPerProcessor : processors, items.length);
   const shared =
     typeof SharedArrayBuffer === 'function' && items.buffer instanceof SharedArrayBuffer;
   const parts = [];

@@ -6,8 +6,18 @@ import { compile } from '../src/index.ts';
 import { errors as syntaxErrors, first } from './parser-helpers.ts';
 import { moduleProject } from './project.ts';
 
-// `go for i, v in items { ... }`: the array is split into parts, one per processor, each part runs
-// as a goroutine that writes its own elements, and the loop waits for all of them.
+// `go for i, v in items { ... }`: the array is split into parts, several per processor, each part
+// runs as a goroutine that writes its own elements, and the loop waits for all of them.
+
+/** `$$goFor` of the runtime, which is plain JS without types. */
+const { $$goFor } = (await import(new URL('../src/runtime/go.js', import.meta.url).href)) as {
+  $$goFor: (
+    go: (name: string, args: [Uint8Array, number]) => Promise<Uint8Array>,
+    name: string,
+    items: Uint8Array,
+    ...captured: unknown[]
+  ) => Promise<void>;
+};
 
 function errors(source: string): string[] {
   return compile(source).diagnostics.map((d) => d.message);
@@ -280,5 +290,40 @@ console.log(empty.length)
 
     expect(stderr).toBe('');
     expect(stdout).toBe(output);
+  });
+});
+
+describe('the parts of go for', () => {
+  /** Runs $$goFor with parts in this thread and gives the sizes of the parts. */
+  async function parts(items: Uint8Array, ...captured: unknown[]): Promise<number[]> {
+    const sizes: number[] = [];
+    const go = (name: string, [part, from]: [Uint8Array, number]) => {
+      sizes.push(part.length);
+
+      return Promise.resolve(part.map((_, i) => from + i));
+    };
+
+    await $$goFor(go, '$$goroutine0', items, ...captured);
+
+    return sizes;
+  }
+
+  const processors = navigator.hardwareConcurrency;
+
+  it('makes four parts per processor and puts them back into the array', async () => {
+    const items = new Uint8Array(processors * 40);
+    const sizes = await parts(items, 7, 'x', null);
+
+    expect(sizes).toHaveLength(processors * 4);
+    expect(sizes.reduce((a, b) => a + b)).toBe(items.length);
+    expect([...items]).toEqual([...items.keys()].map((i) => i % 256));
+  });
+
+  it('makes one part per processor when it copies an object to each', async () => {
+    expect(await parts(new Uint8Array(processors * 40), [1, 2, 3])).toHaveLength(processors);
+  });
+
+  it('makes no more parts than elements', async () => {
+    expect(await parts(new Uint8Array(3))).toHaveLength(3);
   });
 });

@@ -10,7 +10,7 @@ export const HOME HomeStrings = {
     lead: "Rook is a language with the semantics of JavaScript, the syntax of Go and static types. The word go runs a function on another processor, channels connect the goroutines, and it all compiles to readable JavaScript.",
     openPlayground: "Open playground",
     lanesTitle: "One thread, or every core.",
-    lanesLead: "go for splits an array into parts, one per processor, runs each part as a goroutine and waits for all of them. The same loop, one word longer.",
+    lanesLead: "go for splits an array into parts, several per processor, runs each part as a goroutine on the first free core and waits for all of them. The same loop, one word longer.",
     oneThread: "one thread",
     goFor: "every core",
     faster: "faster",
