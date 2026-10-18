@@ -1,9 +1,12 @@
-/* The guide: the tree of sections at the side, one section in the middle, the way to the next one
-   under it. */
+/* The guide: the tree of sections at the side, one section next to it, the way to the next one
+   under it. All of it stays in the width of the page, under the bar, so that on a wide screen the
+   text is not lost far from the tree. */
 
 .layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
+  max-width: var(--rui-page);
+  margin: 0 auto;
 }
 
 .sidebar {
@@ -23,9 +26,8 @@
 }
 
 .content {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 48px 40px 64px;
+  max-width: 880px;
+  padding: 48px 40px 64px 64px;
 }
 
 .article[hidden] {

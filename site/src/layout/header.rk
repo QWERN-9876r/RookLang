@@ -27,7 +27,7 @@ comp PageLink(target Page, label string) {
 }
 
 /**
- * The bar. `wide` lets it span the screen, as the guide and the playground do; `tools` go after
+ * The bar. `wide` lets it span the screen, as the playground does; `tools` go after
  * the links (the search of the guide), and `menu` into the menu of narrow screens.
  */
 export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content = null) {

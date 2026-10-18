@@ -71,7 +71,6 @@ comp DocsPage(sections []Section) {
 
     return <>
         <SiteHeader
-            wide={true}
             tools={<SearchButton onOpen={searching = true} />}
             menu={<NavList groups={groups} active={section.id} label={t.sections} />}
         />
