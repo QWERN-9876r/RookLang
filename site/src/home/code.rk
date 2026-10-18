@@ -27,8 +27,8 @@ go for i, _ in primes {
 console.log(\`go for:     \${Date.now() - started} ms\`)`
 
 /** What GO_FOR printed in the browser on a machine with CORES processors. */
-export const ONE_THREAD_MS = 1326
-export const GO_FOR_MS = 189
+export const ONE_THREAD_MS = 1325
+export const GO_FOR_MS = 164
 export const CORES = 14
 
 export const GOROUTINE = "const n = await go countPrimes(0, N)"

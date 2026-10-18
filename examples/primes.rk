@@ -1,0 +1,22 @@
+func isPrime(n number) bool {
+    for let d = 2; d * d <= n; d++ {
+        if n % d == 0 {
+            return false
+        }
+    }
+    return n > 1
+}
+
+const primes = make([]uint8, 50_000_000)
+
+let started = Date.now()
+go for i, _ in primes {
+    primes[i] = isPrime(i) ? 1 : 0
+}
+console.log(`go for:     ${Date.now() - started} ms`)
+
+started = Date.now()
+for i, _ in primes {
+    primes[i] = isPrime(i) ? 1 : 0
+}
+console.log(`one thread: ${Date.now() - started} ms`)
