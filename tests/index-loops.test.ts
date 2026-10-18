@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { compile } from '../src/index.ts';
 
-// `for i, v in items` over an array or a typed array loops over the indexes.
+// `for i, v in items` over an array or a typed array loops over the indexes, and over a string by
+// the numbers of its characters.
 
 function js(source: string): string {
   const { code, diagnostics } = compile(source, { runtime: 'inline' });
@@ -76,5 +77,21 @@ for i, x in [1, 2] {
 }
 console.log(fs.map(f => f()))`),
     ).toEqual(['0 10', '2 30', '0', '10', '0,2']);
+  });
+});
+
+describe('loops over a string', () => {
+  it('numbers its characters, as for...of gives them', () => {
+    const source = `const s = "a😀b"
+for i, c in s {
+    console.log(i, c)
+}
+for _, c in s {
+    console.log(c)
+}`;
+
+    expect(js(source)).toContain('for (const [i, c] of Array.from(s).entries()) {');
+    expect(js(source)).toContain('for (const c of s) {');
+    expect(run(source)).toEqual(['0 a', '1 😀', '2 b', 'a', '😀', 'b']);
   });
 });

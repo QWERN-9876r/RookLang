@@ -123,24 +123,36 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
         }
 
         head = `const ${value} of ${values}`;
-      } else if (iterable && (iterable.kind === 'array' || typedArrayOf(iterable) !== null)) {
+      } else if (
+        iterable &&
+        (iterable.kind === 'array' || iterable.kind === 'string' || typedArrayOf(iterable) !== null)
+      ) {
         // Without the index, the loop goes over the values.
         if (node.key.name === '_' && node.value.name !== '_') {
           head = `const ${value} of ${this.expression(node.iterable, POSTFIX)}`;
+        } else if (iterable.kind === 'string') {
+          // A string has no entries(): its characters, as `for...of` gives them, are numbered.
+          const pair = this.pair(node.key, node.value);
+
+          head = `const ${pair} of Array.from(${this.expression(node.iterable, ARROW)}).entries()`;
         } else {
           this.indexLoop(node, node.key);
 
           return;
         }
       } else {
-        const key = node.key.name === '_' ? '' : this.name(node.key.name);
-        const pair = node.value.name === '_' ? `[${key}]` : `[${key}, ${value}]`;
-
-        head = `const ${pair} of ${this.expression(node.iterable, POSTFIX)}.entries()`;
+        head = `const ${this.pair(node.key, node.value)} of ${this.expression(node.iterable, POSTFIX)}.entries()`;
       }
 
       this.line(`for (${head}) ${this.loopBody(node.body)}`);
     });
+  }
+
+  /** `[i, v]` of a loop over pairs; `_` leaves its place empty. */
+  private pair(key: ast.Identifier, value: ast.Identifier): string {
+    const name = key.name === '_' ? '' : this.name(key.name);
+
+    return value.name === '_' ? `[${name}]` : `[${name}, ${this.name(value.name)}]`;
   }
 
   /**

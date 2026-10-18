@@ -1063,6 +1063,9 @@ index; here one variable gets the value, and two get the index and the value.
   `[Symbol.iterator]()`): a `Set`, a typed array, a `NodeList`, an iterator. Two variables need
   positions or keys: a typed array and a `NodeList` give the index and the value, as an array does;
   a `Set` has no keys.
+- **A string** gives its characters, as `for...of` does: a character is a code point, so `😀` is
+  one. With two variables, `for i, c in s`, `i` is the number of the character, not its index in
+  the UTF-16 string: the loop compiles to `Array.from(s).entries()`.
 - **A Map** gives its keys and values, as a map in Go: `for name, score in scores`. One variable
   gets the values, as with an array, and compiles to `scores.values()`. A value whose type is not
   known (`any`) is tested at runtime, so that a Map gives its values there too; code built with
