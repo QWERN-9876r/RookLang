@@ -1,6 +1,6 @@
 // "One thread, or every core": the code of go for next to what it did. A bar for the loop in one
-// thread and a lane for each core under go for fill as the time goes, in the proportion that Node
-// measured; it plays once the block is seen, and again on request.
+// thread and a lane for each core under go for fill as the time goes, in the proportion that the
+// browser measured; it plays once the block is seen, and again on request.
 
 import { Button } from "../../ui/button.rk"
 import { CodeBlock } from "../../ui/code-block.rk"
@@ -11,7 +11,7 @@ import { CORES, GO_FOR, GO_FOR_MS, ONE_THREAD_MS } from "./code.rk"
 import common from "./section.module.css"
 import styles from "./lanes.module.css"
 
-/** Milliseconds on the screen for a millisecond measured: the loop in one thread takes 2.6 s. */
+/** Milliseconds on the screen for a millisecond measured: the loop in one thread takes 2 s. */
 const SLOWER = 1.5
 
 /**
