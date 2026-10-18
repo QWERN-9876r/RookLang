@@ -1035,15 +1035,21 @@ taken for the start of the block (the same rule as in Go).
 
 ### for, the only loop
 
-| Rook                             | JS                                          |
-| -------------------------------- | ------------------------------------------- |
-| `for let i = 0; i < n; i++ { }`  | `for (let i = 0; i < n; i++) { }`           |
-| `for x in items { }`             | `for (const x of items) { }`                |
-| `for i, x in items { }`          | `for (const [i, x] of items.entries()) { }` |
-| `for v in scores { }` (a Map)    | `for (const v of scores.values()) { }`      |
-| `for v in seq { }` (an iterator) | `for (const v of seq()) { }`                |
-| `for cond { }`                   | `while (cond) { }`                          |
-| `for { }`                        | `while (true) { }`                          |
+| Rook                               | JS                                                              |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `for let i = 0; i < n; i++ { }`    | `for (let i = 0; i < n; i++) { }`                               |
+| `for x in items { }`               | `for (const x of items) { }`                                    |
+| `for i, x in items { }` (an array) | `for (let i = 0; i < items.length; i++) { const x = items[i] }` |
+| `for k, v in scores { }` (a Map)   | `for (const [k, v] of scores.entries()) { }`                    |
+| `for v in scores { }` (a Map)      | `for (const v of scores.values()) { }`                          |
+| `for v in seq { }` (an iterator)   | `for (const v of seq()) { }`                                    |
+| `for cond { }`                     | `while (cond) { }`                                              |
+| `for { }`                          | `while (true) { }`                                              |
+
+An array or a typed array with an index goes over its indexes, which is faster than over the pairs
+of `entries()`: the array is read once, as `entries()` would read it, so a loop that assigns the
+variable of the array goes on over the old one. Without the index, `for _, x in items`, it is
+`for...of`.
 
 `for x in items` goes over the **values**, like `for...of` in JS or `for x in` in Python and Rust,
 not over the keys like `for...in` in JS. In Go, `for i := range xs` with one variable gives the

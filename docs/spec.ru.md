@@ -1033,15 +1033,21 @@ if x > 0 {
 
 ### for — единственный цикл
 
-| Rook                            | JS                                          |
-| ------------------------------- | ------------------------------------------- |
-| `for let i = 0; i < n; i++ { }` | `for (let i = 0; i < n; i++) { }`           |
-| `for x in items { }`            | `for (const x of items) { }`                |
-| `for i, x in items { }`         | `for (const [i, x] of items.entries()) { }` |
-| `for v in scores { }` (Map)     | `for (const v of scores.values()) { }`      |
-| `for v in seq { }` (итератор)   | `for (const v of seq()) { }`                |
-| `for cond { }`                  | `while (cond) { }`                          |
-| `for { }`                       | `while (true) { }`                          |
+| Rook                             | JS                                                              |
+| -------------------------------- | --------------------------------------------------------------- |
+| `for let i = 0; i < n; i++ { }`  | `for (let i = 0; i < n; i++) { }`                               |
+| `for x in items { }`             | `for (const x of items) { }`                                    |
+| `for i, x in items { }` (массив) | `for (let i = 0; i < items.length; i++) { const x = items[i] }` |
+| `for k, v in scores { }` (Map)   | `for (const [k, v] of scores.entries()) { }`                    |
+| `for v in scores { }` (Map)      | `for (const v of scores.values()) { }`                          |
+| `for v in seq { }` (итератор)    | `for (const v of seq()) { }`                                    |
+| `for cond { }`                   | `while (cond) { }`                                              |
+| `for { }`                        | `while (true) { }`                                              |
+
+Массив или типизированный массив с индексом перебирается по индексам — это быстрее, чем по парам
+`entries()`. Массив читается один раз, как его прочитал бы `entries()`, поэтому цикл, который
+присваивает переменной массива другой, идёт дальше по старому. Без индекса, `for _, x in items`,
+это `for...of`.
 
 `for x in items` перебирает **значения**, как `for...of` в JS или `for x in` в Python и Rust, а
 не ключи, как `for...in` в JS. В Go `for i := range xs` с одной переменной даёт индекс; здесь одна

@@ -50,7 +50,7 @@ export const TYPE_ERROR = `main.rk:3:9: error: the goroutine runs in a worker, w
 
 /** Lines of Rook and the JavaScript they become. */
 export const MAPPINGS [][]string = [
-    ["for i, x in items {", "for (const [i, x] of items.entries()) {"],
+    ["for x in items {", "for (const x of items) {"],
     ["const n, err = parse(s)", "const [n, err] = parse(s);"],
     ["if a == b {", "if (a === b) {"],
 ]

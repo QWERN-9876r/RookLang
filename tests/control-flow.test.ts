@@ -184,7 +184,8 @@ document.body.append(<ul>{for i, product in products {
 
 const products = [];
 const $$ul1 = $$element("ul");
-for (const [i, product] of products.entries()) {
+for (let i = 0; i < products.length; i++) {
+  const product = products[i];
   if (product != null) {
     // <Product>
     let $$product2;

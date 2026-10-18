@@ -1,12 +1,17 @@
 import type * as ast from '../ast.ts';
 import { isChan } from '../checker/channel.ts';
 import { isMap } from '../checker/iterables.ts';
+import { typedArrayOf } from '../checker/types.ts';
+import { declaredIn } from '../names.ts';
 import { containsBreak } from '../walk.ts';
 import { declarationsOf, endsWithJump, type BindingKind } from './analysis.ts';
 import { SimpleStatementEmitter } from './simple-statements.ts';
 import { ARROW, BINARY, POSTFIX } from './syntax.ts';
 
 /** if, for, switch and try. */
+
+/** Names that keep their value, so a loop over the indexes may read the array through them. */
+const FIXED: ReadonlySet<BindingKind> = new Set(['const', 'import', 'loop']);
 
 export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
   protected override ifStatement(node: ast.IfStatement): string {
@@ -118,6 +123,15 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
         }
 
         head = `const ${value} of ${values}`;
+      } else if (iterable && (iterable.kind === 'array' || typedArrayOf(iterable) !== null)) {
+        // Without the index, the loop goes over the values.
+        if (node.key.name === '_' && node.value.name !== '_') {
+          head = `const ${value} of ${this.expression(node.iterable, POSTFIX)}`;
+        } else {
+          this.indexLoop(node, node.key);
+
+          return;
+        }
       } else {
         const key = node.key.name === '_' ? '' : this.name(node.key.name);
         const pair = node.value.name === '_' ? `[${key}]` : `[${key}, ${value}]`;
@@ -127,6 +141,34 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
 
       this.line(`for (${head}) ${this.loopBody(node.body)}`);
     });
+  }
+
+  /**
+   * `for i, v in items` over an array or a typed array: a loop over the indexes, which runs faster
+   * than one over the pairs of `entries()`. The variables of the loop cannot be assigned, so `i` is
+   * the counter itself. The array is read once, as `entries()` reads it, into `$$items` unless it is
+   * a name that cannot change.
+   */
+  private indexLoop(node: ast.ForInStatement, keyNode: ast.Identifier): void {
+    const key = keyNode.name === '_' ? '$$i' : this.name(keyNode.name);
+    const value = node.value.name === '_' ? null : this.name(node.value.name);
+    const { iterable } = node;
+    const fixed = iterable.kind === 'Identifier' && FIXED.has(this.lookup(iterable.name) ?? 'let');
+    const items = fixed ? this.expression(iterable, POSTFIX) : '$$items';
+    const init = fixed ? '' : `, $$items = ${this.expression(iterable, ARROW)}`;
+    // A declaration of the same name in the body would clash with the element's in one block.
+    const hidden = declaredIn(node.body.body).some(
+      (name) => name === keyNode.name || name === node.value.name,
+    );
+    const body = this.withBreakTarget(null, () =>
+      this.block(() => {
+        if (value !== null) this.line(`const ${value} = ${items}[${key}];`);
+        if (hidden) this.line(this.blockStatement(node.body));
+        else this.blockStatements(node.body.body);
+      }),
+    );
+
+    this.line(`for (let ${key} = 0${init}; ${key} < ${items}.length; ${key}++) ${body}`);
   }
 
   /** Each `case` ends with an implicit `break`; a case with declarations gets its own block. */
