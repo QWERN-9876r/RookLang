@@ -52,7 +52,7 @@ console.log(<-ch, readFileSync)`);
 
     expect(code.split('\n').slice(0, 3)).toEqual([
       'import { readFileSync } from "node:fs";',
-      'import { $$chan, $$receive, $$send } from "rooklang/runtime";',
+      'import { $$Channel } from "rooklang/runtime";',
       '',
     ]);
   });
@@ -61,23 +61,20 @@ console.log(<-ch, readFileSync)`);
     const code = js(`const ch = chan<number>(1)
 close(ch)
 const q = queue<number>()
-for v in ch {
-    console.log(v, after(1), tick(1), q, stream(ch))
-}
-select {
-case v = <-ch:
-    console.log(v)
-}`);
+const t = topic<number>("t")
+close(t)
+const data = make([]float64, 4, shared)
+console.log(q, data, transfer(new Uint8Array(1)))
+cancel(go func() {}())`);
 
     expect(code).toContain(`import {
+  $$Channel,
   $$Queue,
-  $$after,
-  $$chan,
-  $$close,
-  $$range,
-  $$select,
-  $$stream,
-  $$tick,
+  $$Topic,
+  $$cancel,
+  $$goWorker,
+  $$shared,
+  $$transfer,
 } from "rooklang/runtime";`);
   });
 

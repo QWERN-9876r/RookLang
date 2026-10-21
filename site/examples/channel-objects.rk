@@ -1,0 +1,28 @@
+// Channel and Topic have what channels and topics compile to, by name, and their zero values:
+// Channel.EMPTY and Topic.EMPTY, which are closed
+let none chan number // Channel.EMPTY
+const n, ok = <-none // at once: 0, false
+console.log("from EMPTY:", n, ok)
+
+const lines = Channel.make(3, "") // chan<string>(3)
+await Channel.send(lines, "one") // lines <- "one"
+await Channel.send(lines, "two")
+console.log("received:", await Channel.receive(lines)) // a ?string
+
+// The functions are values: close every channel of a list
+const channels = [lines, chan<string>(1)]
+channels.forEach(Channel.close)
+for line in lines {
+    console.log("left after close:", line)
+}
+
+// A topic without a value is Topic.EMPTY: what is sent to it goes nowhere
+let quiet topic string
+quiet <- "nobody hears this"
+
+const cart = Topic.make("guide-objects", 0) // topic<number>("guide-objects")
+Topic.publish(cart, 1) // cart <- 1
+const values = Topic.listen(cart) // a <-chan number, from now on
+Topic.close(cart)
+const last, open = <-values
+console.log("after Topic.close:", last, open)

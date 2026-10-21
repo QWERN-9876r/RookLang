@@ -20,6 +20,7 @@ const ticks = tick(100)
 const done = chan<number>(1)
 const task = go async func() {
     done <- countPrimes(100_000_000)
+    close(done) // the only value: nothing more is sent
 }()
 const timeout = after(450)
 

@@ -5,6 +5,7 @@
 async func search(query string, ms number, out chan<- string) {
     <-after(ms) // as if over the network
     out <- `results for "${query}" in ${ms} ms`
+    close(out) // one answer, and nothing more
 }
 
 // Waiting needs no other thread: an async call without await runs in this thread.
@@ -14,16 +15,20 @@ const slow = chan<string>(1)
 search("guava", 100, fast)
 search("papaya", 2000, slow)
 
-// The first answer wins; a timeout stops waiting
-for let i = 0; i < 2; i++ {
-    select {
-    case text = <-fast:
-        console.log(text)
-    case text = <-slow:
-        console.log(text)
-    case <-after(500):
-        console.log("timeout: 500 ms")
-    }
+// The first answer wins
+select {
+case text = <-fast:
+    console.log(text)
+case text = <-slow:
+    console.log(text)
+}
+
+// A timeout stops waiting
+select {
+case text = <-slow:
+    console.log(text)
+case <-after(500):
+    console.log("timeout: 500 ms")
 }
 
 // default runs when nothing is ready at once

@@ -236,9 +236,9 @@
           "match": "(?<![\\w$])(?<![^.]\\.)comp(?![\\w$])"
         },
         {
-          "comment": "`queue` only before a type or the `<` of `queue<T>()`; elsewhere it is a name, `queue < n`.",
+          "comment": "`queue` and `topic` only before a type or the `<` of `queue<T>()`; elsewhere they are names, `queue < n`.",
           "name": "storage.type.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|type|interface|class|chan)(?![\\w$])|queue(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|type|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
         },
         {
           "name": "storage.modifier.rook",

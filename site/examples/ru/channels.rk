@@ -20,6 +20,8 @@ close(jobs)
 for let i = 0; i < 6; i++ {
     console.log(<-results)
 }
+// Все результаты получены: больше ничего не отправят
+close(results)
 
 // Закрытый пустой канал даёт нулевое значение, а ok это показывает
 const n, ok = <-jobs

@@ -1,21 +1,15 @@
 import type * as ast from '../ast.ts';
 import { ParserBase } from './base.ts';
-import { isAssignmentOperator, describe, plural } from './syntax.ts';
+import { cannotWait, isAssignmentOperator, describe, plural } from './syntax.ts';
 
 // Simple statements, which `for` headers allow too: declarations of variables, assignments, `i++`
 // and calls.
 
 export abstract class SimpleStatementParser extends ParserBase {
-  /** `await`, `<-ch` and `ch <- v` wait: only in async functions and at the top level. */
+  /** `await`, `<-ch` and `select` wait: only in async functions and at the top level. */
   protected requireAsync(what: string, start: number, end: number): void {
     if (this.context.inAsync) return;
-    this.error(
-      this.context.inDefer
-        ? `"${what}" is not allowed inside "defer": deferred code runs when the function ends`
-        : `"${what}" is allowed only in async functions and at the top level of a module; mark the function, e.g. "async func load() { ... }"`,
-      start,
-      end,
-    );
+    this.error(cannotWait(what, this.context.inDefer), start, end);
   }
 
   /** `x := 1` is a common habit from Go. */
@@ -70,15 +64,16 @@ export abstract class SimpleStatementParser extends ParserBase {
       return { kind: 'AssignmentStatement', operator, targets, values, ...this.span(start) };
     }
 
-    // `ch <- value`: the value goes into the channel.
+    // `ch <- value`: the value goes into the channel. A send to a channel waits, and one to a
+    // topic does not, so whether it may be here is for the checker, which knows the type.
     if (this.check('<-')) {
-      const arrow = this.next();
-
-      this.requireAsync('<-', arrow.start, arrow.end);
-
+      const { start: from, end } = this.next();
       const value = this.parseExpression();
+      const cannotWait = this.context.inAsync
+        ? {}
+        : { cannotWait: { inDefer: this.context.inDefer, start: from, end } };
 
-      return { kind: 'SendStatement', channel: first, value, ...this.span(start) };
+      return { kind: 'SendStatement', channel: first, value, ...cannotWait, ...this.span(start) };
     }
 
     if (this.check('++') || this.check('--')) {

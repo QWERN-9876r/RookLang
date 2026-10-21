@@ -1,5 +1,14 @@
 import type * as ast from '../ast.ts';
-import { typedArrayOf, type Type } from '../checker/types.ts';
+import { elementOf, isChan } from '../checker/channel.ts';
+import {
+  isNullable,
+  isQueue,
+  isTopic,
+  nonNull,
+  topicElement,
+  typedArrayOf,
+  type Type,
+} from '../checker/types.ts';
 import { isYieldCall } from '../iterators.ts';
 import { TYPED_ARRAYS, TYPED_ELEMENTS } from '../typed-arrays.ts';
 import { hasOptionalLink } from './analysis.ts';
@@ -10,7 +19,8 @@ import { ARROW, BINARY, POSTFIX } from './syntax.ts';
 // checker found one expected becomes `new Uint8Array([...])`, and the conversions of Go between
 // text and its UTF-8 bytes use TextEncoder and TextDecoder, `[]byte(s)` and `string(data)`. In an
 // iterator, a generator, `yield(v)` yields: its value is `true`, since a generator that the loop
-// over it leaves is closed at that `yield` and goes no further, so `false` is never seen.
+// over it leaves is closed at that `yield` and goes no further, so `false` is never seen. Making
+// channels, queues and topics is here too, with what a topic needs where it is received or closed.
 
 export abstract class CallEmitter extends ExpressionEmitter {
   protected override call(node: ast.CallExpression): string {
@@ -24,6 +34,20 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const yielded = this.yielded(node);
 
     if (yielded !== null) return `(${yielded}, true)`;
+
+    // `close(t)` of a topic: it stops listening and sending.
+    const [argument] = node.arguments;
+
+    if (
+      node.callee.kind === 'Identifier' &&
+      node.callee.name === 'close' &&
+      this.lookup('close') === undefined &&
+      argument?.kind !== 'SpreadElement' &&
+      argument !== undefined &&
+      this.isTopicValue(argument)
+    ) {
+      return `$$Topic.close(${args})`;
+    }
 
     return `${this.expression(node.callee, POSTFIX)}${node.optional ? '?.' : ''}(${args})`;
   }
@@ -135,12 +159,65 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected override chan(node: ast.ChanExpression): string {
     const size = node.size ? this.expression(node.size, ARROW) : '0';
 
-    return `$$chan(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
+    return `$$Channel.make(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /** `queue<number>(items)`: the queue copies the values, as `[...items]` would. */
   protected override queue(node: ast.QueueExpression): string {
     return `new $$Queue(${node.items ? this.expression(node.items, ARROW) : ''})`;
+  }
+
+  /** Whether the checker found a topic here, or a `?topic T` in a case of `select`. */
+  protected isTopicValue(node: ast.Expression): boolean {
+    const type = this.options.types?.get(node);
+
+    return type !== undefined && isTopic(isNullable(type) ? nonNull(type) : type);
+  }
+
+  /**
+   * The channel that `<-x`, `for v in x` and a case of `select` receive from: a topic listens from
+   * the first of them on, into a channel of its own (src/runtime/topic.js).
+   */
+  protected receivedFrom(node: ast.Expression): string {
+    const channel = this.expression(node, ARROW);
+
+    return this.isTopicValue(node) ? `$$Topic.listen(${channel})` : channel;
+  }
+
+  /**
+   * The zero value that `<-x` gives if `x` is `Channel.EMPTY` or `Topic.EMPTY`, which are the same
+   * for all types; any other channel keeps its own. `null` when it is null.
+   */
+  protected receivedZero(node: ast.Expression): string {
+    const type = this.options.types?.get(node);
+    const channel = type && (isNullable(type) ? nonNull(type) : type);
+
+    if (channel && isChan(channel)) return zeroOf(elementOf(channel));
+    if (channel && isTopic(channel)) return zeroOf(topicElement(channel));
+
+    return 'null';
+  }
+
+  protected override receive(node: ast.Expression, withOk: boolean): string {
+    const zero = this.receivedZero(node);
+    const args = zero !== 'null' ? `, ${withOk}, ${zero}` : withOk ? ', true' : '';
+
+    return `$$Channel.receive(${this.receivedFrom(node)}${args})`;
+  }
+
+  /** `ch <- v` waits until the channel takes the value; a topic sends and goes on. */
+  protected send(node: ast.SendStatement): string {
+    const channel = this.expression(node.channel, ARROW);
+    const value = this.expression(node.value, ARROW);
+
+    return this.isTopicValue(node.channel)
+      ? `$$Topic.publish(${channel}, ${value})`
+      : `await $$Channel.send(${channel}, ${value})`;
+  }
+
+  /** `topic<T>(name)`: a topic keeps the zero value that a closed one gives, as a channel does. */
+  protected override topic(node: ast.TopicExpression): string {
+    return `$$Topic.make(${this.expression(node.name, ARROW)}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /**
@@ -154,7 +231,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const channel = type?.kind === 'tuple' ? type.types[0] : undefined;
     const element = channel?.kind === 'object' ? channel.instanceOf?.args[0] : undefined;
 
-    return `$$fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
+    return `$$Channel.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
   }
 }
 
@@ -179,6 +256,12 @@ function zeroOf(type: Type): string {
 
     case 'array':
       return '[]';
+
+    case 'object':
+      if (isQueue(type)) return 'new $$Queue()';
+      if (isChan(type)) return '$$Channel.EMPTY';
+
+      return isTopic(type) ? '$$Topic.EMPTY' : 'null';
 
     default:
       return 'null';

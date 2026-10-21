@@ -21,7 +21,10 @@ function run(source: string, check = true): { stdout: string; stderr: string } {
   const flags = check ? [] : ['--no-check'];
 
   writeFileSync(join(dir, 'main.rk'), source);
-  expect(spawnSync(process.execPath, [cli, 'build', ...flags, 'main.rk'], options).stderr).toBe('');
+  // Warnings, such as of channels that are never closed, do not stop the build.
+  expect(
+    spawnSync(process.execPath, [cli, 'build', ...flags, 'main.rk'], options).stderr,
+  ).not.toContain('error:');
 
   return spawnSync(process.execPath, ['main.js'], options);
 }

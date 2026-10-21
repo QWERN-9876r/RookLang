@@ -83,6 +83,7 @@ describe('documentation site', () => {
     const result = compile(readFileSync(site(path), 'utf8'), null, { markup: true });
 
     expect(result.diagnostics).toEqual([]);
+    expect(result.warnings).toEqual([]);
     expect(result.code).not.toBe('');
   });
 

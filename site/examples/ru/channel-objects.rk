@@ -1,0 +1,28 @@
+// В Channel и Topic лежит то, во что компилируются каналы и топики, по именам, и их нулевые
+// значения: Channel.EMPTY и Topic.EMPTY, которые закрыты
+let none chan number // Channel.EMPTY
+const n, ok = <-none // сразу: 0, false
+console.log("из EMPTY:", n, ok)
+
+const lines = Channel.make(3, "") // chan<string>(3)
+await Channel.send(lines, "один") // lines <- "один"
+await Channel.send(lines, "два")
+console.log("получено:", await Channel.receive(lines)) // ?string
+
+// Функции — это значения: закрываем все каналы списка
+const channels = [lines, chan<string>(1)]
+channels.forEach(Channel.close)
+for line in lines {
+    console.log("осталось после close:", line)
+}
+
+// Топик без значения — это Topic.EMPTY: то, что в него отправлено, никуда не уходит
+let quiet topic string
+quiet <- "этого никто не услышит"
+
+const cart = Topic.make("guide-objects", 0) // topic<number>("guide-objects")
+Topic.publish(cart, 1) // cart <- 1
+const values = Topic.listen(cart) // <-chan number, с этого момента
+Topic.close(cart)
+const last, open = <-values
+console.log("после Topic.close:", last, open)

@@ -46,7 +46,10 @@ function runBuilt(source: string): string {
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
   writeFileSync(join(dir, 'main.rk'), source);
-  expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
+  // Warnings, such as of channels that are never closed, do not stop the build.
+  expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).not.toContain(
+    'error:',
+  );
 
   const { stdout, stderr } = spawnSync(process.execPath, ['main.js'], options);
 
@@ -150,10 +153,10 @@ describe('code', () => {
 const body = stream(chunks)`);
 
     expect(code).toContain(
-      'const [chunks, failed] = $$fromStream(new Response("x").body, 2, new Uint8Array());',
+      'const [chunks, failed] = $$Channel.fromStream(new Response("x").body, 2, new Uint8Array());',
     );
-    expect(code).toContain('const body = $$stream(chunks);');
-    expect(code).toContain('import { $$fromStream, $$stream } from "rooklang/runtime";');
+    expect(code).toContain('const body = $$Channel.stream(chunks);');
+    expect(code).toContain('import { $$Channel } from "rooklang/runtime";');
   });
 });
 

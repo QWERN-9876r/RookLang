@@ -19,6 +19,7 @@ import {
   nullable,
   NUMBER,
   queueOf,
+  topicOf,
   substitute,
   typeToString,
   union,
@@ -47,6 +48,9 @@ export abstract class TypeResolver extends ClassChecker {
 
       case 'QueueType':
         return queueOf(this.resolveType(node.element));
+
+      case 'TopicType':
+        return topicOf(this.resolveType(node.element));
 
       case 'NullableType':
         return nullable(this.resolveType(node.type));
@@ -144,8 +148,8 @@ export abstract class TypeResolver extends ClassChecker {
       this.error(
         this.lookupValue(name.name)
           ? `"${name.name}" is a value, not a type`
-          : name.name === 'queue'
-            ? 'a queue type is written with the type of its values after it, e.g. "queue number"'
+          : name.name === 'queue' || name.name === 'topic'
+            ? `a ${name.name} type is written with the type of its values after it, e.g. "${name.name} number"`
             : `unknown type "${name.name}"`,
         name,
       );

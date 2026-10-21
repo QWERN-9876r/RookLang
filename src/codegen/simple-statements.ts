@@ -216,13 +216,9 @@ export abstract class SimpleStatementEmitter extends CallEmitter {
         this.deferStatement(node);
         break;
 
-      // Waits until the channel takes the value.
-      case 'SendStatement': {
-        const channel = this.expression(node.channel, ARROW);
-
-        this.line(`await $$send(${channel}, ${this.expression(node.value, ARROW)});`);
+      case 'SendStatement':
+        this.line(`${this.send(node)};`);
         break;
-      }
 
       case 'MountStatement':
         this.mountStatement(node);
@@ -290,9 +286,15 @@ export abstract class SimpleStatementEmitter extends CallEmitter {
       case 'QueueType':
         return 'new $$Queue()';
 
+      // Closed, the same for all types: what is sent to them goes nowhere.
+      case 'ChanType':
+        return '$$Channel.EMPTY';
+
+      case 'TopicType':
+        return '$$Topic.EMPTY';
+
       case 'FuncType':
       case 'ComponentType':
-      case 'ChanType':
       case 'ObjectType':
       case 'UnionType':
       case 'LiteralType':

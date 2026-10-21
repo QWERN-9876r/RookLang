@@ -46,7 +46,10 @@ function runBuilt(source: string): { stdout: string; stderr: string } {
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 20_000 };
 
   writeFileSync(join(dir, 'main.rk'), source);
-  expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).toBe('');
+  // Warnings, such as of channels that are never closed, do not stop the build.
+  expect(spawnSync(process.execPath, [cli, 'build', 'main.rk'], options).stderr).not.toContain(
+    'error:',
+  );
 
   return spawnSync(process.execPath, ['main.js'], options);
 }

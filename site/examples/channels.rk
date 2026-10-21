@@ -20,6 +20,8 @@ close(jobs)
 for let i = 0; i < 6; i++ {
     console.log(<-results)
 }
+// Every result is received: nothing more is sent
+close(results)
 
 // A closed, empty channel gives the zero value, and ok tells it
 const n, ok = <-jobs

@@ -12,10 +12,12 @@ import {
   isAssignable,
   isComparable,
   isNullable,
+  isTopic,
   nonNull,
   nullable,
   NUMBER,
   STRING,
+  topicElement,
   typeToString,
   UNKNOWN,
   widenLiterals,
@@ -42,8 +44,11 @@ export abstract class OperatorChecker extends ExpressionChecker {
 
       // What the Promise gives; the results of an async function are unpacked from it.
       case 'await':
-        if (isChan(type)) {
-          this.error('"await" does not wait for a channel: receive from it, e.g. "<-ch"', node);
+        if (isChan(type) || isTopic(type)) {
+          this.error(
+            `"await" does not wait for a ${isChan(type) ? 'channel' : 'topic'}: receive from it, e.g. "<-ch"`,
+            node,
+          );
         }
 
         return awaited(type);
@@ -61,6 +66,8 @@ export abstract class OperatorChecker extends ExpressionChecker {
 
           return received(elementOf(channel));
         }
+
+        if (isTopic(channel)) return received(topicElement(channel));
 
         if (!isUntyped(type)) {
           this.error(`"<-" receives from a channel, not from ${typeToString(type)}`, node.argument);

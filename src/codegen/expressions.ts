@@ -41,6 +41,11 @@ export abstract class ExpressionEmitter extends Emitter {
 
   protected abstract queue(node: ast.QueueExpression): string;
 
+  protected abstract topic(node: ast.TopicExpression): string;
+
+  /** `<-x` without its `await`; implemented by CallEmitter. */
+  protected abstract receive(node: ast.Expression, withOk: boolean): string;
+
   /** `<-ch` that gives `[value, ok]`, in `v, ok = <-ch`. */
   protected readonly commaOk = new WeakSet<ast.Expression>();
 
@@ -110,8 +115,10 @@ export abstract class ExpressionEmitter extends Emitter {
         }
 
         // `close(ch)` and the like are predeclared; JS has a `close` of its own, the window's.
-        if (PREDECLARED.has(node.name) && this.lookup(node.name) === undefined) {
-          return [`$$${node.name}`, PRIMARY];
+        const predeclared = PREDECLARED.get(node.name);
+
+        if (predeclared !== undefined && this.lookup(node.name) === undefined) {
+          return [predeclared, PRIMARY];
         }
 
         // The predeclared `error` used as a value is JS's `Error`, which also works without `new`.
@@ -183,6 +190,9 @@ export abstract class ExpressionEmitter extends Emitter {
 
       case 'QueueExpression':
         return [this.queue(node), POSTFIX];
+
+      case 'TopicExpression':
+        return [this.topic(node), POSTFIX];
 
       // The worker module has the function under the same name, a literal under the name given to
       // it, after the local names it uses; the arguments are copied there. In the worker module a
@@ -331,11 +341,8 @@ export abstract class ExpressionEmitter extends Emitter {
   }
 
   private unary(node: ast.UnaryExpression): string {
-    if (node.operator === '<-') {
-      const channel = this.expression(node.argument, ARROW);
-
-      return `await $$receive(${channel}${this.commaOk.has(node) ? ', true' : ''})`;
-    }
+    if (node.operator === '<-')
+      return `await ${this.receive(node.argument, this.commaOk.has(node))}`;
 
     const argument = this.expression(node.argument, UNARY);
 

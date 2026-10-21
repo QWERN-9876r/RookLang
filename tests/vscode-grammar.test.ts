@@ -236,19 +236,21 @@ describe('VS Code grammar', () => {
     expect(scopeOf('const n = task.await', 'await')).not.toBe('keyword.control.flow');
   });
 
-  it('colours queue before a type, and keeps it a name elsewhere', () => {
-    expect(scopeOf('func f(q queue number) queue ?string {', 'queue')).toBe('storage.type');
-    expect(scopesOf('let q queue []number = queue<[]number>([])', 'queue')).toEqual([
+  it.each(['queue', 'topic'])('colours %s before a type, and keeps it a name elsewhere', (word) => {
+    const scope = (source: string) => scopeOf(source.replaceAll('queue', word), word);
+
+    expect(scope('func f(q queue number) queue ?string {')).toBe('storage.type');
+    expect(scopesOf(`let q ${word} []number = ${word}<[]number>([])`, word)).toEqual([
       'storage.type',
       'storage.type',
     ]);
-    expect(scopeOf('let q queue (string | number)', 'queue')).toBe('storage.type');
-    expect(scopeOf('let q queue <-chan number', 'queue')).toBe('storage.type');
-    expect(scopeOf('const ok = queue < 2', 'queue')).not.toBe('storage.type');
-    expect(scopeOf('for job in queue {', 'queue')).not.toBe('storage.type');
-    expect(scopeOf('const n = queue ?? 0', 'queue')).not.toBe('storage.type');
-    expect(scopeOf('const n = queue.length', 'queue')).not.toBe('storage.type');
-    expect(scopeOf('const ok = queue instanceof Array', 'queue')).not.toBe('storage.type');
+    expect(scope('let q queue (string | number)')).toBe('storage.type');
+    expect(scope('let q queue <-chan number')).toBe('storage.type');
+    expect(scope('const ok = queue < 2')).not.toBe('storage.type');
+    expect(scope('for job in queue {')).not.toBe('storage.type');
+    expect(scope('const n = queue ?? 0')).not.toBe('storage.type');
+    expect(scope('const n = queue.length')).not.toBe('storage.type');
+    expect(scope('const ok = queue instanceof Array')).not.toBe('storage.type');
   });
 
   it('colours channels', () => {

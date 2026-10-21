@@ -1,5 +1,6 @@
 import type * as ast from '../ast.ts';
 import { assignedNames } from '../names.ts';
+import { cannotWait } from '../parser/syntax.ts';
 import { chanDirection, chanOf, elementOf, isChan } from './channel.ts';
 import { GoroutineChecker } from './goroutines.ts';
 import { isUntyped } from './helpers.ts';
@@ -11,9 +12,11 @@ import {
   ERROR,
   instantiate,
   isNullable,
+  isTopic,
   nonNull,
   NUMBER,
   type ObjectType,
+  topicElement,
   typeToString,
   type Type,
   typedArrayOf,
@@ -75,6 +78,8 @@ export abstract class ChannelChecker extends GoroutineChecker {
     return { kind: 'tuple', types: [chanOf(element), chanOf(ERROR, 'receive')] };
   }
 
+  // A send to a channel waits until the channel takes the value, and one to a topic waits for
+  // nobody, so only the first needs an async function.
   protected override checkSend(node: ast.SendStatement): void {
     const nullChannel = this.inSelectCase;
 
@@ -82,6 +87,16 @@ export abstract class ChannelChecker extends GoroutineChecker {
 
     const type = this.checkValue(node.channel);
     const channel = nullChannel && isNullable(type) ? nonNull(type) : type;
+
+    if (isTopic(channel)) {
+      const element = topicElement(channel);
+
+      this.expectAssignable(this.checkValue(node.value, element), element, node.value);
+
+      return;
+    }
+
+    if (node.cannotWait) this.error(cannotWait('<-', node.cannotWait.inDefer), node.cannotWait);
 
     if (!isChan(channel)) {
       if (!isUntyped(channel)) {
@@ -177,6 +192,15 @@ export abstract class ChannelChecker extends GoroutineChecker {
         this.inSelectCase = operation !== null;
         if (operation?.kind === 'SendStatement') {
           this.checkSend(operation);
+
+          const channel = this.checkedTypes.get(operation.channel);
+
+          if (channel && isTopic(isNullable(channel) ? nonNull(channel) : channel)) {
+            this.error(
+              'a send to a topic waits for nobody, so it is not a case of "select": send it before the select, e.g. "cart <- event"',
+              operation.channel,
+            );
+          }
         } else if (operation) {
           // `case v, ok = <-ch:` declares the variables of the case.
           const value = this.checkExpression(operation, null);

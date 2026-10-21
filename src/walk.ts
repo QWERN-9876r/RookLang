@@ -133,6 +133,11 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       optional(node.items);
       break;
 
+    case 'TopicExpression':
+      visit(node.element);
+      visit(node.name);
+      break;
+
     case 'MakeExpression':
       visit(node.type);
       visit(node.length);
@@ -324,6 +329,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
     case 'ArrayType':
     case 'ChanType':
     case 'QueueType':
+    case 'TopicType':
     case 'NullableType':
     case 'FuncType':
     case 'ComponentType':

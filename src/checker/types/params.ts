@@ -179,6 +179,9 @@ function substituteObject(
 
 const MAX_STRUCTURAL_DEPTH = 3;
 
+/** The names of the templates of channel types (checker/channel.ts). */
+const CHANNELS: ReadonlySet<string> = new Set(['chan', 'chan<-', '<-chan']);
+
 /** Infers type parameters in `param` from the argument type `arg`. */
 export function inferTypeParams(
   param: Type,
@@ -238,10 +241,13 @@ export function inferTypeParams(
       break;
 
     case 'object': {
+      // A channel of one direction from any channel: `chan<- T` from a `chan number`.
       if (
         param.instanceOf &&
         arg.kind === 'object' &&
-        arg.instanceOf?.template === param.instanceOf.template
+        (arg.instanceOf?.template === param.instanceOf.template ||
+          (CHANNELS.has(param.instanceOf.template.name ?? '') &&
+            CHANNELS.has(arg.instanceOf?.template.name ?? '')))
       ) {
         param.instanceOf.args.forEach((each, i) => infer(each, arg.instanceOf!.args[i]!));
         break;

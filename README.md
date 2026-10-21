@@ -25,12 +25,17 @@ close(jobs)
 for let i = 0; i < 4; i++ {
     console.log(<-results)
 }
+close(results)
 ```
 
 - **Goroutines and channels.** `go f(x)` runs a function as a goroutine, on another processor, and
   channels, `select`, `after`, `tick` and `cancel` work as in Go; `go for i, v in pixels { ... }`
   splits an array among the processors. The compiler checks that what goes to another thread can be
-  copied there.
+  copied there, and warns of a channel that is never closed.
+- **Topics between tabs.** `topic<CartEvent>("cart")` passes values between the tabs of a site
+  over a `BroadcastChannel`: `cart <- e` sends and waits for nobody, `for e in cart` receives what
+  the other tabs send. `Channel` and `Topic` have what channels and topics compile to, by name, and
+  their closed zero values, `Channel.EMPTY` and `Topic.EMPTY`.
 - **Go syntax.** `func`, the type after the name, several results, errors as a second value,
   `defer`, a single `for` loop:
 

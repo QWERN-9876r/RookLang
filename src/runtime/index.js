@@ -3,6 +3,7 @@
 // The compiler can also put the parts that a module needs into the module itself (runtime.ts).
 
 export * from './chan.js';
+export * from './channel.js';
 export * from './core.js';
 export * from './go.js';
 export * from './markup.js';
@@ -11,3 +12,4 @@ export * from './select.js';
 export * from './streams.js';
 export * from './threads.js';
 export * from './timers.js';
+export * from './topic.js';

@@ -29,6 +29,12 @@ export function $$registry() {
   });
 }
 
+// Channel.EMPTY, the zero value of channel types, has this id in every thread: it is closed, and
+// no thread keeps it (channel.js).
+export function $$isEmpty(id) {
+  return id === 'empty';
+}
+
 // The key of the thread that made a channel, which keeps what it holds.
 export function $$ownerOf(id) {
   return id.slice(0, id.lastIndexOf(':'));
@@ -222,7 +228,7 @@ export function $$walk(
 
   if (Array.isArray(value.$$queue)) Object.setPrototypeOf(value, $$Queue.prototype);
   if (typeof value.$$chan === 'string') {
-    found.channels.add(value);
+    if (!$$isEmpty(value.$$chan)) found.channels.add(value);
 
     return found;
   }

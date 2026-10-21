@@ -89,6 +89,8 @@ export abstract class ParserBase {
 
   protected abstract parseQueue(): ast.QueueExpression | null;
 
+  protected abstract parseTopic(): ast.TopicExpression | null;
+
   protected abstract parseArrowFunction(async?: boolean): ast.ArrowFunction;
 
   protected abstract parseFuncExpression(async?: boolean): ast.FuncExpression;

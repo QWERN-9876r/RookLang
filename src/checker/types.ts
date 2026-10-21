@@ -10,3 +10,4 @@ export * from './types/params.ts';
 export * from './types/printing.ts';
 export * from './types/bytes.ts';
 export * from './types/queue.ts';
+export * from './types/topic.ts';

@@ -221,3 +221,10 @@ export function templateElement(token: StringToken): ast.TemplateElement {
     end: token.end,
   };
 }
+
+/** Why `what`, which waits, is not allowed where it is: not in an async function or in `defer`. */
+export function cannotWait(what: string, inDefer: boolean): string {
+  return inDefer
+    ? `"${what}" is not allowed inside "defer": deferred code runs when the function ends`
+    : `"${what}" is allowed only in async functions and at the top level of a module; mark the function, e.g. "async func load() { ... }"`;
+}

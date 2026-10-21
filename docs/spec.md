@@ -129,17 +129,18 @@ a, b = b, a                // → [a, b] = [b, a];
 
 A variable or a class field without an initial value gets the zero value of its type, as in Go:
 
-| Type                        | Zero value                    |
-| --------------------------- | ----------------------------- |
-| `number`                    | `0`                           |
-| `bigint`                    | `0n`                          |
-| `string`                    | `""`                          |
-| `bool`                      | `false`                       |
-| `[]T`                       | `[]` (a new array each time)  |
-| `[]byte`, `[]float64`, ...  | an empty typed array          |
-| `queue T`                   | an empty queue (a new one)    |
-| `?T`, `error`, `any`        | `null`                        |
-| classes, interfaces, `func` | none: the value must be given |
+| Type                        | Zero value                             |
+| --------------------------- | -------------------------------------- |
+| `number`                    | `0`                                    |
+| `bigint`                    | `0n`                                   |
+| `string`                    | `""`                                   |
+| `bool`                      | `false`                                |
+| `[]T`                       | `[]` (a new array each time)           |
+| `[]byte`, `[]float64`, ...  | an empty typed array                   |
+| `queue T`                   | an empty queue (a new one)             |
+| `chan T`, `topic T`         | `Channel.EMPTY`, `Topic.EMPTY`: closed |
+| `?T`, `error`, `any`        | `null`                                 |
+| classes, interfaces, `func` | none: the value must be given          |
 
 ```go
 let u User                 // error: User has no zero value
@@ -841,15 +842,16 @@ close(jobs)
 for let i = 0; i < 4; i++ {
     console.log(<-results)
 }
+close(results)                          // every result is received
 ```
 
 ```js
-const jobs = $$chan(10, 0);
-const results = $$chan(0, 0);
+const jobs = $$Channel.make(10, 0);
+const results = $$Channel.make(0, 0);
 // ...
-await $$send(jobs, n);
+await $$Channel.send(jobs, n);
 // ...
-console.log(await $$receive(results));
+console.log(await $$Channel.receive(results, false, 0));
 ```
 
 Channels pass values between goroutines, as in Go. `chan T` is the type of a channel of `T`, and
@@ -865,6 +867,21 @@ makes one that receives a stream (see "Streams" below).
   second `close` throws. A closed, empty channel gives the zero value of its type at once, as in
   Go, and `const v, ok = <-ch` tells it: `ok` is `false`. A type without a zero value (an
   interface, a class) gives `null`, so `<-ch` of a `chan Point` is a `?Point`.
+- **The zero value** of a channel type is `Channel.EMPTY`, one channel for all types, which is
+  closed: receiving from it gives the zero value of the type at once, which the code that
+  receives passes, and `ok` is `false`; `for v in ch` ends at once, and a case of `select` with it
+  always goes on. A send to it goes nowhere, and `close` does nothing. So `let results chan
+number` is a channel that is safe to use before it is given one; a `?chan T` is `null` until
+  then, and a `null` channel turns its case of `select` off.
+- **A channel that is never closed is a warning,** and so are a topic and a `tick`: a tick runs
+  and a topic listens until they are closed, and `for v in ch` waits for a close that does not
+  come. A variable made by `chan<T>()`, `topic<T>()` or `tick(ms)` (or `Channel.make` and the like)
+  counts as closed when some line closes it, `close(ch)`, or when it goes to a function of the
+  module that closes that parameter: `go produce(jobs)` with `close(out)` in
+  `produce(out chan<- number)`. A channel that goes where the module does not see what happens to
+  it, to another module, into an object, out of a function or through a channel, is left to that
+  code, and so are an exported variable, `after(ms)` and `chan(stream)`, which close themselves.
+  A warning does not stop the build.
 - **Between threads:** a channel goes to another thread as its id, so goroutines in different
   workers and the main thread share it, and what goes through it between threads is copied. So
   `go` checks that the values of a channel can be copied, as it does for arguments. Within one
@@ -901,7 +918,7 @@ default:
 
 ```js
 {
-  const [$$case, $$received, $$ok] = await $$select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
+  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
   switch ($$case) {
     case 0: {
       const job = $$received;
@@ -935,6 +952,7 @@ const ticks = tick(100)
 const done = chan<number>(1)
 const task = go async func() {
     done <- countPrimes(100_000_000)
+    close(done)                         // one value, and nothing more
 }()
 
 select {
@@ -947,9 +965,9 @@ close(ticks)
 ```
 
 ```js
-const ticks = $$tick(100);
+const ticks = $$Channel.tick(100);
 // ...
-const [$$case, $$received, $$ok] = await $$select([{ channel: done }, { channel: $$after(500) }], false);
+const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: $$Channel.after(500), zero: 0 }], false);
 // ...
 $$cancel(task);
 ```
@@ -988,9 +1006,9 @@ const err = <-failed
 ```
 
 ```js
-const [chunks, failed] = $$fromStream(text, 4, "");
+const [chunks, failed] = $$Channel.fromStream(text, 4, "");
 const words = await $$go("countWords", [chunks]);
-const err = await $$receive(failed);
+const err = await $$Channel.receive(failed);
 ```
 
 A `ReadableStream`, such as the body of a `fetch` response, goes into a channel, and a channel
@@ -1015,6 +1033,115 @@ becomes a stream, so that goroutines make pipelines over the network.
   stream, so the room of the channel is all it holds. A reader that cancels the stream stops
   reading the channel; the channel is not closed, since its senders would fail.
 - `stream` is predeclared, like `after`.
+
+### Topics
+
+```go
+interface CartEvent {
+    kind "add" | "remove"
+    id number
+}
+
+const cart = topic<CartEvent>("cart")
+let items []number = []
+
+func add(id number) {
+    items.push(id)
+    cart <- { kind: "add", id }      // to the other tabs; waits for nobody
+}
+
+async func follow() {
+    for e in cart {                  // what the other tabs send
+        if e.kind == "add" {
+            items.push(e.id)
+        }
+    }
+}
+
+func stop() {
+    close(cart)                      // follow() ends
+}
+```
+
+```js
+const cart = $$Topic.make("cart", null);
+// ...
+$$Topic.publish(cart, { kind: "add", id });
+// ...
+for await (const e of $$Channel.range($$Topic.listen(cart))) {
+```
+
+A topic passes values between the tabs of a site, as a channel passes them between goroutines:
+`topic T` is the type of a topic of `T`, and `topic<T>(name)` makes one, over the
+`BroadcastChannel` of that name. Every tab of the site, and every worker, that makes a topic of
+the name and listens to it gets each value. It is a type of its own, not a `chan`: a channel gives
+each value to one receiver and its sender waits for room, while a topic gives each value to all who
+listen and its sender waits for nobody.
+
+- **`t <- v` sends** the value to the other tabs and goes on at once: nothing is kept here, and
+  nothing waits for a receiver. So a send is allowed anywhere, in a function that is not async and
+  in an event handler, `onClick={() => { cart <- event }}`. The tab that sends does not get its own
+  value, as a `BroadcastChannel` does not hear itself: it has applied the change already.
+- **`<-t`, `const v, ok = <-t`, `for v in t` and `case v = <-t:`** receive, as from a channel, and
+  wait for the next value of another tab, so they are allowed where `await` is.
+- **Each topic is a subscription.** It listens from its first receive on and keeps what comes in
+  order, without a limit, until it is received, so nothing is lost between two receives; a topic that
+  only sends keeps nothing. Receivers of one topic share its values, as those of a channel do; two
+  topics of the same name each get every value, a copy of their own. So two components that both
+  need every value make a topic each.
+- **`close(t)`** stops the topic: it listens and sends no more, `for v in t` ends after the values it
+  has, and then `<-t` gives the zero value of `T` and `ok` is `false`. A send to a closed topic or
+  a second `close` throws. A component that listens closes its topic when it is removed, in the
+  function that `mount()` returns.
+- **Copies:** the values go to other tabs as copies, so they are data, as the arguments of `go`
+  are, and without channels: the id of a channel means something only to the workers of the tab
+  that made it. Each tab checks its own program, so the tabs that share a name must agree on its
+  type.
+- **Threads:** a topic goes to a goroutine as its name, and there it is a topic of its own, a
+  subscription of that worker; the worker hears the tabs and the tabs hear the worker. In Node,
+  `BroadcastChannel` connects the threads of one process; a topic that listens keeps the program
+  running until it is closed, as a `tick` does.
+- `topic number` is not a `topic ?number`, as with channels. The zero value is `Topic.EMPTY`, a
+  topic without a name: it is closed, a send to it goes nowhere, `close` does nothing, and
+  receiving gives the zero value of `T` at once. A null `?topic T` turns its case of `select` off.
+  A send to a topic is not a case of `select`, since it never waits. A topic that is never closed
+  is a warning, as a channel is.
+- **`topic` is a name elsewhere,** as `queue` is: it is a type only before the type of its values,
+  `topic number`, and makes a topic only before `<T>(`.
+
+### Channel and Topic
+
+```go
+const jobs = Channel.make(10, 0)       // chan<number>(10)
+await Channel.send(jobs, 1)             // jobs <- 1
+const n = await Channel.receive(jobs)   // <-jobs, but a ?number
+Channel.close(jobs)                     // close(jobs)
+let none chan string = Channel.EMPTY    // what `let none chan string` gives
+```
+
+```js
+const jobs = $$Channel.make(10, 0);
+await $$Channel.send(jobs, 1);
+const n = await $$Channel.receive(jobs);
+$$Channel.close(jobs);
+let none = $$Channel.EMPTY;
+```
+
+`Channel` and `Topic` are predeclared objects with the functions that channels and topics compile
+to, by name, for code that needs them as values: to pass `Channel.close` on, or to receive without
+`await` in the same line. In JS they are `$$Channel` and `$$Topic` of the runtime, so a program
+may declare names `Channel` and `Topic` of its own, which hide them.
+
+- **`Channel`:** `EMPTY`; `make(size, zero)`, a channel with room for `size` values that gives
+  `zero` after close; `send(ch, v)`, a Promise; `receive(ch)`, a Promise of a `?T`, which is the
+  zero value after close and `null` from `EMPTY`; `close(ch)`; `range(ch)`, an async iterator of
+  the values for `for await` of JS; `select(cases, hasDefault)`, what `select` compiles to;
+  `try(ch, send, value)`, an operation that goes on at once or `null`; `fromStream(stream, size,
+zero)`, `stream(ch)`, `after(ms)` and `tick(ms)`.
+- **`Topic`:** `EMPTY`; `make(name, zero)`; `publish(t, v)`, which is `t <- v`; `listen(t)`, the
+  `<-chan T` that the topic listens into from then on; `close(t)`.
+- They do what the syntax does, without its checks: `topic<T>(name)` checks that the values can
+  go to other tabs, and `Topic.make` does not.
 
 ## 6. Conditions and loops
 
@@ -1433,10 +1560,10 @@ jobs <- 1
 ```
 
 ```js
-import { $$chan, $$send } from "rooklang/runtime";
+import { $$Channel } from "rooklang/runtime";
 
-const jobs = $$chan(10, 0);
-await $$send(jobs, 1);
+const jobs = $$Channel.make(10, 0);
+await $$Channel.send(jobs, 1);
 ```
 
 What the code cannot do with JS alone, such as channels, goroutines, queues, `defer` inside a loop
@@ -2166,7 +2293,4 @@ types of other imports come from TypeScript declarations (section 10).
 
 Planned next, around goroutines and what the browser has:
 
-- **`topic T`, channels between the tabs of a site,** over `BroadcastChannel`, for example
-  `const cart = topic<CartEvent>("cart")`. It is a type of its own, not a `chan`: every tab that
-  listens gets each value, and sending waits for nobody, so the promises of `chan` would not hold.
 - **State that survives a reload,** see Stages in [components.md](components.md).

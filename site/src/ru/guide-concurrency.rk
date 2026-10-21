@@ -66,6 +66,12 @@ export comp Channels() {
             получает, а <code>{"chan<- string"}</code> только отправляет: функция, которая их
             принимает, не может пользоваться ими иначе.
         </p>
+        <p>
+            Канал, который модуль создаёт и никогда не закрывает, — предупреждение: достаточно
+            строки с <code>close(ch)</code> или функции модуля, которая закрывает переданный ей
+            канал. <code>chan number</code> без значения — это <code>Channel.EMPTY</code>, и он
+            закрыт: приём сразу даёт <code>0</code> (см. «Channel и Topic» ниже).
+        </p>
         {example("channels")}
     </>
 }
@@ -106,5 +112,53 @@ export comp Streams() {
             {" "}<code>Response</code> или передать в <code>pipeTo</code>.
         </p>
         {example("streams")}
+    </>
+}
+
+export comp Topics() {
+    return <>
+        <p>
+            <code>topic&lt;T&gt;(name)</code> передаёт значения между вкладками сайта поверх
+            {" "}<code>BroadcastChannel</code> с этим именем. <code>{"cart <- e"}</code> отправляет
+            значение всем другим вкладкам, которые слушают, и сразу идёт дальше, поэтому разрешено в
+            любой функции и обработчике события; вкладка, которая отправила значение, сама его не
+            получает. <code>{"<-cart"}</code>, <code>for e in cart</code> и <code>select</code>
+            {" "}принимают, как из канала.
+        </p>
+        <p>
+            Топик слушает с первого приёма и хранит пришедшее, пока его не примут. Два топика с
+            одним именем получают каждое значение, а <code>close(cart)</code> останавливает топик,
+            поэтому компонент закрывает свой топик в функции, которую возвращает
+            {" "}<code>mount()</code>. Значения уходят в другие вкладки копиями, так что это данные,
+            как аргументы <code>go</code>; горутина, которая получила топик, тоже шлёт во вкладки.
+        </p>
+        {example("topics")}
+    </>
+}
+
+export comp ChannelObjects() {
+    return <>
+        <p>
+            <code>Channel</code> и <code>Topic</code> — заранее объявленные объекты с тем, во что
+            компилируются каналы и топики, по именам: <code>Channel.make(size, zero)</code>,
+            {" "}<code>send</code>, <code>receive</code>, <code>close</code>, <code>range</code>,
+            {" "}<code>select</code>, <code>try</code>, <code>fromStream</code>,
+            {" "}<code>stream</code>, <code>after</code> и <code>tick</code>;
+            {" "}<code>Topic.make(name, zero)</code>, <code>publish</code>, <code>listen</code> и
+            {" "}<code>close</code>. Они для кода, которому нужны как значения, например
+            {" "}<code>channels.forEach(Channel.close)</code>, и делают то же, что синтаксис, но без
+            его проверок: <code>Channel.receive(ch)</code> — Promise значения <code>?T</code>, а
+            {" "}<code>Topic.make</code> не проверяет, что значения могут уйти в другие вкладки.
+        </p>
+        <p>
+            <code>Channel.EMPTY</code> и <code>Topic.EMPTY</code> — нулевые значения
+            {" "}<code>chan T</code> и <code>topic T</code>, одни на все типы, и они закрыты: приём
+            сразу даёт нулевое значение типа, а <code>ok</code> равно <code>false</code>,
+            {" "}<code>for</code> по ним сразу заканчивается, а то, что в них отправлено, никуда не
+            уходит. Поэтому <code>let results chan number</code> можно безопасно использовать, пока
+            ему не дали канал. В JS это <code>$$Channel</code> и <code>$$Topic</code> из runtime,
+            так что программа может объявить свои <code>Channel</code> и <code>Topic</code>.
+        </p>
+        {example("channel-objects")}
     </>
 }

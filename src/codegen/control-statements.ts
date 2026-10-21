@@ -1,7 +1,7 @@
 import type * as ast from '../ast.ts';
 import { isChan } from '../checker/channel.ts';
 import { isMap } from '../checker/iterables.ts';
-import { typedArrayOf } from '../checker/types.ts';
+import { isTopic, typedArrayOf } from '../checker/types.ts';
 import { declaredIn } from '../names.ts';
 import { containsBreak } from '../walk.ts';
 import { declarationsOf, endsWithJump, type BindingKind } from './analysis.ts';
@@ -76,7 +76,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
         return this.expression(node.expression, 0);
 
       case 'SendStatement':
-        return `await $$send(${this.expression(node.channel, ARROW)}, ${this.expression(node.value, ARROW)})`;
+        return this.send(node);
     }
   }
 
@@ -93,10 +93,10 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       const iterable = this.options.types?.get(node.iterable);
       let head: string;
 
-      // A channel gives its values as they come, until it is closed.
-      if (iterable && isChan(iterable)) {
+      // A channel gives its values as they come, until it is closed, and so does a topic.
+      if (iterable && (isChan(iterable) || isTopic(iterable))) {
         this.line(
-          `for await (const ${value} of $$range(${this.expression(node.iterable, ARROW)})) ${this.loopBody(node.body)}`,
+          `for await (const ${value} of $$Channel.range(${this.receivedFrom(node.iterable)})) ${this.loopBody(node.body)}`,
         );
 
         return;
@@ -231,7 +231,11 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
     const operations = node.cases.flatMap(({ operation }) => {
       if (operation === null) return [];
       if (operation.kind === 'UnaryExpression') {
-        return [`{ channel: ${this.expression(operation.argument, ARROW)} }`];
+        const zero = this.receivedZero(operation.argument);
+
+        return [
+          `{ channel: ${this.receivedFrom(operation.argument)}${zero !== 'null' ? `, zero: ${zero}` : ''} }`,
+        ];
       }
 
       const channel = this.expression(operation.channel, ARROW);
@@ -242,7 +246,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
     let index = 0;
     const select = this.block(() => {
       this.line(
-        `const [$$case, $$received, $$ok] = await $$select([${operations.join(', ')}], ${hasDefault});`,
+        `const [$$case, $$received, $$ok] = await $$Channel.select([${operations.join(', ')}], ${hasDefault});`,
       );
 
       const body = this.withBreakTarget(null, () =>

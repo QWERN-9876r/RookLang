@@ -39,7 +39,7 @@ const STRINGS = new Set<Token['kind']>([
 
 const VALUE_KEYWORDS = KEYWORDS.filter((keyword) => !RESERVED.has(keyword));
 // `queue` is a type of its own only in a type: elsewhere it is a name.
-const TYPE_KEYWORDS = ['func', 'comp', 'chan', 'queue'];
+const TYPE_KEYWORDS = ['func', 'comp', 'chan', 'queue', 'topic'];
 /** Keywords only at the start of a statement at the top level of a component or a decorator. */
 const COMPONENT_KEYWORDS = ['state', 'derived', 'ref', 'style', 'effect', 'mount'];
 

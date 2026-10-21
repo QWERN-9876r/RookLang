@@ -1,0 +1,45 @@
+// topic<T>(name) передаёт значения между вкладками сайта. Откройте эту страницу в двух вкладках
+// и запустите пример в обеих: что добавит одна вкладка, покажет другая
+interface CartEvent {
+    kind "add" | "clear"
+    title string
+}
+
+comp Cart() {
+    state items []string = []
+    const cart = topic<CartEvent>("guide-cart")
+
+    func apply(e CartEvent) {
+        if e.kind == "add" {
+            items.push(e.title)
+        } else {
+            items = []
+        }
+    }
+
+    // Вкладка не слышит своих отправок, поэтому своё изменение применяет сама
+    func change(e CartEvent) {
+        apply(e)
+        cart <- e
+    }
+
+    // То, что шлют другие вкладки, начиная с первого приёма
+    async func follow() {
+        for e in cart {
+            apply(e)
+        }
+    }
+
+    mount() {
+        follow()
+        return () => close(cart)
+    }
+
+    return <div class="card">
+        <button onClick={change({ kind: "add", title: `Книга ${items.length + 1}` })}>Добавить книгу</button>
+        <button onClick={change({ kind: "clear", title: "" })}>Очистить</button>
+        <p>В корзине: {items.length == 0 ? "ничего" : items.join(", ")}</p>
+    </div>
+}
+
+document.body.append(<Cart />)

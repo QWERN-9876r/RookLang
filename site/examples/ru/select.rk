@@ -5,6 +5,7 @@
 async func search(query string, ms number, out chan<- string) {
     <-after(ms) // как будто по сети
     out <- `результаты для «${query}» за ${ms} мс`
+    close(out) // один ответ, и больше ничего
 }
 
 // Ожиданию не нужен другой поток: async-вызов без await работает в этом же потоке.
@@ -14,16 +15,20 @@ const slow = chan<string>(1)
 search("гуава", 100, fast)
 search("папайя", 2000, slow)
 
-// Побеждает первый ответ; тайм-аут прекращает ожидание
-for let i = 0; i < 2; i++ {
-    select {
-    case text = <-fast:
-        console.log(text)
-    case text = <-slow:
-        console.log(text)
-    case <-after(500):
-        console.log("тайм-аут: 500 мс")
-    }
+// Побеждает первый ответ
+select {
+case text = <-fast:
+    console.log(text)
+case text = <-slow:
+    console.log(text)
+}
+
+// Тайм-аут прекращает ожидание
+select {
+case text = <-slow:
+    console.log(text)
+case <-after(500):
+    console.log("тайм-аут: 500 мс")
 }
 
 // default срабатывает, когда сразу ничего не готово

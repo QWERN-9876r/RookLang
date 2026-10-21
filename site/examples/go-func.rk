@@ -17,6 +17,7 @@ async func sumInParts(numbers []number, parts number) number {
     for let i = 0; i < parts; i++ {
         total += <-sums
     }
+    close(sums) // every part has sent its sum
     return total
 }
 

@@ -3,6 +3,7 @@ import { BIGINT_OBJECT } from './bigint.ts';
 import { DOM_TYPES, EVENT } from './dom.ts';
 import { SVG_TYPES } from './dom-svg.ts';
 import { chanOf } from './channel.ts';
+import { CHANNEL_OBJECT, TOPIC_OBJECT } from './channel-objects.ts';
 import { PROMISE } from './promise.ts';
 import { BUFFERS } from './transfer.ts';
 import { UNTYPED_GLOBALS } from './untyped-globals.ts';
@@ -19,6 +20,8 @@ import {
   nullable,
   property,
   STRING,
+  topicOf,
+  union,
   type FunctionType,
   type Member,
   type ObjectType,
@@ -315,8 +318,9 @@ export const GLOBAL_VALUES: ReadonlyMap<string, Type> = new Map<string, Type>([
   ['Error', ERROR_CLASS.value],
   // `error("message")` creates an Error, so the result is never null.
   ['error', func([STRING], [ERROR_CLASS.instance])],
-  // `close(ch)`: the channel takes no more values (a `<-chan T` cannot be closed: channels.ts).
-  ['close', func([chanOf(ANY)], [])],
+  // `close(ch)`: the channel takes no more values (a `<-chan T` cannot be closed: channels.ts);
+  // `close(t)`: the topic stops listening and sending.
+  ['close', func([union([chanOf(ANY), topicOf(ANY)])], [])],
   // `transfer(buffer)`: the buffer moves to the thread it goes to (what it takes: channels.ts).
   ['transfer', func([MOVED], [MOVED], { typeParams: [MOVED] })],
   // Channels of time, as in Go: the time once after `ms`, or every `ms` until `close(ticks)`.
@@ -326,6 +330,8 @@ export const GLOBAL_VALUES: ReadonlyMap<string, Type> = new Map<string, Type>([
   ['stream', func([chanOf(ANY, 'receive')], [ANY])],
   // `cancel(task)` stops a goroutine: it takes the Promise of `go` (channels.ts).
   ['cancel', func([ANY], [])],
+  ['Channel', CHANNEL_OBJECT],
+  ['Topic', TOPIC_OBJECT],
   ...[...UNTYPED_GLOBALS, ...BUFFERS].map((name): [string, Type] => [name, ANY]),
 ]);
 

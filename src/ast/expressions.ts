@@ -33,6 +33,7 @@ export type Expression =
   | ChanExpression
   | StreamChanExpression
   | QueueExpression
+  | TopicExpression
   | ConversionExpression
   | MakeExpression;
 
@@ -69,6 +70,13 @@ export interface QueueExpression extends NodeBase {
   kind: 'QueueExpression';
   element: TypeNode;
   items: Expression | null;
+}
+
+/** `topic<CartEvent>("cart")`: values of the tabs of a site, over a BroadcastChannel of that name. */
+export interface TopicExpression extends NodeBase {
+  kind: 'TopicExpression';
+  element: TypeNode;
+  name: Expression;
 }
 
 /**

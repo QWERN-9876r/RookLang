@@ -63,6 +63,13 @@ export comp Channels() {
             what passes through it is copied. <code>{"<-chan number"}</code> only receives and <code>{"chan<- string"}</code> only sends: a function that takes one
             cannot use it the other way.
         </p>
+        <p>
+            A channel that the module makes and never closes is a warning: a line with
+            {" "}<code>close(ch)</code>, or a function of the module that closes the channel it is
+            given, is enough. A <code>chan number</code> without a value is
+            {" "}<code>Channel.EMPTY</code>, which is closed: receiving gives <code>0</code> at
+            once (see "Channel and Topic" below).
+        </p>
         {example("channels")}
     </>
 }
@@ -104,5 +111,53 @@ export comp Streams() {
             {" "}<code>Response</code> or to <code>pipeTo</code> somewhere.
         </p>
         {example("streams")}
+    </>
+}
+
+export comp Topics() {
+    return <>
+        <p>
+            <code>topic&lt;T&gt;(name)</code> passes values between the tabs of a site, over the
+            {" "}<code>BroadcastChannel</code> of that name. <code>{"cart <- e"}</code> sends to
+            every other tab that listens and goes on at once, so it is allowed in any function and
+            event handler; the tab that sends does not get its own value. <code>{"<-cart"}</code>,
+            {" "}<code>for e in cart</code> and <code>select</code> receive, as from a channel.
+        </p>
+        <p>
+            A topic listens from its first receive on and keeps what comes until it is received.
+            Two topics of the same name each get every value, and <code>close(cart)</code> stops
+            one, so a component closes its topic in the function that <code>mount()</code> returns.
+            The values go to other tabs as copies, so they are data, as the arguments of
+            {" "}<code>go</code> are; a goroutine that gets a topic sends to the tabs too.
+        </p>
+        {example("topics")}
+    </>
+}
+
+export comp ChannelObjects() {
+    return <>
+        <p>
+            <code>Channel</code> and <code>Topic</code> are predeclared objects with what channels
+            and topics compile to, by name: <code>Channel.make(size, zero)</code>,
+            {" "}<code>send</code>, <code>receive</code>, <code>close</code>, <code>range</code>,
+            {" "}<code>select</code>, <code>try</code>, <code>fromStream</code>,
+            {" "}<code>stream</code>, <code>after</code> and <code>tick</code>;
+            {" "}<code>Topic.make(name, zero)</code>, <code>publish</code>, <code>listen</code> and
+            {" "}<code>close</code>. They are for code that needs them as values, such as
+            {" "}<code>channels.forEach(Channel.close)</code>, and do what the syntax does without
+            its checks: <code>Channel.receive(ch)</code> is a Promise of a <code>?T</code>, and
+            {" "}<code>Topic.make</code> does not check that the values can go to other tabs.
+        </p>
+        <p>
+            <code>Channel.EMPTY</code> and <code>Topic.EMPTY</code> are the zero values of
+            {" "}<code>chan T</code> and <code>topic T</code>, the same for all types, and they are
+            closed: receiving gives the zero value of the type at once and <code>ok</code> is
+            {" "}<code>false</code>, <code>for</code> over them ends at once, and what is sent to
+            them goes nowhere. So <code>let results chan number</code> is safe to use before it
+            gets a channel. In JS they are <code>$$Channel</code> and <code>$$Topic</code> of the
+            runtime, so a program may declare <code>Channel</code> and <code>Topic</code> of its
+            own.
+        </p>
+        {example("channel-objects")}
     </>
 }

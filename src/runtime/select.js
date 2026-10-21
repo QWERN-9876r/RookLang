@@ -3,12 +3,13 @@
 // channels of a select.
 
 import { $$finish, $$pump, $$zero } from './chan.js';
-import { $$ask, $$ownerOf, $$pin, $$post, $$registry, $$stopped } from './threads.js';
+import { $$ask, $$isEmpty, $$ownerOf, $$pin, $$post, $$registry, $$stopped } from './threads.js';
 
 // `select`: the index of the case that went on, and what it received. A case is { channel } to
-// receive or { channel, value } to send; from another thread, { channel, send, value }. One that
-// can go on at once wins, a random one as in Go; else `default`, -1, if there is one; else the
-// first that can go on later. A case with a null channel never goes on.
+// receive or { channel, value } to send, with the zero value that Channel.EMPTY gives, if it is
+// not null; from another thread, { channel, send, value }. One that can go on at once wins, a
+// random one as in Go; else `default`, -1, if there is one; else the first that can go on later.
+// A case with a null channel never goes on, and one with Channel.EMPTY always can.
 export async function $$select(cases, hasDefault) {
   const registry = $$registry();
   const all = cases.map((each, i) => ({
@@ -16,12 +17,13 @@ export async function $$select(cases, hasDefault) {
     id: typeof each.channel === 'string' ? each.channel : (each.channel?.$$chan ?? null),
     send: each.send ?? 'value' in each,
     value: each.value,
+    zero: each.zero ?? null,
   }));
   const live = all.filter(({ id }) => id !== null);
-  const owners = new Set(live.map(({ id }) => $$ownerOf(id)));
+  const owners = new Set(live.filter(({ id }) => !$$isEmpty(id)).map(({ id }) => $$ownerOf(id)));
 
   // The channels of one other thread: the select runs there.
-  if (owners.size === 1 && !owners.has(registry.key)) {
+  if (owners.size === 1 && !owners.has(registry.key) && live.every(({ id }) => !$$isEmpty(id))) {
     const [owner] = owners;
 
     return $$ask(owner, {
@@ -34,10 +36,13 @@ export async function $$select(cases, hasDefault) {
   const order = live.map(({ i }) => i).sort(() => Math.random() - 0.5);
 
   for (const i of order) {
-    const { id, send, value } = all[i];
+    const { id, send, value, zero } = all[i];
     const owner = $$ownerOf(id);
-    const ready =
-      owner === registry.key
+    const ready = $$isEmpty(id)
+      ? send
+        ? []
+        : [zero, false]
+      : owner === registry.key
         ? $$try(id, send, value)
         : await $$ask(owner, { op: 'try', channel: id, send, value });
 

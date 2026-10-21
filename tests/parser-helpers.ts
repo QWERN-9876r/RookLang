@@ -58,6 +58,9 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
     case 'QueueExpression':
       return `(queue ${ty(node.element)}${node.items ? ` ${sx(node.items)}` : ''})`;
 
+    case 'TopicExpression':
+      return `(topic ${ty(node.element)} ${sx(node.name)})`;
+
     case 'MakeExpression':
       return `(make ${ty(node.type)} ${sx(node.length)}${node.shared ? ' shared' : ''})`;
 
@@ -160,6 +163,9 @@ export function ty(node: ast.TypeNode): string {
 
     case 'QueueType':
       return `queue ${ty(node.element)}`;
+
+    case 'TopicType':
+      return `topic ${ty(node.element)}`;
 
     case 'NullableType':
       return `?${ty(node.type)}`;

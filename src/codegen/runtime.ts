@@ -10,14 +10,20 @@ import { RUNTIME_FILES } from '../runtime/sources.ts';
 /** How a module gets the runtime: by an import, or with the code of the runtime in it. */
 export type RuntimeMode = 'import' | 'inline';
 
-/** Predeclared functions of goroutines and channels: `close(ch)` is `$$close(ch)`. */
-export const PREDECLARED: ReadonlySet<string> = new Set([
-  'after',
-  'cancel',
-  'close',
-  'stream',
-  'tick',
-  'transfer',
+/**
+ * Predeclared names of goroutines and channels, and what they are in JS: `close(ch)` is
+ * `$$Channel.close(ch)`, and `Channel` itself is `$$Channel`, so that the names of a program stay
+ * its own.
+ */
+export const PREDECLARED: ReadonlyMap<string, string> = new Map([
+  ['after', '$$Channel.after'],
+  ['cancel', '$$cancel'],
+  ['Channel', '$$Channel'],
+  ['close', '$$Channel.close'],
+  ['stream', '$$Channel.stream'],
+  ['tick', '$$Channel.tick'],
+  ['Topic', '$$Topic'],
+  ['transfer', '$$transfer'],
 ]);
 
 interface RuntimeFile {

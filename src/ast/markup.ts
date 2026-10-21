@@ -114,7 +114,8 @@ export type TypeNode =
   | UnionType
   | LiteralType
   | ChanType
-  | QueueType;
+  | QueueType
+  | TopicType;
 
 /**
  * `chan number`: a channel of numbers, made by `chan<number>(size)`; `chan<- number` only sends
@@ -129,6 +130,12 @@ export interface ChanType extends NodeBase {
 /** `queue number`: a queue of numbers, made by `queue<number>()`. */
 export interface QueueType extends NodeBase {
   kind: 'QueueType';
+  element: TypeNode;
+}
+
+/** `topic CartEvent`: values that go to the other tabs of a site, made by `topic<T>(name)`. */
+export interface TopicType extends NodeBase {
+  kind: 'TopicType';
   element: TypeNode;
 }
 

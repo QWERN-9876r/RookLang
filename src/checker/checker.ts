@@ -21,6 +21,7 @@ class Checker extends CompletionChecker {
     this.checkEndlessRecursion();
     this.checkIterators();
     this.checkHtmlTags();
+    this.checkClosing();
     this.diagnostics.sort((a, b) => a.start - b.start);
     this.warnings.sort((a, b) => a.start - b.start);
 

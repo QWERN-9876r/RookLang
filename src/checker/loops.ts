@@ -6,8 +6,10 @@ import { isMap, loopEntry } from './iterables.ts';
 import {
   ANY,
   isNullable,
+  isTopic,
   NUMBER,
   STRING,
+  topicElement,
   typeToString,
   UNKNOWN,
   type FunctionType,
@@ -59,6 +61,17 @@ export abstract class LoopChecker extends BytesChecker {
       }
 
       if (node.key) this.error('a channel has no keys: write "for value in ch"', node.key);
+    } else if (isTopic(iterable)) {
+      // Each value waits for another tab to send one, until the topic is closed.
+      value = topicElement(iterable);
+      if (this.fn && !this.fn.isAsync) {
+        this.error(
+          '"for ... in" a topic waits for its values, so it is allowed only in async functions and at the top level of a module',
+          node.iterable,
+        );
+      }
+
+      if (node.key) this.error('a topic has no keys: write "for value in t"', node.key);
     } else if (iterable.kind === 'string') {
       value = STRING;
     } else if (iterable.kind === 'any') {

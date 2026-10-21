@@ -1,0 +1,45 @@
+// topic<T>(name) passes values between the tabs of a site. Open this page in two tabs and run
+// the example in both: what one tab adds, the other shows
+interface CartEvent {
+    kind "add" | "clear"
+    title string
+}
+
+comp Cart() {
+    state items []string = []
+    const cart = topic<CartEvent>("guide-cart")
+
+    func apply(e CartEvent) {
+        if e.kind == "add" {
+            items.push(e.title)
+        } else {
+            items = []
+        }
+    }
+
+    // A tab does not hear what it sends, so it applies its own change
+    func change(e CartEvent) {
+        apply(e)
+        cart <- e
+    }
+
+    // What the other tabs send, from the first receive on
+    async func follow() {
+        for e in cart {
+            apply(e)
+        }
+    }
+
+    mount() {
+        follow()
+        return () => close(cart)
+    }
+
+    return <div class="card">
+        <button onClick={change({ kind: "add", title: `Book ${items.length + 1}` })}>Add a book</button>
+        <button onClick={change({ kind: "clear", title: "" })}>Clear</button>
+        <p>In the cart: {items.length == 0 ? "nothing" : items.join(", ")}</p>
+    </div>
+}
+
+document.body.append(<Cart />)

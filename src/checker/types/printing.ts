@@ -3,6 +3,7 @@ import { ERROR_CLASS } from './classes.ts';
 import { nullable } from './constructors.ts';
 import type { Type } from './model.ts';
 import { isQueue, queueElement } from './queue.ts';
+import { isTopic, topicElement } from './topic.ts';
 
 // Types as text, for messages.
 
@@ -85,11 +86,11 @@ export function typeToString(type: Type): string {
       }
 
       // `queue (string | number)`: the parentheses that the type is written with.
-      if (isQueue(type)) {
-        const element = queueElement(type);
+      if (isQueue(type) || isTopic(type)) {
+        const element = isQueue(type) ? queueElement(type) : topicElement(type);
         const text = typeToString(element);
 
-        return `queue ${element.kind === 'union' && !element.name ? `(${text})` : text}`;
+        return `${type.name} ${element.kind === 'union' && !element.name ? `(${text})` : text}`;
       }
 
       if (type.instanceOf && type.name !== null) {

@@ -16,9 +16,10 @@ function run(files: Record<string, string>): { stdout: string; stderr: string } 
   const options = { cwd: dir, encoding: 'utf8' as const, timeout: 30_000 };
 
   for (const [name, source] of Object.entries(files)) writeFileSync(join(dir, name), source);
-  expect(spawnSync(process.execPath, [cli, 'build', ...Object.keys(files)], options).stderr).toBe(
-    '',
-  );
+  // Warnings, such as of channels that are never closed, do not stop the build.
+  expect(
+    spawnSync(process.execPath, [cli, 'build', ...Object.keys(files)], options).stderr,
+  ).not.toContain('error:');
 
   return spawnSync(process.execPath, ['main.js'], options);
 }

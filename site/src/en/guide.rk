@@ -8,7 +8,7 @@ import { Card, CardGrid } from "../../ui/card.rk"
 import { CodeBlock } from "../../ui/code-block.rk"
 import { MARKETPLACE, OPEN_VSX, REPOSITORY, Section, text } from "../i18n.rk"
 import { Components, Decorators, Markup, Mounting, Reactivity, Refs, Styles, WebComponents } from "./guide-components.rk"
-import { Async, Channels, Goroutines, Select, Streams } from "./guide-concurrency.rk"
+import { Async, ChannelObjects, Channels, Goroutines, Select, Streams, Topics } from "./guide-concurrency.rk"
 
 export const SECTIONS []Section = [
     { id: "intro", title: "What is Rook", group: "Language", content: Intro },
@@ -28,6 +28,8 @@ export const SECTIONS []Section = [
     { id: "channels", title: "Channels", group: "Concurrency", content: Channels },
     { id: "select", title: "select", group: "Concurrency", content: Select },
     { id: "streams", title: "Streams", group: "Concurrency", content: Streams },
+    { id: "topics", title: "Topics", group: "Concurrency", content: Topics },
+    { id: "channel-objects", title: "Channel and Topic", group: "Concurrency", content: ChannelObjects },
     { id: "markup", title: "Markup", group: "Markup and components", content: Markup },
     { id: "components", title: "Components", group: "Markup and components", content: Components },
     { id: "state", title: "State", group: "Markup and components", content: Reactivity },

@@ -1,7 +1,8 @@
 import { isQueue, memberNames, queueElement, typeToString, type Type } from './types.ts';
 
 // What can go to a worker and back: a worker gets a copy of each value (the structured clone of
-// postMessage), and a copy has the data of a value but not its methods.
+// postMessage), and a copy has the data of a value but not its methods. What goes to another tab
+// through a topic is a copy as well, and it cannot hold a channel.
 
 /** Buffers and their views: copied whole, or moved by `transfer(x)` (channels.ts). */
 export const BUFFERS: readonly string[] = [
@@ -26,6 +27,8 @@ const COPIED = new Set([
   'chan',
   'chan<-',
   '<-chan',
+  // A topic is copied as its name, and the other thread listens to it on its own.
+  'topic',
   'Map',
   'Set',
   'Date',
@@ -39,13 +42,13 @@ const COPIED = new Set([
 ]);
 
 /** Why a value of the type cannot be copied to a worker, or null if it can. */
-export function notCopied(type: Type, seen = new Set<Type>()): string | null {
+export function notCopied(type: Type, seen = new Set<Type>(), tab = false): string | null {
   if (seen.has(type)) return null;
   seen.add(type);
 
   const inner = (types: readonly Type[]) => {
     for (const each of types) {
-      const reason = notCopied(each, seen);
+      const reason = notCopied(each, seen, tab);
 
       if (reason !== null) return reason;
     }
@@ -84,6 +87,11 @@ export function notCopied(type: Type, seen = new Set<Type>()): string | null {
 
       const name = type.instanceOf?.template.name ?? type.name;
 
+      // The id of a channel means something only to the workers of the tab that made it.
+      if (tab && (name === 'chan' || name === 'chan<-' || name === '<-chan')) {
+        return `${typeToString(type)} cannot go to another tab: a channel works only within one`;
+      }
+
       if (name !== null && COPIED.has(name)) return inner(type.instanceOf?.args ?? []);
       if (type.call || type.construct)
         return `${typeToString(type)} is a function and cannot be copied`;
@@ -102,4 +110,9 @@ export function notCopied(type: Type, seen = new Set<Type>()): string | null {
     default:
       return null;
   }
+}
+
+/** Why a value of the type cannot go to another tab through a topic, or null if it can. */
+export function notBroadcast(type: Type): string | null {
+  return notCopied(type, new Set(), true);
 }

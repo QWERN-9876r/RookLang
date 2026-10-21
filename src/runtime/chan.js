@@ -1,10 +1,11 @@
 // Channels: sending, receiving and closing, here or in the thread that made the channel
 // (threads.js), and the queues of a channel. Receiving from a closed channel gives
-// the zero value of its type, as in Go.
+// the zero value of its type, as in Go. Channel.EMPTY is closed and belongs to no thread: a send to
+// it goes nowhere, and receiving gives the zero value that the code that receives passes.
 
 import { $$Queue } from './queue.js';
 import { $$commit, $$lock, $$select, $$try, $$unlock, $$unwait } from './select.js';
-import { $$adopt, $$ask, $$ownerOf, $$post, $$registry, $$stopped } from './threads.js';
+import { $$adopt, $$ask, $$isEmpty, $$ownerOf, $$post, $$registry, $$stopped } from './threads.js';
 
 $$registry().handle ??= { message: $$message, pump: $$pump };
 
@@ -32,6 +33,9 @@ export function $$chan(size, zero) {
 // that made the channel.
 export function $$send(channel, value) {
   const id = channel.$$chan;
+
+  if ($$isEmpty(id)) return Promise.resolve();
+
   const owner = $$ownerOf(id);
 
   if (owner !== $$registry().key) return $$ask(owner, { op: 'send', channel: id, value });
@@ -41,11 +45,12 @@ export function $$send(channel, value) {
   );
 }
 
-export function $$receive(channel, withOk = false) {
+export function $$receive(channel, withOk = false, zero = null) {
   const id = channel.$$chan;
   const owner = $$ownerOf(id);
-  const received =
-    owner !== $$registry().key
+  const received = $$isEmpty(id)
+    ? Promise.resolve([zero, false])
+    : owner !== $$registry().key
       ? $$ask(owner, { op: 'receive', channel: id })
       : new Promise((resolve, reject) => $$wait(id, 'receivers', { done: resolve, fail: reject }));
 
@@ -55,6 +60,9 @@ export function $$receive(channel, withOk = false) {
 // Closing a channel of another thread fails this one if it was closed already, as a panic would.
 export function $$close(channel) {
   const id = channel.$$chan;
+
+  if ($$isEmpty(id)) return;
+
   const owner = $$ownerOf(id);
 
   if (owner === $$registry().key) return $$closeHere(id);

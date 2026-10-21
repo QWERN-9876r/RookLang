@@ -54,11 +54,16 @@ export type SimpleStatement =
   | DeleteStatement
   | SendStatement;
 
-/** `ch <- value`: waits until the channel takes the value, so only in async functions. */
+/**
+ * `ch <- value`: waits until the channel takes the value, so only in async functions. A send to a
+ * topic waits for nobody, so the parser, which does not know the type, leaves the error to the
+ * checker: `cannotWait` is the `<-` of a send where waiting is not allowed, and why.
+ */
 export interface SendStatement extends NodeBase {
   kind: 'SendStatement';
   channel: Expression;
   value: Expression;
+  cannotWait?: { inDefer: boolean; start: number; end: number };
 }
 
 export interface BlockStatement extends NodeBase {

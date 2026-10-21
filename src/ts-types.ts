@@ -3,6 +3,7 @@ import { guardedByError } from './checker/error-results.ts';
 import {
   ERROR_CLASS,
   isQueue,
+  isTopic,
   memberNames,
   queueElement,
   type FunctionType,
@@ -150,6 +151,9 @@ function objectType(type: ObjectType): string {
   if (type.name === 'chan' || type.name === 'chan<-' || type.name === '<-chan') {
     return `{ readonly $$chan: string }`;
   }
+
+  // A topic is an object with its name, and so is it for TypeScript code.
+  if (isTopic(type)) return `{ readonly $$topic: string }`;
 
   // A queue is an instance of $$Queue of the runtime (src/runtime/queue.js): TypeScript code uses its
   // members.

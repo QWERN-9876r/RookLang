@@ -1,5 +1,5 @@
 import type * as ast from '../ast.ts';
-import { IteratorChecker } from './iterators.ts';
+import { ClosingChecker } from './closing.ts';
 import {
   ARRAY_MEMBERS,
   ATTRIBUTE_NAMES,
@@ -38,7 +38,7 @@ const PRIMITIVE_MEMBERS = {
   bool: BOOL_MEMBERS,
 };
 
-export abstract class CompletionChecker extends IteratorChecker {
+export abstract class CompletionChecker extends ClosingChecker {
   protected completion: CompletionResult | null = null;
 
   private atCursor(node: ast.Identifier): boolean {

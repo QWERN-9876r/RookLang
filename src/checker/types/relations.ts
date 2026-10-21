@@ -11,6 +11,7 @@ import {
 } from './model.ts';
 import { typedArrayOf, typeToString } from './printing.ts';
 import { isQueue, queueElement } from './queue.ts';
+import { isTopic, topicElement } from './topic.ts';
 
 // Relations between types: assignability, comparison, equality, common types.
 
@@ -101,6 +102,19 @@ export function assignable(source: Type, target: Type, assuming: [Type, Type][])
       // Only a queue is a queue, as only an array is an array, and its values are checked as theirs.
       if (isQueue(target)) {
         return isQueue(source) && assignable(queueElement(source), queueElement(target), nested);
+      }
+
+      // A topic both sends and receives, so its values are the same both ways, as a channel's;
+      // `topic any` is any topic, for `close(t)`.
+      if (isTopic(target)) {
+        const element = topicElement(target);
+
+        return (
+          isTopic(source) &&
+          (element.kind === 'any' ||
+            (assignable(topicElement(source), element, nested) &&
+              assignable(element, topicElement(source), nested)))
+        );
       }
 
       // A channel both takes and gives values, so `chan number` is not a `chan ?number`, as in Go;
@@ -268,7 +282,7 @@ export function explainMismatch(source: Type, target: Type): string | null {
     return null;
   }
 
-  if (isQueue(target)) return null;
+  if (isQueue(target) || isTopic(target)) return null;
 
   const members =
     target.kind === 'object'
@@ -370,9 +384,10 @@ export function hasZeroValue(type: Type): boolean {
     case 'unknown':
       return true;
 
-    // An empty queue, as `[]` is the zero value of an array.
+    // An empty queue, as `[]` is the zero value of an array; Channel.EMPTY and Topic.EMPTY, which
+    // are closed.
     case 'object':
-      return isQueue(type);
+      return isQueue(type) || isTopic(type) || CHAN_NAMES.has(type.instanceOf?.template.name ?? '');
 
     default:
       return false;

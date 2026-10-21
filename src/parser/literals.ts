@@ -171,18 +171,58 @@ export abstract class LiteralParser extends ExpressionParser {
    * that has no type and `(` after it is a comparison: then this gives null and reads nothing.
    */
   protected override parseQueue(): ast.QueueExpression | null {
+    const start = this.peek().start;
+    const element = this.parseMadeType();
+
+    if (!element) return null;
+
+    const items = this.check(')') ? null : this.nested(() => this.parseExpression());
+
+    this.accept(',');
+    this.expect(
+      ')',
+      '")": a queue takes its first values as one array, e.g. queue<number>([1, 2])',
+    );
+
+    return { kind: 'QueueExpression', element, items, ...this.span(start) };
+  }
+
+  /** `topic<CartEvent>("cart")`; `topic < n` is a comparison, as `queue < n` is. */
+  protected override parseTopic(): ast.TopicExpression | null {
+    const start = this.peek().start;
+    const element = this.parseMadeType();
+
+    if (!element) return null;
+    if (this.check(')')) {
+      this.fail('a topic takes its name, the same in every tab, e.g. topic<CartEvent>("cart")');
+    }
+
+    const name = this.nested(() => this.parseExpression());
+
+    this.accept(',');
+    this.expect(')', '")": a topic takes only its name, e.g. topic<CartEvent>("cart")');
+
+    return { kind: 'TopicExpression', element, name, ...this.span(start) };
+  }
+
+  /**
+   * `<T>(` after `queue` or `topic`: the type of the values, with `(` read. Without `(` after the
+   * type, gives null and reads nothing, so that `queue < n` stays a comparison.
+   */
+  private parseMadeType(): ast.TypeNode | null {
     const { pos } = this;
     // Closing the type may split a `>>` token, and errors are reported as the type is read.
     const tokens = this.tokens.slice(pos);
     const reported = this.diagnostics.length;
-    const start = this.next().start;
     let element: ast.TypeNode;
+
+    this.next();
 
     try {
       this.expect('<');
       element = this.parseType();
       this.expectTypeClose('">" after the type of the values');
-      if (!this.check('(')) throw new ParseError('not a queue');
+      if (!this.check('(')) throw new ParseError('not a call');
     } catch (error) {
       if (!(error instanceof ParseError)) throw error;
       tokens.forEach((token, i) => (this.tokens[pos + i] = token));
@@ -194,15 +234,7 @@ export abstract class LiteralParser extends ExpressionParser {
 
     this.next();
 
-    const items = this.check(')') ? null : this.nested(() => this.parseExpression());
-
-    this.accept(',');
-    this.expect(
-      ')',
-      '")": a queue takes its first values as one array, e.g. queue<number>([1, 2])',
-    );
-
-    return { kind: 'QueueExpression', element, items, ...this.span(start) };
+    return element;
   }
 
   /** `chan(stream)` or `chan(stream, size)`, after `chan`. */
