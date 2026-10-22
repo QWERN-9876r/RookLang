@@ -240,6 +240,9 @@ comp Errors() {
             {" "}<code>null</code> вместо значения: пока <code>err</code> не проверена, значение может
             быть <code>null</code>, после проверки — нет. Если значение бывает <code>null</code> и
             без ошибки, результат пишут как <code>(?Person, error)</code>.
+            {" "}<code>error("load", err)</code> оборачивает ошибку, как <code>%w</code> в Go:
+            сообщение заканчивается сообщением <code>err</code>, а <code>cause</code> — сам
+            {" "}<code>err</code>.
         </p>
         {example("errors")}
         <p>

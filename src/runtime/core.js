@@ -1,4 +1,5 @@
-// What the code of any module may need: `for` over a value of unknown type, and `defer`.
+// What the code of any module may need: `for` over a value of unknown type, `defer`, and wrapped
+// errors.
 
 // `for v in x` over an untyped value: a Map gives its values, as a typed one does.
 export function $$values(iterable) {
@@ -20,4 +21,12 @@ export function $$runDeferred(deferred) {
   }
 
   if (failure) throw failure.error;
+}
+
+// `error("load user", err)`: an error whose message ends with that of its cause, as `%w` of Go
+// gives "load user: not found", and whose `cause` is the error itself, for code that looks at it.
+export function $$wrap(message, cause) {
+  const reason = cause instanceof Error ? cause.message : String(cause);
+
+  return new Error(`${message}: ${reason}`, { cause });
 }

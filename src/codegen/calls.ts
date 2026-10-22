@@ -29,7 +29,11 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const conditional = node.optional || hasOptionalLink(node.callee);
     const args = this.withHoisting(this.hoist && !conditional, () => this.elements(node.arguments));
 
-    if (this.isBuiltinError(node.callee) && !node.optional) return `new Error(${args})`;
+    // `error("load user", err)` wraps an error, with its message after this one (runtime/core.js).
+    if (this.isBuiltinError(node.callee) && !node.optional) {
+      return node.arguments.length > 1 ? `$$wrap(${args})` : `new Error(${args})`;
+    }
+
     if (this.isStringConversion(node.callee)) return `new TextDecoder().decode(${args})`;
 
     const yielded = this.yielded(node);

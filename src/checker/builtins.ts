@@ -316,8 +316,9 @@ export const GLOBAL_VALUES: ReadonlyMap<string, Type> = new Map<string, Type>([
   ['NaN', NUMBER],
   ['Infinity', NUMBER],
   ['Error', ERROR_CLASS.value],
-  // `error("message")` creates an Error, so the result is never null.
-  ['error', func([STRING], [ERROR_CLASS.instance])],
+  // `error("message")` creates an Error, so the result is never null; `error("load user", err)`
+  // wraps an error that is not null.
+  ['error', func([STRING, ERROR_CLASS.instance], [ERROR_CLASS.instance], { required: 1 })],
   // `close(ch)`: the channel takes no more values (a `<-chan T` cannot be closed: channels.ts);
   // `close(t)`: the topic stops listening and sending.
   ['close', func([union([chanOf(ANY), topicOf(ANY)])], [])],

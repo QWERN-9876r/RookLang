@@ -1414,7 +1414,22 @@ if (err != null) {
 }
 ```
 
-`error(msg)` создаёт `new Error(msg)`.
+`error(msg)` создаёт `new Error(msg)`. `error(msg, err)` оборачивает ошибку, как `fmt.Errorf("%w")`
+в Go: её сообщение заканчивается сообщением `err`, а `cause` — сам `err`:
+
+```go
+const name, err = find(id)
+if err != null {
+    return "", error("load user", err)  // "load user: no user 7"
+}
+```
+
+```js
+return ["", $$wrap("load user", err)];  // new Error("load user: no user 7", { cause: err })
+```
+
+Оборачиваемая ошибка не может быть `null`: сначала её проверяют, как здесь. Исключение, пойманное
+через `catch e` (это `any`), оборачивается тоже, а значение, которое не `Error`, даёт свой текст.
 
 ### Значение или ошибка
 
@@ -2471,7 +2486,6 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 Для программ на сервере:
 
-- **Обёрнутые ошибки:** `error("load user", err)` → `new Error("load user", { cause: err })`.
 - **Классы в горутинах:** экземпляр класса, поля которого — данные, уходит в горутину и обратно
   вместе с классом: воркер, который и так загружает класс, даёт копии его прототип.
 - **`rook run --watch` и `rook test`.**

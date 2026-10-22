@@ -234,7 +234,9 @@ comp Errors() {
             function of <code>(Person, error)</code> may return <code>null</code> in place of the
             value: until <code>err</code> is checked the value may be <code>null</code>, after the
             check it is not. Where the value may be <code>null</code> without an error too, the
-            result is <code>(?Person, error)</code>.
+            result is <code>(?Person, error)</code>. <code>error("load", err)</code> wraps an
+            error, as <code>%w</code> does in Go: the message ends with that of <code>err</code>,
+            and <code>cause</code> is <code>err</code> itself.
         </p>
         {example("errors")}
         <p>

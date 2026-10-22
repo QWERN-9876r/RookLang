@@ -22,7 +22,7 @@ func parsePerson(line string) (Person, error) {
     const parts = line.split(" ")
     const age, err = parseAge(parts[1])
     if err != null {
-        return null, err
+        return null, error(`«${line}»`, err) // оборачивает: сообщение заканчивается сообщением err
     }
     return new Person(parts[0], age), null
 }

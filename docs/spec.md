@@ -1415,7 +1415,22 @@ if (err != null) {
 }
 ```
 
-`error(msg)` creates `new Error(msg)`.
+`error(msg)` creates `new Error(msg)`. `error(msg, err)` wraps an error, as `fmt.Errorf("%w")`
+does in Go: its message ends with that of `err`, and `cause` is `err` itself:
+
+```go
+const name, err = find(id)
+if err != null {
+    return "", error("load user", err)  // "load user: no user 7"
+}
+```
+
+```js
+return ["", $$wrap("load user", err)];  // new Error("load user: no user 7", { cause: err })
+```
+
+The error to wrap cannot be `null`: it is checked first, as here. An exception caught with
+`catch e`, which is `any`, is wrapped too, and a value that is not an `Error` gives its text.
 
 ### A value or an error
 
@@ -2472,7 +2487,6 @@ Planned next, around goroutines and what the browser has:
 
 For programs on a server:
 
-- **Wrapped errors:** `error("load user", err)` → `new Error("load user", { cause: err })`.
 - **Classes in goroutines:** an instance of a class whose fields are data goes to a goroutine and
   back with its class: the worker, which loads the class anyway, gives the copy its prototype.
 - **`rook run --watch` and `rook test`.**
