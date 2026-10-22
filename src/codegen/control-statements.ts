@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
 import { isChan } from '../checker/channel.ts';
-import { isMap } from '../checker/iterables.ts';
+import { asyncIterated, isMap } from '../checker/iterables.ts';
 import { isTopic, typedArrayOf } from '../checker/types.ts';
 import { declaredIn } from '../names.ts';
 import { containsBreak } from '../walk.ts';
@@ -92,6 +92,15 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       const value = this.name(node.value.name);
       const iterable = this.options.types?.get(node.iterable);
       let head: string;
+
+      // An async iterable, such as a stream of Node, gives its values as their Promises do.
+      if (iterable && asyncIterated(iterable) !== null) {
+        this.line(
+          `for await (const ${value} of ${this.expression(node.iterable, POSTFIX)}) ${this.loopBody(node.body)}`,
+        );
+
+        return;
+      }
 
       // A channel gives its values as they come, until it is closed, and so does a topic.
       if (iterable && (isChan(iterable) || isTopic(iterable))) {

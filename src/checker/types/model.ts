@@ -106,6 +106,8 @@ export interface ObjectType {
   numberIndex?: Type;
   /** What `for v in x` gives: the values of `[Symbol.iterator]()` in a `.d.ts`. */
   iterates?: Type;
+  /** What `for v in x` waits for: the values of `[Symbol.asyncIterator]()`, as of a Node stream. */
+  asyncIterates?: Type;
   /** A generic interface, `interface Box<T>`: its members use these parameters. */
   typeParams?: TypeParam[];
   /** `Box<number>`: the generic interface and the type arguments it was made from. */
@@ -127,6 +129,8 @@ export interface ClassInfo {
   /** Type arguments for a generic base class: the defaults of a class from a `.d.ts`. */
   superArgs?: Type[];
   ctorVisibility: Visibility;
+  /** What `for v in x` waits for: the values of `[Symbol.asyncIterator]()` in a `.d.ts`. */
+  asyncIterates?: Type;
   instance: ClassType;
   value: ClassValueType;
 }

@@ -1172,6 +1172,7 @@ if x > 0 {
 | `for k, v in scores { }` (Map)   | `for (const [k, v] of scores.entries()) { }`                    |
 | `for v in scores { }` (Map)      | `for (const v of scores.values()) { }`                          |
 | `for v in seq { }` (итератор)    | `for (const v of seq()) { }`                                    |
+| `for line in lines { }` (async)  | `for await (const line of lines) { }`                           |
 | `for cond { }`                   | `while (cond) { }`                                              |
 | `for { }`                        | `while (true) { }`                                              |
 
@@ -1197,6 +1198,12 @@ if x > 0 {
   `--no-check`, перебирается через `for...of` как есть.
 - **К типизированному массиву** обращаются по индексу, как к массиву: `data[i]` читает и
   записывает число, и он подходит туда, где ждут `ArrayLike<number>`, как в `Array.from(data)`.
+- **Асинхронное итерируемое,** значения которого приходят из `[Symbol.asyncIterator]()` в его
+  `.d.ts`, перебирается через `for await` из JS: поток Node (`for chunk in request`), строки
+  `readline` (`for line in createInterface({ input })`), `ReadableStream` с `@types/node`, курсор
+  базы данных. Каждое значение ждёт своего Promise, как значения канала, поэтому цикл разрешён
+  только там, где разрешён `await`; ключей у него нет. `break` и `return` закрывают итератор, как
+  в JS. Тип, который итерируется и сразу, перебирается сразу.
 
 `break` и `continue` работают как обычно.
 
@@ -2407,8 +2414,6 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 Для программ на сервере:
 
-- **`for` по асинхронным итерируемым:** `for line in lines`, `for chunk in request` — `for await` из
-  JS для потоков Node, `readline` и курсоров баз данных.
 - **Сигналы и отмена как каналы:** `signal("SIGTERM")` — канал, в который приходит сигнал, как
   `signal.Notify` в Go, для корректного завершения в `select`; `AbortSignal` — канал, который
   закрывается при отмене, а канал даёт `AbortSignal` для `fetch(url, { signal })`, как это делает

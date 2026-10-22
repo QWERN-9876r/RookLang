@@ -1174,6 +1174,7 @@ taken for the start of the block (the same rule as in Go).
 | `for k, v in scores { }` (a Map)   | `for (const [k, v] of scores.entries()) { }`                    |
 | `for v in scores { }` (a Map)      | `for (const v of scores.values()) { }`                          |
 | `for v in seq { }` (an iterator)   | `for (const v of seq()) { }`                                    |
+| `for line in lines { }` (async)    | `for await (const line of lines) { }`                           |
 | `for cond { }`                     | `while (cond) { }`                                              |
 | `for { }`                          | `while (true) { }`                                              |
 
@@ -1199,6 +1200,12 @@ index; here one variable gets the value, and two get the index and the value.
   `--no-check` loops with `for...of` as it is.
 - **A typed array** is indexed as an array is: `data[i]` reads and writes a number, and it can go
   where an `ArrayLike<number>` is expected, as in `Array.from(data)`.
+- **An async iterable,** whose values come from `[Symbol.asyncIterator]()` of its `.d.ts`, is gone
+  over with `for await` of JS: a stream of Node (`for chunk in request`), the lines of `readline`
+  (`for line in createInterface({ input })`), a `ReadableStream` with `@types/node`, the cursor of
+  a database. Each value waits for its Promise, as the values of a channel do, so the loop is
+  allowed only where `await` is; it has no keys. `break` and `return` close the iterator, as they
+  do in JS. A type that is iterable at once too goes over at once.
 
 `break` and `continue` work as usual.
 
@@ -2408,8 +2415,6 @@ Planned next, around goroutines and what the browser has:
 
 For programs on a server:
 
-- **`for` over async iterables:** `for line in lines`, `for chunk in request`, the `for await` of
-  JS over Node streams, `readline` and the cursors of databases.
 - **Signals and cancellation as channels:** `signal("SIGTERM")` is a channel that gets the signal,
   as `signal.Notify` of Go, for a graceful shutdown in `select`; an `AbortSignal` is a channel that
   is closed when it aborts, and a channel gives an `AbortSignal` for `fetch(url, { signal })`, as

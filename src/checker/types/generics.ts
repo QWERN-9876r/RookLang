@@ -69,7 +69,7 @@ export function instantiate(template: ObjectType, args: readonly Type[]): Object
 
   // The indexes and the values of a loop, substituted when first used: the template of a
   // `.d.ts` may get them after its instances.
-  for (const key of ['index', 'numberIndex', 'iterates'] as const) {
+  for (const key of ['index', 'numberIndex', 'iterates', 'asyncIterates'] as const) {
     let substituted: Type | undefined;
 
     Object.defineProperty(instance, key, {

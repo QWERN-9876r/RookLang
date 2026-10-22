@@ -8,7 +8,7 @@ import { Card, CardGrid } from "../../ui/card.rk"
 import { Section } from "../i18n.rk"
 import { Components, Decorators, Markup, Mounting, Reactivity, Refs, Styles, WebComponents } from "./guide-components.rk"
 import { Async, ChannelObjects, Channels, Goroutines, Select, Streams, Topics } from "./guide-concurrency.rk"
-import { Decode, Try } from "./guide-server.rk"
+import { AsyncIterables, Decode, Try } from "./guide-server.rk"
 import { Tools } from "./guide-tools.rk"
 
 export const SECTIONS []Section = [
@@ -33,6 +33,7 @@ export const SECTIONS []Section = [
     { id: "channel-objects", title: "Channel и Topic", group: "Горутины и каналы", content: ChannelObjects },
     { id: "try", title: "try", group: "Сервер", content: Try },
     { id: "decode", title: "decode", group: "Сервер", content: Decode },
+    { id: "async-iterables", title: "for по потокам", group: "Сервер", content: AsyncIterables },
     { id: "markup", title: "Разметка", group: "Разметка и компоненты", content: Markup },
     { id: "components", title: "Компоненты", group: "Разметка и компоненты", content: Components },
     { id: "state", title: "Состояние", group: "Разметка и компоненты", content: Reactivity },

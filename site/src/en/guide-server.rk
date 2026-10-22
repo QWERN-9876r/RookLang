@@ -1,6 +1,9 @@
 // The sections of the English guide about programs on a server; guide.rk lists them all.
 
+import { CodeBlock } from "../../ui/code-block.rk"
 import { example } from "../example.rk"
+import { highlight } from "../highlight.rk"
+import { text } from "../i18n.rk"
 
 export comp Decode() {
     return <>
@@ -42,3 +45,54 @@ export comp Try() {
         {example("try")}
     </>
 }
+
+export comp AsyncIterables() {
+    const t = text()
+
+    return <>
+        <p>
+            <code>for v in x</code> goes over an async iterable too, whose values come from
+            {" "}<code>[Symbol.asyncIterator]()</code> of its <code>.d.ts</code>: a stream of Node,
+            the lines of <code>readline</code>, the body of a request, the cursor of a database. It
+            compiles to <code>for await</code> of JS, so each value waits for its Promise, as the
+            values of a channel do, and the loop is allowed where <code>await</code> is.
+            {" "}<code>break</code> closes the stream.
+        </p>
+        <p>
+            The types come from TypeScript declarations, such as <code>@types/node</code>, which the
+            playground on this page does not have, so here is the code with what it compiles to:
+        </p>
+        <CodeBlock code={STREAM_ROOK} label="errors.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(STREAM_ROOK, "rook")}
+        </CodeBlock>
+        <CodeBlock code={STREAM_JS} label="errors.js" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(STREAM_JS, "js")}
+        </CodeBlock>
+    </>
+}
+
+const STREAM_ROOK = `import { createReadStream } from "node:fs"
+import { createInterface } from "node:readline"
+
+async func countErrors(path string) number {
+    let errors = 0
+    for line in createInterface({ input: createReadStream(path) }) {
+        if line.includes("ERROR") {
+            errors++
+        }
+    }
+    return errors
+}`
+
+const STREAM_JS = `import { createReadStream } from "node:fs";
+import { createInterface } from "node:readline";
+
+async function countErrors(path) {
+  let errors = 0;
+  for await (const line of createInterface({ input: createReadStream(path) })) {
+    if (line.includes("ERROR")) {
+      errors++;
+    }
+  }
+  return errors;
+}`

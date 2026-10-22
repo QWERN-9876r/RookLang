@@ -169,27 +169,34 @@ export abstract class ObjectConverter extends ConverterBase {
 
     if (index) object.index = this.convert(index);
     if (numberIndex && numberIndex !== index) object.numberIndex = this.convert(numberIndex);
-    this.iterates(object, type);
+    this.iterates(object, type, 'iterates');
+    this.iterates(object, type, 'asyncIterates');
 
     return object;
   }
 
   /**
    * What `for v in x` gives: the `value` of what `next()` of `[Symbol.iterator]()` returns while
-   * it is not `done`. Found when it is first needed, as most types are never looped over.
+   * it is not `done`, or of what its Promise gives for `[Symbol.asyncIterator]()`. Found when it is
+   * first needed, as most types are never looped over.
    */
-  private iterates(object: ObjectType, type: TS.Type): void {
+  private iterates(
+    object: ObjectType | ClassInfo,
+    type: TS.Type,
+    key: 'iterates' | 'asyncIterates',
+  ): void {
     const { checker } = this;
+    const prefix = key === 'iterates' ? '__@iterator@' : '__@asyncIterator@';
     const iterator = type
       .getProperties()
-      .find((property) => String(property.escapedName).startsWith('__@iterator@'));
+      .find((property) => String(property.escapedName).startsWith(prefix));
 
     if (!iterator) return;
 
     let found: Type | undefined;
     let done = false;
 
-    Object.defineProperty(object, 'iterates', {
+    Object.defineProperty(object, key, {
       enumerable: true,
       get: () => {
         if (done) return found;
@@ -200,8 +207,10 @@ export abstract class ObjectConverter extends ConverterBase {
           .getCallSignatures()[0]
           ?.getReturnType()
           .getProperty('next');
-        const result =
+        const returned =
           next && checker.getTypeOfSymbol(next).getCallSignatures()[0]?.getReturnType();
+        const result =
+          returned && key === 'asyncIterates' ? checker.getAwaitedType(returned) : returned;
         const results = result?.isUnion() ? result.types : result ? [result] : [];
         const yielded = results.find((each) => {
           const flag = each.getProperty('done');
@@ -328,6 +337,8 @@ export abstract class ObjectConverter extends ConverterBase {
 
     if (base) info.superClass = this.classInfo(base.symbol);
     info.ctor = this.signatures(checker.getSignaturesOfType(statics, SignatureKind.Construct));
+    // A stream of Node is a class, gone over with `for await` in JS.
+    this.iterates(info, instance, 'asyncIterates');
 
     return info;
   }

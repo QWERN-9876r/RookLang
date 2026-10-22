@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { assignedNames } from '../names.ts';
 import { BytesChecker } from './bytes.ts';
 import { chanDirection, elementOf, isChan } from './channel.ts';
-import { isMap, loopEntry } from './iterables.ts';
+import { asyncIterated, isMap, loopEntry } from './iterables.ts';
 import {
   ANY,
   isNullable,
@@ -17,7 +17,8 @@ import {
 } from './types.ts';
 
 // `for ... in`: over arrays, strings, the iterables of the lib files (a Map gives its keys and
-// values), channels, which wait for their values, and iterators, `func(yield func(T) bool)`.
+// values), channels and async iterables, such as the streams of Node, which wait for their values,
+// and iterators, `func(yield func(T) bool)`.
 
 export abstract class LoopChecker extends BytesChecker {
   protected override checkForIn(node: ast.ForInStatement): void {
@@ -36,6 +37,22 @@ export abstract class LoopChecker extends BytesChecker {
       value = isMap(iterable) && entry ? entry[1] : iterable.iterates;
       if (entry) key = entry[0];
       else if (node.key) {
+        this.error(
+          `${typeToString(iterable)} has no keys: loop over its values, e.g. "for value in items"`,
+          node.key,
+        );
+      }
+    } else if (asyncIterated(iterable) !== null) {
+      // `for await` of JS: each value waits for the Promise of next().
+      value = asyncIterated(iterable)!;
+      if (this.fn && !this.fn.isAsync) {
+        this.error(
+          `"for ... in" ${typeToString(iterable)} waits for its values, so it is allowed only in async functions and at the top level of a module`,
+          node.iterable,
+        );
+      }
+
+      if (node.key) {
         this.error(
           `${typeToString(iterable)} has no keys: loop over its values, e.g. "for value in items"`,
           node.key,
