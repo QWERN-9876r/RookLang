@@ -2349,3 +2349,18 @@ types of other imports come from TypeScript declarations (section 10).
 Planned next, around goroutines and what the browser has:
 
 - **State that survives a reload,** see Stages in [components.md](components.md).
+
+For programs on a server:
+
+- **`try` as an expression:** `const data, err = try readFileSync(path)`: an exception, or a
+  rejected Promise with `await try`, becomes the error of `(T, error)`.
+- **`for` over async iterables:** `for line in lines`, `for chunk in request`, the `for await` of
+  JS over Node streams, `readline` and the cursors of databases.
+- **Signals and cancellation as channels:** `signal("SIGTERM")` is a channel that gets the signal,
+  as `signal.Notify` of Go, for a graceful shutdown in `select`; an `AbortSignal` is a channel that
+  is closed when it aborts, and a channel gives an `AbortSignal` for `fetch(url, { signal })`, as
+  `context.Context` of Go does.
+- **Wrapped errors:** `error("load user", err)` → `new Error("load user", { cause: err })`.
+- **Classes in goroutines:** an instance of a class whose fields are data goes to a goroutine and
+  back with its class: the worker, which loads the class anyway, gives the copy its prototype.
+- **`rook run --watch` and `rook test`.**

@@ -2349,3 +2349,18 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 - **Состояние, которое переживает перезагрузку,** см. «Этапы» в
   [components.ru.md](components.ru.md).
+
+Для программ на сервере:
+
+- **`try` как выражение:** `const data, err = try readFileSync(path)`: исключение, или отклонённый
+  Promise с `await try`, становится ошибкой `(T, error)`.
+- **`for` по асинхронным итерируемым:** `for line in lines`, `for chunk in request` — `for await` из
+  JS для потоков Node, `readline` и курсоров баз данных.
+- **Сигналы и отмена как каналы:** `signal("SIGTERM")` — канал, в который приходит сигнал, как
+  `signal.Notify` в Go, для корректного завершения в `select`; `AbortSignal` — канал, который
+  закрывается при отмене, а канал даёт `AbortSignal` для `fetch(url, { signal })`, как это делает
+  `context.Context` в Go.
+- **Обёрнутые ошибки:** `error("load user", err)` → `new Error("load user", { cause: err })`.
+- **Классы в горутинах:** экземпляр класса, поля которого — данные, уходит в горутину и обратно
+  вместе с классом: воркер, который и так загружает класс, даёт копии его прототип.
+- **`rook run --watch` и `rook test`.**
