@@ -1408,6 +1408,47 @@ throw error("unreachable")
 
 `catch` записывается без скобок, `e` имеет тип `any`.
 
+### try
+
+```go
+import { readFileSync, writeFileSync } from "node:fs"
+
+const text, err = try readFileSync("config.json", "utf8")
+if err != null {
+    console.error("no config:", err.message)
+    return
+}
+const config, parseErr = try JSON.parse(text)
+const response, fetchErr = try await fetch(url)
+const saveErr = try writeFileSync("out.txt", text)  // результата нет, поэтому только ошибка
+```
+
+```js
+const [text, err] = $$catch(() => readFileSync("config.json", "utf8"));
+// ...
+const [config, parseErr] = $$catch(() => JSON.parse(text));
+const [response, fetchErr] = await $$catchAsync(async () => await fetch(url));
+const saveErr = $$catch(() => writeFileSync("out.txt", text), 0);
+```
+
+JS-код сообщает об ошибках, бросая их; `try expr` превращает то, что бросило выражение, в ошибку
+`(T, error)`, так, как возвращает ошибки код на Rook.
+
+- **Что ловит:** всё, что брошено в выражении после `try`, как ловил бы `try { }` вокруг него:
+  `try JSON.parse(readFileSync(path, "utf8"))` ловит ошибки обоих вызовов. С `await` внутри — и
+  отклонённый Promise: `try await fetch(url)`. Брошенное значение, которое не `Error`,
+  `throw "empty"`, становится `new Error("empty")`.
+- **Что даёт:** `(T, error)` для выражения типа `T`, и при ошибке значение — `null`, как в «Значение
+  или ошибка»: `config` может быть `null`, пока не проверен `parseErr`. Выражение без значения или
+  только с `error` даёт одну ошибку. Для `(User, error)` — тот же `(User, error)`: исключение —
+  ещё один способ получить ту же ошибку. После нескольких значений без ошибки добавляется ошибка.
+- **Где:** `try` берёт всё выражение после себя, как `return`, и даёт значения для распаковки,
+  поэтому стоит там же, где вызов с несколькими результатами: `const v, err = try ...`,
+  `v, err = try ...`, `return try ...`. Как отдельная инструкция он потерял бы ошибку, и это ошибка
+  компиляции: для блоков кода есть `try { } catch e { }`.
+- В JS выражение — функция, которую рантайм вызывает внутри `try`/`catch`, асинхронная, если
+  выражение ждёт. Поэтому `yield` итератора внутри `try` быть не может.
+
 ### decode
 
 ```go
@@ -2352,8 +2393,6 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 Для программ на сервере:
 
-- **`try` как выражение:** `const data, err = try readFileSync(path)`: исключение, или отклонённый
-  Promise с `await try`, становится ошибкой `(T, error)`.
 - **`for` по асинхронным итерируемым:** `for line in lines`, `for chunk in request` — `for await` из
   JS для потоков Node, `readline` и курсоров баз данных.
 - **Сигналы и отмена как каналы:** `signal("SIGTERM")` — канал, в который приходит сигнал, как

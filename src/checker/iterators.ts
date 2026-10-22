@@ -117,12 +117,20 @@ export abstract class IteratorChecker extends GoForChecker {
     this.checkYields(node.body, false);
   }
 
-  /** Where `yield` is used in the body of an iterator; `nested` inside a function in it. */
-  private checkYields(node: ast.Node, nested: boolean): void {
+  /**
+   * Where `yield` is used in the body of an iterator: `nested` inside a function in it, or in `try`,
+   * which compiles to a function that runs its expression (codegen/try.ts).
+   */
+  private checkYields(node: ast.Node, nested: false | 'function' | 'try'): void {
     if (isYieldCall(node)) {
-      if (nested) {
+      if (nested === 'function') {
         this.error(
           'yield is called in a function inside the iterator: a JS generator yields only in its own body, so loop there, e.g. for x in items { if !yield(x) { return } }',
+          node.callee,
+        );
+      } else if (nested === 'try') {
+        this.error(
+          'yield cannot be in try, which compiles to a function: a JS generator yields only in its own body, so call yield outside of it',
           node.callee,
         );
       }
@@ -149,7 +157,9 @@ export abstract class IteratorChecker extends GoForChecker {
       return;
     }
 
-    const inner = nested || NESTED.has(node.kind);
+    const inner =
+      nested ||
+      (NESTED.has(node.kind) ? 'function' : node.kind === 'TryExpression' ? 'try' : false);
 
     forEachChild(node, (child) => this.checkYields(child, inner));
   }

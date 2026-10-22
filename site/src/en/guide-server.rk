@@ -22,3 +22,23 @@ export comp Decode() {
         {example("decode")}
     </>
 }
+
+export comp Try() {
+    return <>
+        <p>
+            JS code reports errors by throwing them, Node's <code>readFileSync</code> and
+            {" "}<code>JSON.parse</code> among them. <code>try expr</code> turns what the expression
+            throws into an error, the second value, as Rook code returns errors:
+            {" "}<code>const text, err = try readFileSync(path, "utf8")</code>. It catches
+            everything thrown in the expression after it, and with <code>await</code> in it a
+            rejected Promise too: <code>try await fetch(url)</code>.
+        </p>
+        <p>
+            An expression that gives nothing, such as <code>try writeFileSync(path, text)</code>,
+            gives the error alone; a call of <code>(User, error)</code> gives the same
+            {" "}<code>(User, error)</code>, so one check covers both ways to fail. A
+            {" "}<code>try</code> whose error is not kept is a compile error.
+        </p>
+        {example("try")}
+    </>
+}

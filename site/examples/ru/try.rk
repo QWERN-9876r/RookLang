@@ -1,0 +1,17 @@
+// try превращает то, что бросил JS-код, в ошибку — второе значение, как Rook возвращает ошибки
+for text in ["8080", "{", "[80, 443]"] {
+    const port, err = try JSON.parse(text)
+    if err != null {
+        console.log("не JSON:", text)
+        continue
+    }
+    console.log("разобрано:", port)
+}
+
+async func connect(host string) string {
+    throw error(`${host} не отвечает`)
+}
+
+// С await ошибкой становится и отклонённый Promise
+const socket, err = try await connect("db.local")
+console.log(socket, err?.message)

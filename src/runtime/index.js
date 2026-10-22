@@ -14,3 +14,4 @@ export * from './streams.js';
 export * from './threads.js';
 export * from './timers.js';
 export * from './topic.js';
+export * from './try.js';

@@ -48,6 +48,9 @@ export abstract class ExpressionEmitter extends Emitter {
   /** `decode<T>(x)`; implemented by DecodeEmitter. */
   protected abstract decode(node: ast.DecodeExpression): string;
 
+  /** `try x`, with the precedence of its code; implemented by TryEmitter. */
+  protected abstract tryValue(node: ast.TryExpression): [string, number];
+
   /** `<-x` without its `await`; implemented by CallEmitter. */
   protected abstract receive(node: ast.Expression, withOk: boolean): string;
 
@@ -204,6 +207,9 @@ export abstract class ExpressionEmitter extends Emitter {
 
       case 'DecodeExpression':
         return [this.decode(node), POSTFIX];
+
+      case 'TryExpression':
+        return this.tryValue(node);
 
       case 'UnaryExpression':
         return [this.unary(node), UNARY];

@@ -1,0 +1,17 @@
+// try turns what JS code throws into an error, the second value, as Rook returns errors
+for text in ["8080", "{", "[80, 443]"] {
+    const port, err = try JSON.parse(text)
+    if err != null {
+        console.log("not JSON:", text)
+        continue
+    }
+    console.log("parsed:", port)
+}
+
+async func connect(host string) string {
+    throw error(`${host} does not answer`)
+}
+
+// With await, a rejected Promise becomes the error too
+const socket, err = try await connect("db.local")
+console.log(socket, err?.message)

@@ -254,6 +254,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       break;
 
     case 'UnaryExpression':
+    case 'TryExpression':
       visit(node.argument);
       break;
 

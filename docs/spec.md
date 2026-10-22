@@ -1408,6 +1408,48 @@ throw error("unreachable")
 
 `catch` is written without parentheses, and `e` has the type `any`.
 
+### try
+
+```go
+import { readFileSync, writeFileSync } from "node:fs"
+
+const text, err = try readFileSync("config.json", "utf8")
+if err != null {
+    console.error("no config:", err.message)
+    return
+}
+const config, parseErr = try JSON.parse(text)
+const response, fetchErr = try await fetch(url)
+const saveErr = try writeFileSync("out.txt", text)  // it gives nothing, so only the error
+```
+
+```js
+const [text, err] = $$catch(() => readFileSync("config.json", "utf8"));
+// ...
+const [config, parseErr] = $$catch(() => JSON.parse(text));
+const [response, fetchErr] = await $$catchAsync(async () => await fetch(url));
+const saveErr = $$catch(() => writeFileSync("out.txt", text), 0);
+```
+
+JS code reports errors by throwing them; `try expr` turns what the expression throws into the error
+of `(T, error)`, the way Rook code returns errors.
+
+- **What it catches:** everything thrown in the expression after `try`, as a `try { }` around it
+  would: `try JSON.parse(readFileSync(path, "utf8"))` catches the errors of both calls. With
+  `await` in it, a rejected Promise as well: `try await fetch(url)`. A thrown value that is not an
+  `Error`, `throw "empty"`, becomes `new Error("empty")`.
+- **What it gives:** `(T, error)` for an expression of type `T`, and the value is `null` with an
+  error, as in "A value or an error": `config` may be `null` until `parseErr` is checked. An
+  expression that gives nothing, or only an `error`, gives the error alone. Of `(User, error)` it
+  gives the same `(User, error)`: an exception is one more way to get the error. After several
+  values without an error, the error is added.
+- **Where:** `try` takes the whole expression after it, as `return` does, and gives values to
+  unpack, so it stands where a call with several results does: `const v, err = try ...`,
+  `v, err = try ...`, `return try ...`. As a statement it would drop the error, which is a compile
+  error: `try { } catch e { }` is for blocks of code.
+- In JS the expression is a function that the runtime calls inside `try`/`catch`, and an async one
+  if the expression waits. So `yield` of an iterator cannot be inside `try`.
+
 ### decode
 
 ```go
@@ -2352,8 +2394,6 @@ Planned next, around goroutines and what the browser has:
 
 For programs on a server:
 
-- **`try` as an expression:** `const data, err = try readFileSync(path)`: an exception, or a
-  rejected Promise with `await try`, becomes the error of `(T, error)`.
 - **`for` over async iterables:** `for line in lines`, `for chunk in request`, the `for await` of
   JS over Node streams, `readline` and the cursors of databases.
 - **Signals and cancellation as channels:** `signal("SIGTERM")` is a channel that gets the signal,

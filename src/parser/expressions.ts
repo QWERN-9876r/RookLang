@@ -117,6 +117,15 @@ export abstract class ExpressionParser extends TypeParser {
       this.fail(`"${token.kind}" must follow the variable: "i${token.kind}"`);
     }
 
+    // `try` takes the whole expression after it, as `try { }` takes its block.
+    if (token.kind === 'try') {
+      this.next();
+
+      const argument = this.parseExpression();
+
+      return { kind: 'TryExpression', argument, start: token.start, end: argument.end };
+    }
+
     if (token.kind === 'go') {
       this.next();
       if (this.check('for')) {

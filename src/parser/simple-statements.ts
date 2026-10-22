@@ -119,6 +119,8 @@ export abstract class SimpleStatementParser extends ParserBase {
     if (values.length === 1 && value?.kind === 'StreamChanExpression') return;
     // `user, err = decode<User>(body)`: the value and the error.
     if (values.length === 1 && value?.kind === 'DecodeExpression') return;
+    // `data, err = try JSON.parse(text)`: the value and the error, as from a call.
+    if (values.length === 1 && value?.kind === 'TryExpression') return;
     this.error(
       `assignment mismatch: ${plural(targets, 'variable')} but ${plural(values.length, 'value')}`,
       start,

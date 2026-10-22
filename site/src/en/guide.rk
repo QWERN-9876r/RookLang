@@ -9,7 +9,7 @@ import { CodeBlock } from "../../ui/code-block.rk"
 import { MARKETPLACE, OPEN_VSX, REPOSITORY, Section, text } from "../i18n.rk"
 import { Components, Decorators, Markup, Mounting, Reactivity, Refs, Styles, WebComponents } from "./guide-components.rk"
 import { Async, ChannelObjects, Channels, Goroutines, Select, Streams, Topics } from "./guide-concurrency.rk"
-import { Decode } from "./guide-server.rk"
+import { Decode, Try } from "./guide-server.rk"
 
 export const SECTIONS []Section = [
     { id: "intro", title: "What is Rook", group: "Language", content: Intro },
@@ -31,6 +31,7 @@ export const SECTIONS []Section = [
     { id: "streams", title: "Streams", group: "Concurrency", content: Streams },
     { id: "topics", title: "Topics", group: "Concurrency", content: Topics },
     { id: "channel-objects", title: "Channel and Topic", group: "Concurrency", content: ChannelObjects },
+    { id: "try", title: "try", group: "Server", content: Try },
     { id: "decode", title: "decode", group: "Server", content: Decode },
     { id: "markup", title: "Markup", group: "Markup and components", content: Markup },
     { id: "components", title: "Components", group: "Markup and components", content: Components },

@@ -94,8 +94,10 @@ export abstract class StatementParser extends SimpleStatementParser {
       case 'throw':
         return this.parseThrow();
 
+      // `try f()` without a block is an expression.
       case 'try':
-        return this.parseTry();
+        if (this.peek(1).kind === '{') return this.parseTry();
+        break;
 
       case 'defer':
         return this.parseDefer();
@@ -160,7 +162,13 @@ export abstract class StatementParser extends SimpleStatementParser {
         expression.kind === 'NewExpression' ||
         expression.kind === 'GoExpression';
 
-      if (!call && !awaited) {
+      if (expression.kind === 'TryExpression') {
+        this.error(
+          'try gives the error, which is dropped here: keep it, e.g. "const err = try save()", or catch it with try { } catch e { }',
+          expression.start,
+          expression.end,
+        );
+      } else if (!call && !awaited) {
         this.error(
           'this expression does nothing: only function calls can be used as statements',
           expression.start,

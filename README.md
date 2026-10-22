@@ -36,8 +36,8 @@ close(results)
   over a `BroadcastChannel`: `cart <- e` sends and waits for nobody, `for e in cart` receives what
   the other tabs send. `Channel` and `Topic` have what channels and topics compile to, by name, and
   their closed zero values, `Channel.EMPTY` and `Topic.EMPTY`.
-- **Go syntax.** `func`, the type after the name, several results, errors as a second value,
-  `defer`, a single `for` loop:
+- **Go syntax.** `func`, the type after the name, several results, errors as a second value
+  (`try JSON.parse(text)` makes what JS throws one), `defer`, a single `for` loop:
 
   ```go
   func divide(a, b number) (number, error) {

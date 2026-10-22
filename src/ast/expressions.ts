@@ -35,6 +35,7 @@ export type Expression =
   | QueueExpression
   | TopicExpression
   | DecodeExpression
+  | TryExpression
   | ConversionExpression
   | MakeExpression;
 
@@ -87,6 +88,15 @@ export interface TopicExpression extends NodeBase {
 export interface DecodeExpression extends NodeBase {
   kind: 'DecodeExpression';
   type: TypeNode;
+  argument: Expression;
+}
+
+/**
+ * `try JSON.parse(text)`: an exception in the expression, or a rejected Promise that an `await` in
+ * it waits for, becomes the error of `(T, error)`.
+ */
+export interface TryExpression extends NodeBase {
+  kind: 'TryExpression';
   argument: Expression;
 }
 

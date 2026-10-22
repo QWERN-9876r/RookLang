@@ -161,6 +161,7 @@ describe('VS Code grammar', () => {
     expect(scopeOf(source, 'await')).toBe('keyword.control.flow');
     expect(scopeOf('const f = async x => x', 'async')).toBe('storage.modifier.async');
     expect(scopeOf('const n = task.await', 'await')).not.toBe('keyword.control.flow');
+    expect(scopeOf('const res, err = try await load()', 'try')).toBe('keyword.control.trycatch');
   });
 
   it('colours decode before its type, and keeps it a name elsewhere', () => {
