@@ -1,0 +1,59 @@
+// Раздел «Инструменты» русского гайда: компилятор, плагин Vite и редакторы; все разделы
+// перечислены в guide.rk.
+
+import { CodeBlock } from "../../ui/code-block.rk"
+import { MARKETPLACE, OPEN_VSX, REPOSITORY, text } from "../i18n.rk"
+
+const COMMANDS = `npm install rooklang
+npx rook build app.rk            # app.js рядом с исходником
+npx rook build src --out-dir dist   # все модули папки
+npx rook run app.rk              # скомпилировать и запустить
+npx rook build app.rk --markup   # с разметкой и компонентами`
+
+const REPOSITORY_COMMANDS = `npm run site:dev         # этот сайт на сервере разработки Vite
+npm run vscode:install   # расширение VS Code из исходников`
+
+export comp Tools() {
+    return <>
+        <p>
+            Компилятор — npm-пакет <code>rooklang</code>, он работает в Node.js 24.
+            {" "}Скомпилированный код импортирует рантайм, <code>rooklang/runtime</code>, поэтому
+            {" "}пакет — зависимость проекта:
+        </p>
+        <CodeBlock
+            code={COMMANDS}
+            label={text().terminal}
+            copyLabel={text().copy}
+            copiedLabel={text().copied}
+        >
+            {COMMANDS}
+        </CodeBlock>
+        <p>
+            Для проектов на Vite есть плагин <code>rooklang/vite</code>: с ним
+            {" "}<code>.rk</code>-модули импортируются как обычные, а ошибки типов показываются
+            поверх страницы. Этот сайт собран именно так; его <code>package.json</code> включает
+            разметку и компоненты.
+        </p>
+        <p>
+            Для VS Code есть расширение <a href={MARKETPLACE}>Rook Language</a>: подсветка, ошибки
+            прямо при наборе и автодополнение. VSCodium, Cursor и другие редакторы берут его из
+            {" "}<a href={OPEN_VSX}>Open VSX</a>.
+        </p>
+        <p>
+            Компилятор написан на TypeScript, исходный код — в
+            {" "}<a href={REPOSITORY}>репозитории на GitHub</a>. Спецификация языка с обоснованиями
+            решений — в <code>docs/spec.ru.md</code>, концепция компонентов — в
+            {" "}<code>docs/components.ru.md</code>. Эта страница тоже написана на Rook: её
+            код — в <code>site/src</code>, а сервер — <code>site/server.rk</code>. Из корня
+            репозитория:
+        </p>
+        <CodeBlock
+            code={REPOSITORY_COMMANDS}
+            label={text().terminal}
+            copyLabel={text().copy}
+            copiedLabel={text().copied}
+        >
+            {REPOSITORY_COMMANDS}
+        </CodeBlock>
+    </>
+}
