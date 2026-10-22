@@ -211,8 +211,8 @@ default:
   });
 
   it('labels an if/else switch when a case breaks out of it', () => {
-    expect(js('switch {\ncase done:\n    break\ndefault:\n    work()\n}')).toBe(
-      `$$switch1: if (done) {
+    expect(js('switch {\ncase finished:\n    break\ndefault:\n    work()\n}')).toBe(
+      `$$switch1: if (finished) {
   break $$switch1;
 } else {
   work();

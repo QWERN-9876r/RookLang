@@ -4,14 +4,14 @@ import type { Binding, BindingKind } from './context.ts';
 import { IteratorChecker } from './iterators.ts';
 import type { Type } from './types.ts';
 
-// A channel, a topic or a tick that the module makes and never closes is a warning: a tick runs
-// and a topic listens until they are closed, and a channel that is not closed leaves `for v in ch`
-// waiting. A variable counts as closed if `close(x)` closes it, or if it goes to a function of the
+// A channel, a topic, a tick or a signal that the module makes and never closes is a warning: a
+// tick runs, a topic and a signal listen until they are closed, and a channel that is not closed
+// leaves `for v in ch` waiting. A variable counts as closed if `close(x)` closes it, or if it goes to a function of the
 // module that closes that parameter. One that goes anywhere else, such as to another module, to an
 // object or out of a function, is left to that code and not checked.
 
-/** What made a channel: `chan<T>()`, `topic<T>()` or `tick(ms)`. */
-type Made = 'chan' | 'topic' | 'tick';
+/** What made a channel: `chan<T>()`, `topic<T>()`, `tick(ms)` or `signal(name)`. */
+type Made = 'chan' | 'topic' | 'tick' | 'signal';
 
 type Func = ast.FuncDeclaration | ast.FuncExpression;
 
@@ -33,6 +33,8 @@ const MESSAGES: Readonly<Record<Made, (name: string) => string>> = {
     `"${name}" is never closed, and a topic listens until it is closed: close it when it is no longer needed, e.g. close(${name}), in a component in the function that mount() returns`,
   tick: (name) =>
     `"${name}" is never closed, and a tick runs until it is closed: e.g. close(${name})`,
+  signal: (name) =>
+    `"${name}" is never closed, and it keeps the program running until it is: close it once the signal has come, e.g. close(${name})`,
 };
 
 export abstract class ClosingChecker extends IteratorChecker {
@@ -126,7 +128,7 @@ export abstract class ClosingChecker extends IteratorChecker {
     }
   }
 
-  /** `chan<T>()`, `topic<T>()`, `tick(ms)` and their `Channel.make` and the like. */
+  /** `chan<T>()`, `topic<T>()`, `tick(ms)`, `signal(name)` and their `Channel.make` and the like. */
   private made(value: ast.Expression): Made | null {
     if (value.kind === 'ChanExpression') return 'chan';
     if (value.kind === 'TopicExpression') return 'topic';
@@ -134,12 +136,17 @@ export abstract class ClosingChecker extends IteratorChecker {
 
     const { callee } = value;
 
-    if (callee.kind === 'Identifier') return this.references.get(callee) === 'tick' ? 'tick' : null;
+    if (callee.kind === 'Identifier') {
+      const predeclared = this.references.get(callee);
+
+      return predeclared === 'tick' || predeclared === 'signal' ? predeclared : null;
+    }
 
     const member = this.predeclaredMember(callee);
 
     if (member === 'Channel.make') return 'chan';
     if (member === 'Channel.tick') return 'tick';
+    if (member === 'Channel.signal') return 'signal';
 
     return member === 'Topic.make' ? 'topic' : null;
   }

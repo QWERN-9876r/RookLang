@@ -1,0 +1,16 @@
+// AbortSignal как канал: done() получает причину отмены и закрывается
+const controller = new AbortController()
+setTimeout(() => controller.abort("пользователь ушёл"), 100)
+
+select {
+case reason = <-done(controller.signal):
+    console.log("отменено:", reason)
+case <-after(1000):
+    console.log("готово")
+}
+
+// И канал как AbortSignal, для fetch(url, { signal }): он отменяется, когда stop закрыт
+const stop = chan<bool>()
+const aborting = abortSignal(stop)
+aborting.addEventListener("abort", () => console.log("отменён:", aborting.aborted))
+close(stop)

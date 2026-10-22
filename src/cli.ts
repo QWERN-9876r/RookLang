@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -118,7 +118,7 @@ function main(): void {
       break;
 
     case 'run':
-      process.exitCode = runFile(file, typeCheck, markup);
+      runFile(file, typeCheck, markup);
       break;
 
     case 'tokens':
@@ -172,32 +172,40 @@ function buildFiles(entries: string[], options: BuildOptions): void {
 /**
  * Runs a program in a process of its own that imports loader.ts first: so do the worker threads
  * of its goroutines, which do not share the hooks of the thread that registers them. They take
- * the compiled code from a directory of the run, removed after it.
+ * the compiled code from a directory of the run, removed after it. The program may listen to
+ * signals with signal(): Ctrl+C reaches it as it reaches this process, since a terminal sends it to
+ * both, and the signals that a process manager sends here go on to it, so this one waits for it.
  */
-function runFile(file: string, typeCheck: boolean, markup: boolean | undefined): number {
+function runFile(file: string, typeCheck: boolean, markup: boolean | undefined): void {
   // The build rewrites the extensions of imports, not of these URLs: in the package they are .js.
   const extension = import.meta.url.endsWith('.ts') ? '.ts' : '.js';
   const loader = new URL(`./loader${extension}`, import.meta.url).href;
   const run = fileURLToPath(new URL(`./run${extension}`, import.meta.url));
   const cache = mkdtempSync(join(tmpdir(), 'rook-run-'));
+  const args = ['--enable-source-maps', '--import', loader, run, file];
+  const child = spawn(process.execPath, args, {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      ROOK_RUN_CACHE: cache,
+      ...(typeCheck ? {} : { ROOK_NO_CHECK: '1' }),
+      ...(markup === undefined ? {} : { ROOK_MARKUP: markup ? '1' : '0' }),
+    },
+  });
+  const forward = (name: NodeJS.Signals) => {
+    if (name !== 'SIGINT') child.kill(name);
+  };
 
-  try {
-    const args = ['--enable-source-maps', '--import', loader, run, file];
-    const { status, signal } = spawnSync(process.execPath, args, {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        ROOK_RUN_CACHE: cache,
-        ...(typeCheck ? {} : { ROOK_NO_CHECK: '1' }),
-        ...(markup === undefined ? {} : { ROOK_MARKUP: markup ? '1' : '0' }),
-      },
-    });
-
-    return status ?? (signal ? 1 : 0);
-  } finally {
+  for (const name of SIGNALS) process.on(name, forward);
+  child.on('close', (status, signal) => {
+    for (const name of SIGNALS) process.off(name, forward);
     rmSync(cache, { recursive: true, force: true });
-  }
+    process.exitCode = status ?? (signal ? 1 : 0);
+  });
 }
+
+/** The signals that `rook run` gives to the program, or leaves to it, rather than ending at them. */
+const SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
 
 function printTokens(file: SourceFile): void {
   const { tokens, diagnostics } = tokenize(file.text);

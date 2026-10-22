@@ -29,7 +29,8 @@ close(results)
 ```
 
 - **Goroutines and channels.** `go f(x)` runs a function as a goroutine, on another processor, and
-  channels, `select`, `after`, `tick` and `cancel` work as in Go; `go for i, v in pixels { ... }`
+  channels, `select`, `after`, `tick` and `cancel` work as in Go, and signals and `AbortSignal`
+  are channels too, `signal("SIGTERM")` and `done(request.signal)`; `go for i, v in pixels { ... }`
   splits an array among the processors. The compiler checks that what goes to another thread can be
   copied there, and warns of a channel that is never closed.
 - **Topics between tabs.** `topic<CartEvent>("cart")` passes values between the tabs of a site

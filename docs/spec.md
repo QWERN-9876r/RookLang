@@ -987,6 +987,59 @@ $$cancel(task);
 - `after`, `tick` and `cancel` are predeclared, like `close`: a declaration with one of these names
   hides them.
 
+### Signals and cancellation
+
+```go
+import { createServer } from "node:http"
+
+const stop = signal("SIGINT", "SIGTERM")
+const server = createServer(handle).listen(8080)
+console.log("stopping on", <-stop)          // waits for Ctrl+C or for the process manager
+close(stop)
+server.close()
+
+async func load(url string, request Request) (string, error) {
+    const response, err = try await fetch(url, { signal: request.signal })
+    // ...
+}
+
+select {
+case body = <-results:
+    reply(body)
+case reason = <-done(request.signal):       // the client has gone
+    console.log("cancelled:", reason)
+}
+```
+
+```js
+const stop = $$Channel.signal("SIGINT", "SIGTERM");
+// ...
+const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: results, zero: "" }, { channel: $$Channel.done(request.signal) }], false);
+```
+
+A server stops when the process manager tells it to, with a signal, and a request stops when its
+client goes, with an `AbortSignal`. Both become channels, so that `select` waits for them with the
+rest, as `signal.Notify` and the `Done()` of a `context.Context` do in Go.
+
+- **`signal(...names)`** is a `chan string` that gets the name of each signal that comes:
+  `signal("SIGINT", "SIGTERM")`. While it listens, the signals do not end the process, and, as a
+  `tick`, it keeps the program running until `close(stop)`; then the signals do what they did
+  before. A signal that finds the last one not received yet is dropped. Only Node has signals, and
+  only its main thread gets them; a name that does not start with `SIG` is an error, and a signal
+  that is never closed is a warning. Make it once, before the loop that waits for it: each
+  call listens anew.
+- **`done(abortSignal)`** is a `<-chan any` that gets the reason of the `AbortSignal` when it
+  aborts, and is closed then: `case reason = <-done(request.signal):` gives the reason, and a
+  `case <-done(...)` goes on at once after the abort. An `AbortSignal` that has aborted already
+  gives its reason at once.
+- **`abortSignal(ch)`** is an `AbortSignal` that aborts when the channel gets a value, with the
+  value as its reason, or is closed, for the APIs that take one: `fetch(url, { signal:
+abortSignal(stop) })`. It receives that one value, as any receiver of the channel would.
+- `rook run` gives the program the `SIGTERM` and `SIGHUP` that it gets, and waits for it; Ctrl+C
+  reaches the program by itself, as a terminal sends it to both.
+- `signal`, `done` and `abortSignal` are predeclared, like `after`, and are also functions of
+  `Channel`.
+
 ### Streams
 
 ```go
@@ -1137,7 +1190,8 @@ may declare names `Channel` and `Topic` of its own, which hide them.
   zero value after close and `null` from `EMPTY`; `close(ch)`; `range(ch)`, an async iterator of
   the values for `for await` of JS; `select(cases, hasDefault)`, what `select` compiles to;
   `try(ch, send, value)`, an operation that goes on at once or `null`; `fromStream(stream, size,
-zero)`, `stream(ch)`, `after(ms)` and `tick(ms)`.
+zero)`, `stream(ch)`, `after(ms)`, `tick(ms)`, `signal(...names)`, `done(abortSignal)` and
+  `abortSignal(ch)`.
 - **`Topic`:** `EMPTY`; `make(name, zero)`; `publish(t, v)`, which is `t <- v`; `listen(t)`, the
   `<-chan T` that the topic listens into from then on; `close(t)`.
 - They do what the syntax does, without its checks: `topic<T>(name)` checks that the values can
@@ -2415,10 +2469,6 @@ Planned next, around goroutines and what the browser has:
 
 For programs on a server:
 
-- **Signals and cancellation as channels:** `signal("SIGTERM")` is a channel that gets the signal,
-  as `signal.Notify` of Go, for a graceful shutdown in `select`; an `AbortSignal` is a channel that
-  is closed when it aborts, and a channel gives an `AbortSignal` for `fetch(url, { signal })`, as
-  `context.Context` of Go does.
 - **Wrapped errors:** `error("load user", err)` → `new Error("load user", { cause: err })`.
 - **Classes in goroutines:** an instance of a class whose fields are data goes to a goroutine and
   back with its class: the worker, which loads the class anyway, gives the copy its prototype.

@@ -16,10 +16,13 @@ export type RuntimeMode = 'import' | 'inline';
  * its own.
  */
 export const PREDECLARED: ReadonlyMap<string, string> = new Map([
+  ['abortSignal', '$$Channel.abortSignal'],
   ['after', '$$Channel.after'],
   ['cancel', '$$cancel'],
   ['Channel', '$$Channel'],
   ['close', '$$Channel.close'],
+  ['done', '$$Channel.done'],
+  ['signal', '$$Channel.signal'],
   ['stream', '$$Channel.stream'],
   ['tick', '$$Channel.tick'],
   ['Topic', '$$Topic'],

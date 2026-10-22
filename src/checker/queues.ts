@@ -1,12 +1,12 @@
 import type * as ast from '../ast.ts';
-import { ChannelChecker } from './channels.ts';
+import { SignalChecker } from './signals.ts';
 import { isUntyped } from './helpers.ts';
 import { arrayOf, queueOf, typeToString, type Type } from './types.ts';
 
 // Queues: `queue<number>()` makes an empty one, `queue<number>(items)` one with the values of an
 // array or of another iterable. The members of `queue T` are in types/queue.ts.
 
-export abstract class QueueChecker extends ChannelChecker {
+export abstract class QueueChecker extends SignalChecker {
   protected override checkQueue(node: ast.QueueExpression): Type {
     const element = this.resolveType(node.element);
 

@@ -31,7 +31,7 @@ import {
 /** What `transfer(x)` moves: a buffer, or a view whose buffer moves. */
 const MOVABLE: ReadonlySet<string> = new Set(BUFFERS);
 
-function typeName(type: Type): string | null {
+export function typeName(type: Type): string | null {
   if (type.kind === 'class') return type.info.name;
   if (type.kind === 'object') return type.instanceOf?.template.name ?? type.name;
 

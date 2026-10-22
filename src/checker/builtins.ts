@@ -326,6 +326,11 @@ export const GLOBAL_VALUES: ReadonlyMap<string, Type> = new Map<string, Type>([
   // Channels of time, as in Go: the time once after `ms`, or every `ms` until `close(ticks)`.
   ['after', func([NUMBER], [chanOf(NUMBER, 'receive')])],
   ['tick', func([NUMBER], [chanOf(NUMBER)])],
+  // Signals of the process, until `close(stop)`; an AbortSignal as a channel, and a channel as one
+  // (what they take and give: signals.ts).
+  ['signal', func([], [chanOf(STRING)], { rest: STRING })],
+  ['done', func([ANY], [chanOf(ANY, 'receive')])],
+  ['abortSignal', func([chanOf(ANY, 'receive')], [ANY])],
   // `stream(ch)`: a ReadableStream of the values of a channel (its type: channels.ts).
   ['stream', func([chanOf(ANY, 'receive')], [ANY])],
   // `cancel(task)` stops a goroutine: it takes the Promise of `go` (channels.ts).

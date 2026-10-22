@@ -78,6 +78,8 @@ export function $$closeHere(id) {
 
   if (state.closed) throw new Error('close of a closed channel');
   state.closed = true;
+  // What made the channel stops with it, as signal() does (signals.js).
+  state.onClose?.();
   $$pump(id);
 }
 

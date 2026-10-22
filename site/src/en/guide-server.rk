@@ -71,6 +71,35 @@ export comp AsyncIterables() {
     </>
 }
 
+export comp Signals() {
+    const t = text()
+
+    return <>
+        <p>
+            A server stops when the process manager tells it to, with a signal, and a request stops
+            when its client goes, with an <code>AbortSignal</code>. Both become channels, so that
+            {" "}<code>select</code> waits for them with the rest, as <code>signal.Notify</code> and
+            the <code>Done()</code> of a context do in Go.
+        </p>
+        <p>
+            <code>signal("SIGINT", "SIGTERM")</code> is a channel that gets the name of each signal.
+            While it listens, the signals do not end the process, and it keeps the program running
+            until it is closed, as a <code>tick</code> does:
+        </p>
+        <CodeBlock code={SHUTDOWN} label="server.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(SHUTDOWN, "rook")}
+        </CodeBlock>
+        <p>
+            <code>done(request.signal)</code> gets the reason of an <code>AbortSignal</code> when it
+            aborts, and is closed then; <code>abortSignal(stop)</code> is an
+            {" "}<code>AbortSignal</code> that aborts when the channel gets a value or is closed,
+            for <code>{"fetch(url, { signal })"}</code> and the other APIs that take one. Signals
+            are of Node, and these two work in the browser too:
+        </p>
+        {example("cancel")}
+    </>
+}
+
 const STREAM_ROOK = `import { createReadStream } from "node:fs"
 import { createInterface } from "node:readline"
 
@@ -96,3 +125,11 @@ async function countErrors(path) {
   }
   return errors;
 }`
+
+const SHUTDOWN = `import { createServer } from "node:http"
+
+const stop = signal("SIGINT", "SIGTERM")
+const server = createServer(handle).listen(8080)
+console.log("stopping on", <-stop)
+close(stop)
+server.close()`

@@ -986,6 +986,59 @@ $$cancel(task);
 - `after`, `tick` и `cancel` объявлены заранее, как `close`: объявление с таким именем их
   скрывает.
 
+### Сигналы и отмена
+
+```go
+import { createServer } from "node:http"
+
+const stop = signal("SIGINT", "SIGTERM")
+const server = createServer(handle).listen(8080)
+console.log("stopping on", <-stop)          // ждёт Ctrl+C или менеджер процессов
+close(stop)
+server.close()
+
+async func load(url string, request Request) (string, error) {
+    const response, err = try await fetch(url, { signal: request.signal })
+    // ...
+}
+
+select {
+case body = <-results:
+    reply(body)
+case reason = <-done(request.signal):       // клиент ушёл
+    console.log("cancelled:", reason)
+}
+```
+
+```js
+const stop = $$Channel.signal("SIGINT", "SIGTERM");
+// ...
+const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: results, zero: "" }, { channel: $$Channel.done(request.signal) }], false);
+```
+
+Сервер останавливается, когда ему говорит менеджер процессов, сигналом, а запрос — когда уходит его
+клиент, через `AbortSignal`. И то и другое становится каналом, чтобы `select` ждал их вместе с
+остальным, как `signal.Notify` и `Done()` у `context.Context` в Go.
+
+- **`signal(...names)`** — `chan string`, в который приходит имя каждого сигнала:
+  `signal("SIGINT", "SIGTERM")`. Пока он слушает, сигналы не завершают процесс, и, как `tick`, он
+  держит программу до `close(stop)`; после этого сигналы делают то же, что раньше. Сигнал, который
+  застал предыдущий ещё не полученным, отбрасывается. Сигналы есть только в Node, и получает их
+  только его главный поток; имя, которое не начинается с `SIG`, — ошибка, а сигнал, который никогда
+  не закрывается, — предупреждение. Создавайте его один раз, до цикла, который его ждёт: каждый
+  вызов слушает заново.
+- **`done(abortSignal)`** — `<-chan any`, в который приходит причина отмены `AbortSignal`, после
+  чего канал закрывается: `case reason = <-done(request.signal):` даёт причину, а
+  `case <-done(...)` после отмены срабатывает сразу. Уже отменённый `AbortSignal` даёт причину
+  сразу.
+- **`abortSignal(ch)`** — `AbortSignal`, который отменяется, когда в канал приходит значение (оно
+  становится причиной) или канал закрывается, для API, которые его принимают:
+  `fetch(url, { signal: abortSignal(stop) })`. Он получает это одно значение, как любой получатель
+  канала.
+- `rook run` передаёт программе `SIGTERM` и `SIGHUP`, которые получает сам, и ждёт её; Ctrl+C
+  доходит до программы сам, терминал посылает его обоим.
+- `signal`, `done` и `abortSignal` объявлены заранее, как `after`, и есть также в `Channel`.
+
 ### Потоки
 
 ```go
@@ -1135,7 +1188,8 @@ let none = $$Channel.EMPTY;
   значения после закрытия и `null` из `EMPTY`; `close(ch)`; `range(ch)` — асинхронный итератор
   значений для `for await` в JS; `select(cases, hasDefault)` — то, во что компилируется `select`;
   `try(ch, send, value)` — операция, которая выполняется сразу, или `null`;
-  `fromStream(stream, size, zero)`, `stream(ch)`, `after(ms)` и `tick(ms)`.
+  `fromStream(stream, size, zero)`, `stream(ch)`, `after(ms)`, `tick(ms)`, `signal(...names)`,
+  `done(abortSignal)` и `abortSignal(ch)`.
 - **`Topic`:** `EMPTY`; `make(name, zero)`; `publish(t, v)` — это `t <- v`; `listen(t)` —
   `<-chan T`, в который топик слушает с этого момента; `close(t)`.
 - Они делают то же, что синтаксис, но без его проверок: `topic<T>(name)` проверяет, что значения
@@ -2414,10 +2468,6 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 Для программ на сервере:
 
-- **Сигналы и отмена как каналы:** `signal("SIGTERM")` — канал, в который приходит сигнал, как
-  `signal.Notify` в Go, для корректного завершения в `select`; `AbortSignal` — канал, который
-  закрывается при отмене, а канал даёт `AbortSignal` для `fetch(url, { signal })`, как это делает
-  `context.Context` в Go.
 - **Обёрнутые ошибки:** `error("load user", err)` → `new Error("load user", { cause: err })`.
 - **Классы в горутинах:** экземпляр класса, поля которого — данные, уходит в горутину и обратно
   вместе с классом: воркер, который и так загружает класс, даёт копии его прототип.

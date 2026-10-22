@@ -1,0 +1,16 @@
+// An AbortSignal as a channel: done() gets the reason when it aborts, and is closed
+const controller = new AbortController()
+setTimeout(() => controller.abort("the user left"), 100)
+
+select {
+case reason = <-done(controller.signal):
+    console.log("cancelled:", reason)
+case <-after(1000):
+    console.log("finished")
+}
+
+// And a channel as an AbortSignal, for fetch(url, { signal }): it aborts when stop is closed
+const stop = chan<bool>()
+const aborting = abortSignal(stop)
+aborting.addEventListener("abort", () => console.log("aborted:", aborting.aborted))
+close(stop)

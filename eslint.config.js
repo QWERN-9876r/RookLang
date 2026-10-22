@@ -50,6 +50,7 @@ export default defineConfig(
     languageOptions: {
       globals: Object.fromEntries(
         [
+          'AbortController',
           'BroadcastChannel',
           'clearInterval',
           'document',

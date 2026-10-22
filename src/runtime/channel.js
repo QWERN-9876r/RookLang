@@ -1,8 +1,9 @@
 // `Channel`: what Rook code and the code compiled from it do with channels, by name. The functions
-// themselves are in chan.js, select.js, streams.js and timers.js.
+// themselves are in chan.js, select.js, signals.js, streams.js and timers.js.
 
 import { $$chan, $$close, $$range, $$receive, $$send } from './chan.js';
 import { $$select, $$try } from './select.js';
+import { $$abortSignal, $$done, $$signal } from './signals.js';
 import { $$fromStream, $$stream } from './streams.js';
 import { $$after, $$tick } from './timers.js';
 
@@ -21,4 +22,7 @@ export const $$Channel = Object.freeze({
   stream: $$stream,
   after: $$after,
   tick: $$tick,
+  signal: $$signal,
+  done: $$done,
+  abortSignal: $$abortSignal,
 });

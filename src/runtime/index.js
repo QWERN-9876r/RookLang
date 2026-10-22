@@ -10,6 +10,7 @@ export * from './go.js';
 export * from './markup.js';
 export * from './queue.js';
 export * from './select.js';
+export * from './signals.js';
 export * from './streams.js';
 export * from './threads.js';
 export * from './timers.js';

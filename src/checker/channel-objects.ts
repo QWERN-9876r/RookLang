@@ -50,6 +50,9 @@ export const CHANNEL_OBJECT: ObjectType = object('Channel', {
   stream: generic([chanOf(T, 'receive')], [ANY]),
   after: method(func([NUMBER], [chanOf(NUMBER, 'receive')])),
   tick: method(func([NUMBER], [chanOf(NUMBER)])),
+  signal: method(func([], [chanOf(STRING)], { rest: STRING })),
+  done: method(func([ANY], [chanOf(ANY, 'receive')])),
+  abortSignal: method(func([chanOf(ANY, 'receive')], [ANY])),
 });
 
 export const TOPIC_OBJECT: ObjectType = object('Topic', {
