@@ -1,0 +1,39 @@
+// The section "Goroutines" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Goroutines() {
+    return <>
+        <p>
+            JavaScript runs a program in one thread: a long computation stops everything else, and a
+            worker takes a file of its own and messages written by hand. In Rook it is one
+            word, as in Go, and the compiler checks what goes to the other thread.
+        </p>
+        <p>
+            <code>go f(x)</code> calls a function as a goroutine, in another thread, and gives a
+            Promise of the result. Goroutines run at once on different processors: the threads are a
+            pool of workers, Web Workers in the browser and worker threads in Node, up to one per
+            processor. A goroutine shares no memory with the program: it gets copies of the
+            arguments and sends back a copy of the result, so they are data, and the function cannot
+            use the <code>let</code> variables of the module. The compiler checks both.
+        </p>
+        <Example name="goroutines" />
+        <p>
+            <code>{"go func(n number) { ... }(i)"}</code> runs a function literal as a goroutine: the
+            local names it uses are copied to it, like its arguments. <code>transfer(x)</code> moves
+            an <code>ArrayBuffer</code> or a typed array to the goroutine instead of copying it, and
+            leaves it empty here. <code>go</code> is for work that keeps a processor busy; to wait
+            for a timer or the network, call an async function without <code>await</code>: it runs
+            at once in the same thread.
+        </p>
+        <Example name="go-func" />
+        <p>
+            <code>{"go for i, v in items { ... }"}</code> is a parallel loop: the array is split into
+            parts, several per processor, each part runs as a goroutine in the first worker that is
+            free, and the loop waits for all of them. A worker gets only its part, so the body writes only its own element,
+            {" "}<code>items[i]</code>, and reads other elements from another array; the other names
+            it uses are copied to it, as to a function literal.
+        </p>
+        <Example name="go-for" />
+    </>
+}

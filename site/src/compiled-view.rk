@@ -1,0 +1,33 @@
+// The JavaScript tab of an example and of the playground: the generated JS, highlighted, or the
+// compile errors, compiled again when the source changes.
+
+import { CodeView } from "./code-view.rk"
+import { text } from "./i18n.rk"
+import { Compiled, compileRook } from "./sandbox.rk"
+import styles from "./compiled-view.module.css"
+
+export comp CompiledView(source string) {
+    // Null while the compiler loads; once it is loaded, a source is compiled at once, and the
+    // sources asked for while it loads are compiled in the order they came.
+    state compiled ?Compiled = null
+
+    effect {
+        compileRook(source, result => {
+            compiled = result
+        })
+    }
+
+    return <div>
+        {if compiled == null {
+            <p class={styles.loading}>{text().loadingCompiler}</p>
+        } else if compiled.errors.length > 0 {
+            <ul class={styles.errors}>
+                {for message in compiled.errors {
+                    <li>{message}</li>
+                }}
+            </ul>
+        } else {
+            <CodeView code={compiled.code} language="js" />
+        }}
+    </div>
+}

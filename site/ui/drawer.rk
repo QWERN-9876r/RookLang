@@ -2,7 +2,7 @@
 // is open; Escape, the close button and a click beside the panel call `onClose`.
 
 import styles from "./drawer.module.css"
-import { IconButton } from "./button.rk"
+import { IconButton } from "./icon-button.rk"
 
 export comp Drawer(open bool, onClose func(), label string, closeLabel string, children Content) {
     effect {

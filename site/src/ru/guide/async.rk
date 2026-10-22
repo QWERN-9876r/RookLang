@@ -1,0 +1,17 @@
+// Раздел «Асинхронные функции» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Async() {
+    return <>
+        <p>
+            <code>async func</code> возвращает Promise, а <code>await</code> его ждёт. Типы
+            результатов пишутся как у любой функции, в том числе несколько:
+            {" "}<code>async func load() (string, error)</code> возвращает
+            {" "}<code>{"Promise<(string, error)>"}</code>, а <code>await</code> распаковывает значения
+            обратно. Модуль может делать <code>await</code> на верхнем уровне, а обработчик события
+            может быть async: изменение состояния после <code>await</code> обновляет разметку.
+        </p>
+        <Example name="async" />
+    </>
+}

@@ -1,44 +1,5 @@
 /* The search of the guide: a field in the bar, and a palette over the dimmed page. */
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  width: 260px;
-  height: 34px;
-  padding: 0 6px 0 12px;
-  border: 1px solid var(--rui-line-strong);
-  border-radius: var(--rui-radius);
-  background: var(--rui-bg-subtle);
-  color: var(--rui-subtle);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.button:hover {
-  border-color: rgb(255 255 255 / 24%);
-  color: var(--rui-muted);
-}
-
-.placeholder {
-  flex: 1;
-  text-align: left;
-}
-
-.key {
-  padding: 2px 6px;
-  border: 1px solid var(--rui-line-strong);
-  border-radius: 4px;
-  background: var(--rui-surface);
-  color: var(--rui-muted);
-  font-family: var(--rui-mono);
-  font-size: 0.7rem;
-}
-
 .dialog {
   position: fixed;
   inset: 0;
@@ -159,17 +120,4 @@
   padding: 24px 12px;
   color: var(--rui-subtle);
   text-align: center;
-}
-
-@media (max-width: 860px) {
-  .button {
-    width: 34px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .placeholder,
-  .button .key {
-    display: none;
-  }
 }

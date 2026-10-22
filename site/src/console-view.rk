@@ -1,0 +1,14 @@
+// What a program printed to the console, under its result.
+
+import { text } from "./i18n.rk"
+import styles from "./console-view.module.css"
+
+export comp ConsoleView(lines []string) {
+    return <>
+        {if lines.length == 0 {
+            <p class={styles.empty}>{text().emptyConsole}</p>
+        } else {
+            <pre class={styles.console}>{lines.join("\n")}</pre>
+        }}
+    </>
+}

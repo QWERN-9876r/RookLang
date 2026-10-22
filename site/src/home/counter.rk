@@ -1,0 +1,13 @@
+// The counter of the card about components: a real component of the page itself.
+
+import { text } from "../i18n.rk"
+import styles from "./counter.module.css"
+
+/** A component of the page itself: the counter that the card about components talks about. */
+export comp Counter() {
+    const h = text().home
+    state count = 0
+    return <button class={styles.counter} type="button" onClick={count++}>
+        {h.clicks(count)}
+    </button>
+}

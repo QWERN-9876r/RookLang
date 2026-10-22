@@ -1,0 +1,33 @@
+// The section "State" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Reactivity() {
+    return <>
+        <p>
+            <code>state</code> declares a variable that the markup depends on. The compiler knows
+            which parts of the markup read it and where it changes, and after each change it updates
+            exactly those parts. There are no subscriptions and no DOM diffing, as the
+            {" "}<b>JavaScript</b> tab shows.
+        </p>
+        <Example name="counter" />
+        <p>
+            <code>bind:value</code> and <code>bind:checked</code> bind an input to state both ways.
+        </p>
+        <Example name="bind" />
+        <p>
+            <code>{"{if ...}"}</code> and <code>{"{for ...}"}</code> update too. A branch is created
+            again only when the condition changes, and the blocks of a list are found by the array
+            item itself and moved, not created again.
+        </p>
+        <Example name="todos" />
+        <p>
+            <code>derived</code> declares a value computed from state, read-only. When the state
+            changes, the value is computed again right before the markup that reads it is updated.
+            {" "}<code>effect</code> runs its code once the markup is created, and again when what
+            it reads changes; it cleans up with <code>defer</code>, which runs before the effect
+            runs again and when the component is removed.
+        </p>
+        <Example name="derived" />
+    </>
+}

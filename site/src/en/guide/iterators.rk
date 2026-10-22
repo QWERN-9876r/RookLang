@@ -1,0 +1,24 @@
+// The section "Iterators" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Iterators() {
+    return <>
+        <p>
+            An iterator is a function whose one parameter is <code>yield</code>, as in Go 1.23:
+            {" "}<code>{"func(yield func(number) bool)"}</code>. It calls <code>yield(v)</code> for
+            each value, and <code>for v in seq</code> goes over them. When the loop stops, the
+            iterator stops at its <code>yield</code> too, as if it had given <code>false</code>,
+            and its <code>defer</code> runs. A <code>yield</code> of two values gives a key and a
+            value: <code>for place, fruit in numbered(fruits)</code>.
+        </p>
+        <Example name="iterators" />
+        <p>
+            An iterator compiles to a JS generator, and <code>yield(v)</code> to
+            {" "}<code>yield v</code>. So it is a lazy JS iterator too: <code>seq()</code> gives one,
+            with <code>filter</code>, <code>map</code> and <code>take</code>, and JS code goes over
+            it with <code>for...of</code>. For the same reason an iterator calls <code>yield</code>
+            {" "}only in its own body, not in a function inside it, and it is not async.
+        </p>
+    </>
+}

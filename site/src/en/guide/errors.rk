@@ -1,0 +1,25 @@
+// The section "Errors and defer" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Errors() {
+    return <>
+        <p>
+            Ordinary errors need no exceptions: a function returns an error as its second value, and
+            the caller checks it. An error is made with <code>error("...")</code>. With an error, a
+            function of <code>(Person, error)</code> may return <code>null</code> in place of the
+            value: until <code>err</code> is checked the value may be <code>null</code>, after the
+            check it is not. Where the value may be <code>null</code> without an error too, the
+            result is <code>(?Person, error)</code>. <code>error("load", err)</code> wraps an
+            error, as <code>%w</code> does in Go: the message ends with that of <code>err</code>,
+            and <code>cause</code> is <code>err</code> itself.
+        </p>
+        <Example name="errors" />
+        <p>
+            Exceptions from JS code are caught with <code>try</code> / <code>catch</code>.
+            {" "}<code>defer</code> postpones a call until the function exits, which is handy for
+            cleaning up: the call runs after a <code>return</code> and after an exception alike.
+        </p>
+        <Example name="defer" />
+    </>
+}

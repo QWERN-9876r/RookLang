@@ -1,0 +1,74 @@
+/* A card of the grid of features: one column, two or the whole row, with its icon, title, text and glimpse. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+  padding: 28px;
+  border: 1px solid var(--rui-line);
+  border-radius: var(--rui-radius-lg);
+  background: linear-gradient(180deg, var(--rui-surface) 0%, var(--rui-bg-subtle) 100%);
+  transition: border-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--rui-line-strong);
+}
+
+.one {
+  grid-column: span 1;
+}
+
+.two {
+  grid-column: span 2;
+}
+
+.row {
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.icon {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 18px;
+  border: 1px solid var(--rui-line-strong);
+  border-radius: var(--rui-radius);
+  background: var(--rui-bg);
+  color: var(--rui-accent);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.075rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.text {
+  max-width: 520px;
+  margin: 8px 0 0;
+  color: var(--rui-muted);
+  font-size: 0.925rem;
+  line-height: 1.6;
+}
+
+.visual {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: auto;
+  padding-top: 24px;
+}
+
+@media (max-width: 640px) {
+  .two {
+    grid-column: auto;
+  }
+
+  .card {
+    min-height: 0;
+  }
+}

@@ -1,0 +1,18 @@
+// The section "Queues" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Queues() {
+    return <>
+        <p>
+            <code>queue T</code> keeps values in order, and they go in and out at both ends:
+            {" "}<code>push</code> and <code>unshift</code> add, <code>shift</code> and
+            {" "}<code>pop</code> take out, <code>at(-1)</code> looks at the last. In an array
+            {" "}<code>shift()</code> moves all the other values; a queue keeps them in a ring, so
+            taking the first value costs the same for ten values and for a million.
+            {" "}<code>queue&lt;T&gt;()</code> makes an empty queue, <code>queue&lt;T&gt;(items)</code>
+            {" "}one with the values of an array, and an empty queue is the zero value.
+        </p>
+        <Example name="queues" />
+    </>
+}

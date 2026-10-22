@@ -1,0 +1,14 @@
+// A link to a page of the site in the header, marked when it is the current one.
+
+import { currentPage, Page, pageHref } from "../i18n.rk"
+import styles from "./page-link.module.css"
+
+export comp PageLink(target Page, label string) {
+    return <a
+        class={styles.link}
+        href={pageHref(target)}
+        aria-current={currentPage() == target ? "page" : null}
+    >
+        {label}
+    </a>
+}

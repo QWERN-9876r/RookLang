@@ -1,0 +1,21 @@
+/* The counter of the card about components. */
+
+.counter {
+  align-self: flex-start;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid rgb(245 158 42 / 40%);
+  border-radius: var(--rui-radius-sm);
+  background: var(--rui-accent-soft);
+  color: var(--rui-accent-strong);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.counter:hover {
+  background: rgb(245 158 42 / 20%);
+}

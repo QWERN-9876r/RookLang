@@ -1,0 +1,33 @@
+// The section "bigint and typed arrays" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Numbers() {
+    return <>
+        <p>
+            <code>bigint</code> holds whole numbers of any size: <code>10n</code>,
+            {" "}<code>0xffn</code>, <code>2n ** 64n</code>. As in JS, a bigint and a number do not
+            mix in arithmetic, where JS would throw: the compiler asks to convert one of them with
+            {" "}<code>BigInt(n)</code> or <code>Number(b)</code>. They compare with
+            {" "}<code>&lt;</code>, and <code>==</code> between them is an error, since it is always
+            false.
+        </p>
+        <Example name="bigint" />
+        <p>
+            <code>[]byte</code> is a <code>Uint8Array</code>, as a byte slice is in Go, and
+            {" "}<code>byte</code> is a number from 0 to 255. A list of numbers where a
+            {" "}<code>[]byte</code> is expected becomes one, <code>[]byte("text")</code> gives the
+            UTF-8 bytes of a string, and <code>string(bytes)</code> reads them back.
+        </p>
+        <Example name="bytes" />
+        <p>
+            The other typed arrays are written as slices of Go too: <code>[]float64</code> is a
+            {" "}<code>Float64Array</code>, <code>[]int32</code> an <code>Int32Array</code>, and
+            {" "}<code>[]int64</code> a <code>BigInt64Array</code> of bigints.
+            {" "}<code>make([]float64, n)</code> makes one of <code>n</code> zeros, and
+            {" "}<code>make([]float64, n, shared)</code> puts it on a <code>SharedArrayBuffer</code>,
+            which the goroutines of <code>go for</code> write into without copies.
+        </p>
+        <Example name="typed-arrays" />
+    </>
+}

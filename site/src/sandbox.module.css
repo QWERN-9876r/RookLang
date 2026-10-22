@@ -1,54 +1,5 @@
-/* What running and compiling code shows: the JS, the errors, the result area and the console. The
-   programs of the examples add their own elements to the result area, so those rules are for any
-   such element. */
-
-.code {
-  margin: 0;
-  padding: 16px 18px;
-  overflow: auto;
-  max-height: 520px;
-  color: var(--rui-code-text);
-  font-family: var(--rui-mono);
-  font-size: 13.5px;
-  line-height: 1.6;
-  tab-size: 4;
-}
-
-.errors {
-  margin: 0;
-  padding: 16px 18px 16px 36px;
-  color: var(--rui-danger);
-  font-family: var(--rui-mono);
-  font-size: 13.5px;
-}
-
-.loading {
-  margin: 0;
-  padding: 16px 18px;
-  color: var(--rui-muted);
-  font-size: 0.9rem;
-}
-
-.result {
-  padding: 16px 18px;
-}
-
-.console {
-  margin: 12px 0 0;
-  padding: 10px 14px;
-  border-left: 3px solid var(--rui-leaf);
-  border-radius: 6px;
-  background: var(--rui-surface);
-  font-family: var(--rui-mono);
-  font-size: 13.5px;
-  white-space: pre-wrap;
-}
-
-.empty {
-  margin: 12px 0 0;
-  color: var(--rui-muted);
-  font-size: 0.9rem;
-}
+/* The result area, where a program shows what it adds to document.body. The programs of the
+   examples add their own elements there, so these rules are for any such element. */
 
 /* The result area: the program adds elements here through document.body. */
 .preview {

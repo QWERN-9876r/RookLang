@@ -1,0 +1,27 @@
+/* A step of the way to a running program, with its number. */
+
+.step > figure {
+  margin: 0;
+}
+
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 14px;
+  color: var(--rui-text);
+  font-weight: 500;
+}
+
+.number {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rui-line-strong);
+  border-radius: 999px;
+  background: var(--rui-bg-subtle);
+  color: var(--rui-accent);
+  font-family: var(--rui-mono);
+  font-size: 0.8rem;
+}

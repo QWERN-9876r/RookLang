@@ -1,0 +1,11 @@
+/* A key of the keyboard, as the search shows it. */
+
+.key {
+  padding: 2px 6px;
+  border: 1px solid var(--rui-line-strong);
+  border-radius: 4px;
+  background: var(--rui-surface);
+  color: var(--rui-muted);
+  font-family: var(--rui-mono);
+  font-size: 0.7rem;
+}

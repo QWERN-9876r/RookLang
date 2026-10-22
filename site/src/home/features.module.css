@@ -6,69 +6,6 @@
   gap: 16px;
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  min-height: 300px;
-  padding: 28px;
-  border: 1px solid var(--rui-line);
-  border-radius: var(--rui-radius-lg);
-  background: linear-gradient(180deg, var(--rui-surface) 0%, var(--rui-bg-subtle) 100%);
-  transition: border-color 0.2s;
-}
-
-.card:hover {
-  border-color: var(--rui-line-strong);
-}
-
-.one {
-  grid-column: span 1;
-}
-
-.two {
-  grid-column: span 2;
-}
-
-.row {
-  grid-column: 1 / -1;
-  min-height: 0;
-}
-
-.icon {
-  display: inline-grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  margin-bottom: 18px;
-  border: 1px solid var(--rui-line-strong);
-  border-radius: var(--rui-radius);
-  background: var(--rui-bg);
-  color: var(--rui-accent);
-}
-
-.title {
-  margin: 0;
-  font-size: 1.075rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.text {
-  max-width: 520px;
-  margin: 8px 0 0;
-  color: var(--rui-muted);
-  font-size: 0.925rem;
-  line-height: 1.6;
-}
-
-.visual {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: auto;
-  padding-top: 24px;
-}
-
 .line,
 .snippet,
 .error {
@@ -105,25 +42,6 @@
   animation: work 3.2s ease-in-out calc(var(--i) * 0.12s) infinite;
 }
 
-@keyframes work {
-  0%,
-  15% {
-    border-color: var(--rui-line);
-    background: var(--rui-bg);
-  }
-
-  35%,
-  70% {
-    border-color: rgb(245 158 42 / 55%);
-    background: rgb(245 158 42 / 22%);
-  }
-
-  100% {
-    border-color: var(--rui-line);
-    background: var(--rui-bg);
-  }
-}
-
 .mappings {
   display: flex;
   flex-direction: column;
@@ -155,26 +73,6 @@
 .mapping code:last-child::before {
   content: '→ ';
   color: var(--rui-subtle);
-}
-
-.counter {
-  align-self: flex-start;
-  height: 36px;
-  padding: 0 16px;
-  border: 1px solid rgb(245 158 42 / 40%);
-  border-radius: var(--rui-radius-sm);
-  background: var(--rui-accent-soft);
-  color: var(--rui-accent-strong);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.counter:hover {
-  background: rgb(245 158 42 / 20%);
 }
 
 .tools {
@@ -211,12 +109,23 @@
   .grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .two {
-    grid-column: auto;
+@keyframes work {
+  0%,
+  15% {
+    border-color: var(--rui-line);
+    background: var(--rui-bg);
   }
 
-  .card {
-    min-height: 0;
+  35%,
+  70% {
+    border-color: rgb(245 158 42 / 55%);
+    background: rgb(245 158 42 / 22%);
+  }
+
+  100% {
+    border-color: var(--rui-line);
+    background: var(--rui-bg);
   }
 }

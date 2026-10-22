@@ -1,0 +1,43 @@
+/* The field in the bar that opens the search; on narrow screens only its icon. */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 260px;
+  height: 34px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--rui-line-strong);
+  border-radius: var(--rui-radius);
+  background: var(--rui-bg-subtle);
+  color: var(--rui-subtle);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.button:hover {
+  border-color: rgb(255 255 255 / 24%);
+  color: var(--rui-muted);
+}
+
+.placeholder {
+  flex: 1;
+  text-align: left;
+}
+
+@media (max-width: 860px) {
+  .button {
+    width: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .placeholder,
+  .button kbd {
+    display: none;
+  }
+}

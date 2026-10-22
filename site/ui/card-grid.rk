@@ -1,0 +1,7 @@
+// RookUI CardGrid: lays cards out in columns.
+
+import styles from "./card-grid.module.css"
+
+export comp CardGrid(children Content) {
+    return <div class={styles.grid}>{children}</div>
+}

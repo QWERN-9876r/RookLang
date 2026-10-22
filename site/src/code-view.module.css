@@ -1,0 +1,13 @@
+/* Highlighted code, Rook or the JS it compiles to. */
+
+.code {
+  margin: 0;
+  padding: 16px 18px;
+  overflow: auto;
+  max-height: 520px;
+  color: var(--rui-code-text);
+  font-family: var(--rui-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 4;
+}

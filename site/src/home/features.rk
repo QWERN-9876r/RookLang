@@ -9,6 +9,8 @@ import { Reveal } from "../layout/reveal.rk"
 import { CORES, COUNTER, GOROUTINE, MAPPINGS, SELECT, TYPE_ERROR } from "./code.rk"
 import common from "./section.module.css"
 import styles from "./features.module.css"
+import { Feature } from "./feature.rk"
+import { Counter } from "./counter.rk"
 
 interface Tool {
     icon IconName
@@ -22,27 +24,6 @@ const TOOLS []Tool = [
     { icon: "code", label: "VS Code" },
     { icon: "layers", label: ".d.ts" },
 ]
-
-/** How many columns of the grid a card takes: one, two, or the whole row. */
-type Span "one" | "two" | "row"
-
-comp Feature(title string, body string, icon IconName, span Span = "one", children Content) {
-    return <article class={`${styles.card} ${styles[span]}`}>
-        <span class={styles.icon}><Icon name={icon} size={18} /></span>
-        <h3 class={styles.title}>{title}</h3>
-        <p class={styles.text}>{body}</p>
-        <div class={styles.visual}>{children}</div>
-    </article>
-}
-
-/** A component of the page itself: the counter that the card about components talks about. */
-comp Counter() {
-    const h = text().home
-    state count = 0
-    return <button class={styles.counter} type="button" onClick={count++}>
-        {h.clicks(count)}
-    </button>
-}
 
 /** The numbers of the cores, which light up one after another as goroutines take them. */
 func cores() []number {

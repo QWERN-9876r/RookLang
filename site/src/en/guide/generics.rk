@@ -1,0 +1,21 @@
+// The section "Generics" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Generics() {
+    return <>
+        <p>
+            Type parameters go in angle brackets, with a constraint after each, as in Go:
+            {" "}<code>{"func last<T any>(xs []T) ?T"}</code>, <code>{"interface Box<T>"}</code>,
+            {" "}<code>{"class Stack<T>"}</code>. Type arguments are in angle brackets too:
+            {" "}<code>{"Box<number>"}</code>, <code>{"Stack<string>"}</code>.
+        </p>
+        <p>
+            Calls do not mention type arguments: the compiler infers them from the arguments or from
+            the expected type. The constraint <code>[T Named]</code> allows only fitting types and
+            gives values of type <code>T</code> the members of <code>Named</code>. In JS the types
+            are erased.
+        </p>
+        <Example name="generics" />
+    </>
+}

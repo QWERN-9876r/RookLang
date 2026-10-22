@@ -2,7 +2,7 @@
 // resources, the other language.
 
 import { MARKETPLACE, otherLanguageHref, pageHref, REPOSITORY, text } from "../i18n.rk"
-import { Brand } from "./header.rk"
+import { Brand } from "./brand.rk"
 import styles from "./footer.module.css"
 
 export comp SiteFooter() {

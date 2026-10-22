@@ -1,0 +1,26 @@
+// Раздел «null, union и сужение» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp NullSafety() {
+    return <>
+        <p>
+            Значение типа <code>?T</code> может быть <code>null</code>, а значение типа
+            {" "}<code>T</code> — нет. Обратиться к полям <code>?T</code> без проверки нельзя:
+            ошибка будет при компиляции, а не в браузере у пользователя.
+        </p>
+        <p>
+            После проверки <code>if todo != null</code> тип сужается до <code>Todo</code>. С
+            {" "}<code>?T</code> работают и привычные <code>?.</code> и <code>??</code>.
+        </p>
+        <Example name="null-safety" />
+        <p>
+            Тип может быть объединением нескольких: <code>string | number</code>. Литеральный тип
+            {" "}<code>"all"</code> допускает только это значение, поэтому
+            {" "}<code>{'type Filter "all" | "active" | "done"'}</code> ловит опечатки в строках.
+            Union сужают так же, как <code>?T</code>: через <code>typeof</code>,
+            {" "}<code>instanceof</code>, сравнение с литералом и <code>switch</code>.
+        </p>
+        <Example name="unions" />
+    </>
+}

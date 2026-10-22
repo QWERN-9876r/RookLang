@@ -1,0 +1,31 @@
+// The section "Channel and Topic" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp ChannelObjects() {
+    return <>
+        <p>
+            <code>Channel</code> and <code>Topic</code> are predeclared objects with what channels
+            and topics compile to, by name: <code>Channel.make(size, zero)</code>,
+            {" "}<code>send</code>, <code>receive</code>, <code>close</code>, <code>range</code>,
+            {" "}<code>select</code>, <code>try</code>, <code>fromStream</code>,
+            {" "}<code>stream</code>, <code>after</code> and <code>tick</code>;
+            {" "}<code>Topic.make(name, zero)</code>, <code>publish</code>, <code>listen</code> and
+            {" "}<code>close</code>. They are for code that needs them as values, such as
+            {" "}<code>channels.forEach(Channel.close)</code>, and do what the syntax does without
+            its checks: <code>Channel.receive(ch)</code> is a Promise of a <code>?T</code>, and
+            {" "}<code>Topic.make</code> does not check that the values can go to other tabs.
+        </p>
+        <p>
+            <code>Channel.EMPTY</code> and <code>Topic.EMPTY</code> are the zero values of
+            {" "}<code>chan T</code> and <code>topic T</code>, the same for all types, and they are
+            closed: receiving gives the zero value of the type at once and <code>ok</code> is
+            {" "}<code>false</code>, <code>for</code> over them ends at once, and what is sent to
+            them goes nowhere. So <code>let results chan number</code> is safe to use before it
+            gets a channel. In JS they are <code>$$Channel</code> and <code>$$Topic</code> of the
+            runtime, so a program may declare <code>Channel</code> and <code>Topic</code> of its
+            own.
+        </p>
+        <Example name="channel-objects" />
+    </>
+}

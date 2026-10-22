@@ -1,0 +1,13 @@
+// A step of the way to a running program, with its number, on the home page.
+
+import styles from "./step.module.css"
+
+export comp Step(number number, title string, children Content) {
+    return <div class={styles.step}>
+        <p class={styles.stepTitle}>
+            <span class={styles.number}>{number}</span>
+            {title}
+        </p>
+        {children}
+    </div>
+}

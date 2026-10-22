@@ -1,0 +1,26 @@
+// Раздел «Итераторы» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Iterators() {
+    return <>
+        <p>
+            Итератор — это функция, единственный параметр которой называется <code>yield</code>,
+            как в Go 1.23: <code>{"func(yield func(number) bool)"}</code>. Она вызывает
+            {" "}<code>yield(v)</code> для каждого значения, а <code>for v in seq</code> проходит по
+            ним. Когда цикл останавливается, итератор тоже останавливается на своём
+            {" "}<code>yield</code>, как если бы тот вернул <code>false</code>, и его
+            {" "}<code>defer</code> выполняется. <code>yield</code> двух значений даёт ключ и
+            значение: <code>for place, fruit in numbered(fruits)</code>.
+        </p>
+        <Example name="iterators" />
+        <p>
+            Итератор компилируется в генератор JS, а <code>yield(v)</code> — в
+            {" "}<code>yield v</code>. Поэтому он ещё и ленивый итератор JS: <code>seq()</code> даёт
+            его, с <code>filter</code>, <code>map</code> и <code>take</code>, а код на JS проходит по
+            нему через <code>for...of</code>. По той же причине итератор вызывает
+            {" "}<code>yield</code> только в своём теле, а не в функции внутри него, и не бывает
+            async.
+        </p>
+    </>
+}

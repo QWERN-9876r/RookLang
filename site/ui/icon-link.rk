@@ -1,0 +1,25 @@
+// RookUI IconLink: a round link with an icon, like IconButton.
+
+import styles from "./button.module.css"
+import { Icon, IconName } from "./icon.rk"
+import { ButtonKind, ButtonSize } from "./button.rk"
+
+/** A round link with an icon, like IconButton. */
+export comp IconLink(
+    icon IconName,
+    label string,
+    href string,
+    kind ButtonKind = "ghost",
+    size ButtonSize = "md",
+    ...attrs
+) {
+    return <a
+        class={`${styles.button} ${styles.icon} ${styles[kind]} ${styles[size]}`}
+        href={href}
+        aria-label={label}
+        title={label}
+        {...attrs}
+    >
+        <Icon name={icon} />
+    </a>
+}

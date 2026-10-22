@@ -1,0 +1,30 @@
+// Раздел «Channel и Topic» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp ChannelObjects() {
+    return <>
+        <p>
+            <code>Channel</code> и <code>Topic</code> — заранее объявленные объекты с тем, во что
+            компилируются каналы и топики, по именам: <code>Channel.make(size, zero)</code>,
+            {" "}<code>send</code>, <code>receive</code>, <code>close</code>, <code>range</code>,
+            {" "}<code>select</code>, <code>try</code>, <code>fromStream</code>,
+            {" "}<code>stream</code>, <code>after</code> и <code>tick</code>;
+            {" "}<code>Topic.make(name, zero)</code>, <code>publish</code>, <code>listen</code> и
+            {" "}<code>close</code>. Они для кода, которому нужны как значения, например
+            {" "}<code>channels.forEach(Channel.close)</code>, и делают то же, что синтаксис, но без
+            его проверок: <code>Channel.receive(ch)</code> — Promise значения <code>?T</code>, а
+            {" "}<code>Topic.make</code> не проверяет, что значения могут уйти в другие вкладки.
+        </p>
+        <p>
+            <code>Channel.EMPTY</code> и <code>Topic.EMPTY</code> — нулевые значения
+            {" "}<code>chan T</code> и <code>topic T</code>, одни на все типы, и они закрыты: приём
+            сразу даёт нулевое значение типа, а <code>ok</code> равно <code>false</code>,
+            {" "}<code>for</code> по ним сразу заканчивается, а то, что в них отправлено, никуда не
+            уходит. Поэтому <code>let results chan number</code> можно безопасно использовать, пока
+            ему не дали канал. В JS это <code>$$Channel</code> и <code>$$Topic</code> из runtime,
+            так что программа может объявить свои <code>Channel</code> и <code>Topic</code>.
+        </p>
+        <Example name="channel-objects" />
+    </>
+}

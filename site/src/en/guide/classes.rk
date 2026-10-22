@@ -1,0 +1,18 @@
+// The section "Classes and interfaces" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Classes() {
+    return <>
+        <p>
+            Classes are as in TypeScript: typed fields, <code>constructor</code>,
+            {" "}<code>extends</code>, the <code>private</code> and <code>protected</code> modifiers.
+        </p>
+        <p>
+            Interfaces are structural: a class or an object fits if it has the fields and methods.
+            {" "}<code>implements</code> only asks the compiler to check that where the class is
+            declared.
+        </p>
+        <Example name="classes" />
+    </>
+}

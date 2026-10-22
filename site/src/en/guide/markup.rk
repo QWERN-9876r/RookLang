@@ -1,0 +1,32 @@
+// The section "Markup" of the English guide; guide.rk lists the sections.
+
+import { Callout } from "../../../ui/callout.rk"
+import { Example } from "../../example.rk"
+
+export comp Markup() {
+    return <>
+        <Callout kind="note">
+            Markup and components are turned on in <code>package.json</code>:
+            {" "}<code>{'"rook": { "markup": true }'}</code>. Without it they are errors, so
+            {" "}<code>.rk</code> modules fit an app on React, Svelte or Vue as they are.
+        </Callout>
+        <p>
+            Markup is an ordinary expression: <code>&lt;a href="/"&gt;</code> creates a real
+            {" "}<code>HTMLAnchorElement</code>, with no virtual DOM. The syntax is that of JSX, but
+            attribute names are the HTML ones: <code>class</code>, not <code>className</code>.
+            Types are checked as well: <code>&lt;input&gt;</code> is an
+            {" "}<code>HTMLInputElement</code>, and <code>{"checked={1}"}</code> is an error.
+        </p>
+        <p>
+            <code>on*</code> attributes hold code that runs on the event:
+            {" "}<code>{"onClick={save()}"}</code> calls <code>save</code> on a click, not when the
+            element is created. The variable <code>event</code> is available inside.
+        </p>
+        <Example name="markup" />
+        <p>
+            Inside <code>{"{...}"}</code> you can write ordinary <code>if</code>, <code>for</code>
+            and <code>switch</code>: the elements in their blocks become the content.
+        </p>
+        <Example name="markup-flow" />
+    </>
+}

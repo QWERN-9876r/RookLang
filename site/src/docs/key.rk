@@ -1,0 +1,8 @@
+// A key of the keyboard that the search opens or closes with: ⌘K in the field of the bar, Esc in
+// the palette.
+
+import styles from "./key.module.css"
+
+export comp Key(children Content) {
+    return <kbd class={styles.key}>{children}</kbd>
+}

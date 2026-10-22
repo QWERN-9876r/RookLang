@@ -1,0 +1,25 @@
+// RookUI IconButton: a round button with an icon; the attributes of the element go on it through
+// ...attrs.
+
+import styles from "./button.module.css"
+import { Icon, IconName } from "./icon.rk"
+import { ButtonKind, ButtonSize } from "./button.rk"
+
+/** A round button with an icon; its label is for screen readers and shown as a tooltip. */
+export comp IconButton(
+    icon IconName,
+    label string,
+    kind ButtonKind = "ghost",
+    size ButtonSize = "md",
+    ...attrs
+) {
+    return <button
+        class={`${styles.button} ${styles.icon} ${styles[kind]} ${styles[size]}`}
+        type="button"
+        aria-label={label}
+        title={label}
+        {...attrs}
+    >
+        <Icon name={icon} />
+    </button>
+}

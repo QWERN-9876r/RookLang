@@ -1,0 +1,24 @@
+// Раздел «select» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Select() {
+    return <>
+        <p>
+            <code>select</code> ждёт первую из нескольких операций с каналами и запускает её ветку,
+            как в Go: <code>{"case text = <-fast:"}</code> получает значение в новую переменную
+            ветки, <code>{"case out <- v:"}</code> отправляет, а <code>default</code> срабатывает,
+            когда сразу ничего не готово. <code>after(ms)</code> — канал, в который один раз
+            приходит время через <code>ms</code>, поэтому он даёт тайм-аут, а ветка, чей канал
+            равен <code>null</code>, никогда не выполняется.
+        </p>
+        <Example name="select" />
+        <p>
+            <code>tick(ms)</code> присылает время каждые <code>ms</code>, пока не вызван
+            {" "}<code>close(ticks)</code>. <code>cancel(task)</code> останавливает горутину по
+            Promise из <code>go</code>: она останавливается сразу, даже посреди цикла, а
+            Promise завершается ошибкой «goroutine cancelled».
+        </p>
+        <Example name="timers" />
+    </>
+}

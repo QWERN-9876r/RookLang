@@ -1,8 +1,7 @@
-// Раздел «Инструменты» русского гайда: компилятор, плагин Vite и редакторы; все разделы
-// перечислены в guide.rk.
+// Раздел «Инструменты» русского гайда; разделы перечислены в guide.rk.
 
-import { CodeBlock } from "../../ui/code-block.rk"
-import { MARKETPLACE, OPEN_VSX, REPOSITORY, text } from "../i18n.rk"
+import { CodeBlock } from "../../../ui/code-block.rk"
+import { MARKETPLACE, OPEN_VSX, REPOSITORY, text } from "../../i18n.rk"
 
 const COMMANDS = `npm install rooklang
 npx rook build app.rk            # app.js рядом с исходником

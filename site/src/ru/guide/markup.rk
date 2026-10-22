@@ -1,0 +1,32 @@
+// Раздел «Разметка» русского гайда; разделы перечислены в guide.rk.
+
+import { Callout } from "../../../ui/callout.rk"
+import { Example } from "../../example.rk"
+
+export comp Markup() {
+    return <>
+        <Callout kind="note">
+            Разметка и компоненты включаются в <code>package.json</code>:
+            {" "}<code>{'"rook": { "markup": true }'}</code>. Без этого они — ошибки, поэтому
+            {" "}<code>.rk</code>-модули подходят приложению на React, Svelte или Vue как есть.
+        </Callout>
+        <p>
+            Разметка — обычное выражение: <code>&lt;a href="/"&gt;</code> создаёт настоящий
+            {" "}<code>HTMLAnchorElement</code>, без виртуального DOM. Синтаксис как в JSX, но имена
+            атрибутов — как в HTML: <code>class</code>, а не <code>className</code>. Типы тоже
+            проверяются: у <code>&lt;input&gt;</code> тип <code>HTMLInputElement</code>, а
+            {" "}<code>{"checked={1}"}</code> — ошибка.
+        </p>
+        <p>
+            В атрибутах <code>on*</code> пишется код, который выполнится при событии:
+            {" "}<code>{"onClick={save()}"}</code> вызывает <code>save</code> по клику, а не при
+            создании элемента. Внутри доступна переменная <code>event</code>.
+        </p>
+        <Example name="markup" />
+        <p>
+            Внутри <code>{"{...}"}</code> можно писать обычные <code>if</code>, <code>for</code> и
+            {" "}<code>switch</code>: элементы в их блоках становятся содержимым.
+        </p>
+        <Example name="markup-flow" />
+    </>
+}

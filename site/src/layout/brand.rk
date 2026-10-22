@@ -1,0 +1,13 @@
+// The rook and the name, a link to the home page.
+
+import { pageHref } from "../i18n.rk"
+import logo from "../rook.webp"
+import styles from "./brand.module.css"
+
+/** The rook and the name, a link to the home page. */
+export comp Brand() {
+    return <a class={styles.brand} href={pageHref("home")}>
+        <img class={styles.logo} src={logo} alt="" width={24} height={24} />
+        Rook
+    </a>
+}

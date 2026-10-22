@@ -2,29 +2,14 @@
 // language, GitHub and the way to the guide. On narrow screens the pages go into a menu that slides
 // in, with what the page adds to it (the sections of the guide).
 
-import { IconButton, IconLink, LinkButton } from "../../ui/button.rk"
+import { IconButton } from "../../ui/icon-button.rk"
+import { IconLink } from "../../ui/icon-link.rk"
+import { LinkButton } from "../../ui/link-button.rk"
 import { Drawer } from "../../ui/drawer.rk"
-import { currentPage, otherLanguageHref, Page, pageHref, REPOSITORY, text } from "../i18n.rk"
-import logo from "../rook.webp"
+import { currentPage, otherLanguageHref, pageHref, REPOSITORY, text } from "../i18n.rk"
 import styles from "./header.module.css"
-
-/** The rook and the name, a link to the home page. */
-export comp Brand() {
-    return <a class={styles.brand} href={pageHref("home")}>
-        <img class={styles.logo} src={logo} alt="" width={24} height={24} />
-        Rook
-    </a>
-}
-
-comp PageLink(target Page, label string) {
-    return <a
-        class={styles.link}
-        href={pageHref(target)}
-        aria-current={currentPage() == target ? "page" : null}
-    >
-        {label}
-    </a>
-}
+import { Brand } from "./brand.rk"
+import { PageLink } from "./page-link.rk"
 
 /**
  * The bar. `wide` lets it span the screen, as the playground does; `tools` go after

@@ -1,0 +1,19 @@
+/* The rook and the name at the start of the bar. */
+
+.brand {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  color: var(--rui-text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.logo {
+  display: block;
+  width: 24px;
+  height: 24px;
+}

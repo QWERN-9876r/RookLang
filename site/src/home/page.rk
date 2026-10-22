@@ -8,7 +8,8 @@ import { Compare } from "./compare.rk"
 import { Features } from "./features.rk"
 import { Hero } from "./hero.rk"
 import { Lanes } from "./lanes.rk"
-import { CallToAction, Start } from "./start.rk"
+import { CallToAction } from "./call-to-action.rk"
+import { Start } from "./start.rk"
 
 /** Draws the page; the entry module of the language calls it after setLanguage(). */
 export func renderHome() {

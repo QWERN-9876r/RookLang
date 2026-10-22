@@ -1,0 +1,20 @@
+// Раздел «Дженерики» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Generics() {
+    return <>
+        <p>
+            Параметры типа пишутся в угловых скобках, ограничение — после каждого, как в Go:
+            {" "}<code>{"func last<T any>(xs []T) ?T"}</code>, <code>{"interface Box<T>"}</code>,
+            {" "}<code>{"class Stack<T>"}</code>. В типах аргументы тоже в угловых скобках:
+            {" "}<code>{"Box<number>"}</code>, <code>{"Stack<string>"}</code>.
+        </p>
+        <p>
+            При вызове аргументы типа не пишутся: компилятор выводит их из аргументов или из
+            ожидаемого типа. Ограничение <code>[T Named]</code> разрешает только подходящие типы
+            и даёт значениям <code>T</code> члены <code>Named</code>. В JS типы стираются.
+        </p>
+        <Example name="generics" />
+    </>
+}

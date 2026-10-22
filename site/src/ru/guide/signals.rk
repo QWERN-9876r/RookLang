@@ -1,0 +1,43 @@
+// Раздел «Сигналы и отмена» русского гайда; разделы перечислены в guide.rk.
+
+import { CodeBlock } from "../../../ui/code-block.rk"
+import { Example } from "../../example.rk"
+import { highlight } from "../../highlight.rk"
+import { text } from "../../i18n.rk"
+
+export comp Signals() {
+    const t = text()
+
+    return <>
+        <p>
+            Сервер останавливается, когда ему говорит менеджер процессов, сигналом, а запрос —
+            когда уходит его клиент, через <code>AbortSignal</code>. И то и другое становится
+            каналом, чтобы <code>select</code> ждал их вместе с остальным, как
+            {" "}<code>signal.Notify</code> и <code>Done()</code> у контекста в Go.
+        </p>
+        <p>
+            <code>signal("SIGINT", "SIGTERM")</code> — канал, в который приходит имя каждого
+            сигнала. Пока он слушает, сигналы не завершают процесс, и он держит программу, пока его
+            не закроют, как <code>tick</code>:
+        </p>
+        <CodeBlock code={SHUTDOWN} label="server.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(SHUTDOWN, "rook")}
+        </CodeBlock>
+        <p>
+            <code>done(request.signal)</code> получает причину отмены <code>AbortSignal</code> и
+            после этого закрывается; <code>abortSignal(stop)</code> — <code>AbortSignal</code>,
+            который отменяется, когда в канал приходит значение или канал закрывается, для
+            {" "}<code>{"fetch(url, { signal })"}</code> и других API, которые его принимают.
+            Сигналы есть только в Node, а эти две функции работают и в браузере:
+        </p>
+        <Example name="cancel" />
+    </>
+}
+
+const SHUTDOWN = `import { createServer } from "node:http"
+
+const stop = signal("SIGINT", "SIGTERM")
+const server = createServer(handle).listen(8080)
+console.log("stopping on", <-stop)
+close(stop)
+server.close()`

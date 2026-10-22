@@ -1,0 +1,59 @@
+// The section "Mounting" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+import { Markup } from "./markup.rk"
+
+export comp Mounting() {
+    return <>
+        <p>
+            <code>{"mount() { ... }"}</code> in a component's body is code that needs the markup on
+            the page: starting a timer, listening to window events, setting the focus, measuring an
+            element, loading data.
+        </p>
+        <p>
+            <code>mount</code> runs <b>for every instance</b> of the component: with two
+            {" "}<code>{"<Fruit />"}</code> in a list, it runs twice. And it runs <b>only when the
+            markup is in the document</b>. That is checked after all the synchronous code that
+            created the component, in a microtask: by then <code>document.body.append(...)</code>
+            or an <code>{"{if}"}</code> branch has usually inserted the markup, and the browser has
+            not drawn a frame yet, so <code>focus()</code> and measuring sizes work. Markup created
+            earlier and inserted later, say in a timer, mounts when it is inserted.
+        </p>
+        <Example name="mount" />
+        <p>
+            If <code>mount</code> returns a function, it runs when <code>{"{if}"}</code>,
+            {" "}<code>{"{switch}"}</code>, <code>{"{for}"}</code> or a <code>?:</code> branch in
+            markup removes the component: that is where you stop what <code>mount</code> started.
+            Press "Run", then hide the clock: the timer stops.
+        </p>
+        <Example name="mount-cleanup" />
+        <ul>
+            <li>
+                The body of <code>mount</code> is a function that runs later, like an event
+                handler: changes of <code>state</code> in it update the markup, and
+                {" "}<code>return</code> returns from it, not from the component.
+            </li>
+            <li>
+                It can return a function without parameters, <code>null</code> when there is
+                nothing to stop, or nothing.
+            </li>
+            <li>
+                <code>mount</code> is written at the top level of a component's body; there can be
+                several, and they run in order.
+            </li>
+            <li>
+                If <code>{"{if}"}</code>, <code>{"{switch}"}</code> or <code>{"{for}"}</code> removes
+                the markup before it gets into the document, <code>mount</code> does not run.
+            </li>
+            <li>
+                The compiler does not track markup that the program removes by itself
+                (<code>element.remove()</code>): its cleanup does not run.
+            </li>
+            <li>
+                To do something once for a whole list, write <code>mount</code> in the component
+                that creates the list. Code needed once when the program starts goes simply after
+                {" "}<code>document.body.append</code>.
+            </li>
+        </ul>
+    </>
+}

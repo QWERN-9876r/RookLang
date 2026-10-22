@@ -11,7 +11,9 @@ import { loadEditor } from "../editor/load.ts"
 import { highlight } from "../highlight.rk"
 import { exampleCode, exampleNames, text } from "../i18n.rk"
 import { SiteHeader } from "../layout/header.rk"
-import { compiledView, previewArea, resultView, runProgram } from "../sandbox.rk"
+import { CompiledView } from "../compiled-view.rk"
+import { ResultView } from "../result-view.rk"
+import { previewArea, runProgram } from "../sandbox.rk"
 import styles from "./page.module.css"
 
 /** The editor of VS Code once it is loaded, as the page uses it (src/editor/editor.ts). */
@@ -208,9 +210,9 @@ comp Playground() {
                 <Tabs items={tabs} active={tab} onSelect={select(event)} />
                 <div class={styles.output}>
                     {if tab == "js" {
-                        <div>{compiledView(source)}</div>
+                        <div><CompiledView source={source} /></div>
                     } else {
-                        <div>{resultView(preview, lines)}</div>
+                        <div><ResultView preview={preview} lines={lines} /></div>
                     }}
                 </div>
             </section>

@@ -1,0 +1,17 @@
+// A card of the grid of what Rook has: a title, a line about it and a glimpse of it; it takes one
+// column, two or the whole row.
+
+import { Icon, IconName } from "../../ui/icon.rk"
+import styles from "./feature.module.css"
+
+/** How many columns of the grid a card takes: one, two, or the whole row. */
+type Span "one" | "two" | "row"
+
+export comp Feature(title string, body string, icon IconName, span Span = "one", children Content) {
+    return <article class={`${styles.card} ${styles[span]}`}>
+        <span class={styles.icon}><Icon name={icon} size={18} /></span>
+        <h3 class={styles.title}>{title}</h3>
+        <p class={styles.text}>{body}</p>
+        <div class={styles.visual}>{children}</div>
+    </article>
+}

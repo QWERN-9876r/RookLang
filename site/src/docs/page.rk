@@ -10,7 +10,8 @@ import { Prose } from "../../ui/prose.rk"
 import { REPOSITORY, Section, text } from "../i18n.rk"
 import { SiteHeader } from "../layout/header.rk"
 import styles from "./page.module.css"
-import { SearchButton, SearchDialog } from "./search.rk"
+import { SearchButton } from "./search-button.rk"
+import { SearchDialog } from "./search-dialog.rk"
 
 /** The sections in the groups of the tree, in order. */
 func navGroups(sections []Section) []NavGroup {

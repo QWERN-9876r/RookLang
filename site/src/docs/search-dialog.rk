@@ -1,10 +1,11 @@
-// The search of the guide: a button in the bar of the page, and a palette over the page that ⌘K,
-// Ctrl+K or / opens. It finds sections by their titles and their text, which it reads from the
+// The search of the guide: a palette over the page that ⌘K, Ctrl+K or / opens, as does its button
+// (search-button.rk). It finds sections by their titles and their text, which it reads from the
 // sections in the page (page.rk keeps the hidden ones there), and opens the chosen one by its hash.
 
 import { Icon } from "../../ui/icon.rk"
 import { Section, text } from "../i18n.rk"
-import styles from "./search.module.css"
+import styles from "./search-dialog.module.css"
+import { Key } from "./key.rk"
 
 /** A section as the search sees it, and a found one with the text around the match. */
 interface Entry {
@@ -64,16 +65,6 @@ func find(entries []Entry, query string) []Found {
     return [...titled, ...found]
 }
 
-/** The field in the bar that opens the search; on narrow screens only its icon. */
-export comp SearchButton(onOpen func()) {
-    const t = text()
-    return <button class={styles.button} type="button" aria-label={t.search} onClick={onOpen()}>
-        <Icon name="search" size={15} />
-        <span class={styles.placeholder}>{t.searchPlaceholder}</span>
-        <kbd class={styles.key}>⌘K</kbd>
-    </button>
-}
-
 export comp SearchDialog(open bool, sections []Section, onClose func()) {
     const t = text()
     state query = ""
@@ -127,7 +118,7 @@ export comp SearchDialog(open bool, sections []Section, onClose func()) {
                     onInput={selected = 0}
                     onKeyDown={onKey(event)}
                 />
-                <kbd class={styles.key}>Esc</kbd>
+                <Key>Esc</Key>
             </div>
             <div class={styles.results} role="listbox" aria-label={t.search}>
                 {for i, found in results {

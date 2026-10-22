@@ -3,14 +3,17 @@
 // example compiles. It gets into the page at build time (virtual:examples in vite.config.ts), so
 // the example has its full height when the page is first drawn.
 
-import { LinkButton } from "../ui/button.rk"
-import { CopyButton } from "../ui/code-block.rk"
+import { LinkButton } from "../ui/link-button.rk"
+import { CopyButton } from "../ui/copy-button.rk"
 import { TabItem, Tabs } from "../ui/tabs.rk"
 import styles from "./example.module.css"
 import { exampleCode, pageHref, text } from "./i18n.rk"
-import { codeView, compiledView, previewArea, resultView, runProgram } from "./sandbox.rk"
+import { CodeView } from "./code-view.rk"
+import { CompiledView } from "./compiled-view.rk"
+import { ResultView } from "./result-view.rk"
+import { previewArea, runProgram } from "./sandbox.rk"
 
-comp Example(name string) {
+export comp Example(name string) {
     const t = text()
     const code = exampleCode(name)
     // An example that imports modules cannot run on the page.
@@ -46,15 +49,11 @@ comp Example(name string) {
         </Tabs>
         {switch tab {
         case "code":
-            <div>{codeView(code)}</div>
+            <div><CodeView code={code} /></div>
         case "js":
-            <div>{compiledView(code)}</div>
+            <div><CompiledView source={code} /></div>
         default:
-            <div>{resultView(preview, lines)}</div>
+            <div><ResultView preview={preview} lines={lines} /></div>
         }}
     </figure>
-}
-
-export func example(name string) Node {
-    return <Example name={name} />
 }

@@ -1,0 +1,56 @@
+// The section "Web components" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp WebComponents() {
+    return <>
+        <p>
+            <code>@html-tag</code> before <code>comp</code> makes a component a web component as
+            well: a custom element that works in plain HTML, in other frameworks and from JS, like
+            {" "}<code>{"<video>"}</code>. The tag is the name of the component in kebab case,
+            {" "}<code>@html-tag comp mainPage()</code> gives <code>{"<main-page>"}</code>, or the
+            one in the decorator: <code>@html-tag("app-page") comp MainPage()</code>. HTML wants a
+            hyphen in the name of a custom element, so <code>@html-tag comp Page()</code> is a
+            compile error.
+        </p>
+        <Example name="html-tag" />
+        <ul>
+            <li>
+                The markup goes into the element's <b>shadow root</b> when the element gets into
+                the document. <code>{"{children}"}</code> is a <code>{"<slot>"}</code>: what is
+                written between the tags shows up there.
+            </li>
+            <li>
+                Every property is a <b>JS property</b> of the element, and setting it updates the
+                markup. Strings, numbers and bools also have <b>attributes</b>, converted by the
+                type of the property: a string as it is, a number through <code>Number()</code>,
+                a bool is true when the attribute is there. <code>itemCount</code> is the
+                attribute <code>item-count</code>. Without the attribute the property has its
+                default value.
+            </li>
+            <li>
+                Arrays, objects and functions are set only as JS properties:
+                {" "}<code>list.items = [...]</code>. An element written in HTML has none of them
+                yet, so such properties need a default value or a nullable type.
+            </li>
+            <li>
+                <code>mount</code> runs when the element is in the document, and the function it
+                returns runs when the element is removed. Moving the element keeps its markup and
+                state.
+            </li>
+            <li>
+                The element is defined with <code>customElements.define</code> at the end of the
+                module, when the names it uses have their values. Properties set before that are
+                kept.
+            </li>
+            <li>
+                Properties cannot be named like those of <code>HTMLElement</code> that the element
+                needs: <code>id</code>, <code>style</code>, <code>hidden</code>...
+            </li>
+            <li>
+                The playground on this page defines the elements again on every run, so their tags
+                get a number: <code>{"<fruit-badge-3>"}</code>.
+            </li>
+        </ul>
+    </>
+}

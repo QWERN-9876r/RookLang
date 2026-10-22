@@ -1,0 +1,18 @@
+/* What a program printed to the console. */
+
+.console {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--rui-leaf);
+  border-radius: 6px;
+  background: var(--rui-surface);
+  font-family: var(--rui-mono);
+  font-size: 13.5px;
+  white-space: pre-wrap;
+}
+
+.empty {
+  margin: 12px 0 0;
+  color: var(--rui-muted);
+  font-size: 0.9rem;
+}

@@ -1,0 +1,15 @@
+/* A link to a page of the site in the bar; the current page is brighter. */
+
+.link {
+  padding: 6px 10px;
+  border-radius: var(--rui-radius-sm);
+  color: var(--rui-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.link:hover,
+.link[aria-current='page'] {
+  color: var(--rui-text);
+}

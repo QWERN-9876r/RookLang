@@ -1,0 +1,16 @@
+// The button that opens the search of the guide.
+
+import { Icon } from "../../ui/icon.rk"
+import { text } from "../i18n.rk"
+import styles from "./search-button.module.css"
+import { Key } from "./key.rk"
+
+/** The field in the bar that opens the search; on narrow screens only its icon. */
+export comp SearchButton(onOpen func()) {
+    const t = text()
+    return <button class={styles.button} type="button" aria-label={t.search} onClick={onOpen()}>
+        <Icon name="search" size={15} />
+        <span class={styles.placeholder}>{t.searchPlaceholder}</span>
+        <Key>⌘K</Key>
+    </button>
+}

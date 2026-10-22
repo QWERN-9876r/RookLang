@@ -1,0 +1,9 @@
+// The result tab of an example and of the playground: the area where the program shows what it
+// adds to document.body, and its console under it.
+
+import { ConsoleView } from "./console-view.rk"
+import styles from "./result-view.module.css"
+
+export comp ResultView(preview HTMLElement, lines []string) {
+    return <div class={styles.result}>{preview}<ConsoleView lines={lines} /></div>
+}

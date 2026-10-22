@@ -1,0 +1,26 @@
+// The section "null, unions and narrowing" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp NullSafety() {
+    return <>
+        <p>
+            A value of type <code>?T</code> may be <code>null</code>, and a value of type
+            {" "}<code>T</code> may not. The fields of a <code>?T</code> cannot be used without a
+            check: the error comes at compile time, not in the user's browser.
+        </p>
+        <p>
+            After <code>if todo != null</code> the type narrows to <code>Todo</code>. The familiar
+            {" "}<code>?.</code> and <code>??</code> work with <code>?T</code> too.
+        </p>
+        <Example name="null-safety" />
+        <p>
+            A type can be a union of several: <code>string | number</code>. The literal type
+            {" "}<code>"all"</code> allows only that value, so
+            {" "}<code>{'type Filter "all" | "active" | "done"'}</code> catches typos in strings.
+            Unions narrow like <code>?T</code>: with <code>typeof</code>, <code>instanceof</code>, a
+            comparison with a literal and <code>switch</code>.
+        </p>
+        <Example name="unions" />
+    </>
+}

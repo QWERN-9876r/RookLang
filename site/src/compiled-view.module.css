@@ -1,0 +1,16 @@
+/* The JavaScript tab while the compiler loads, and the errors of compiling. */
+
+.errors {
+  margin: 0;
+  padding: 16px 18px 16px 36px;
+  color: var(--rui-danger);
+  font-family: var(--rui-mono);
+  font-size: 13.5px;
+}
+
+.loading {
+  margin: 0;
+  padding: 16px 18px;
+  color: var(--rui-muted);
+  font-size: 0.9rem;
+}

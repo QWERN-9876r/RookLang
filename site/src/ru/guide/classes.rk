@@ -1,0 +1,18 @@
+// Раздел «Классы и интерфейсы» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Classes() {
+    return <>
+        <p>
+            Классы — как в TypeScript: поля с типами, <code>constructor</code>,
+            {" "}<code>extends</code>, модификаторы <code>private</code> и <code>protected</code>.
+        </p>
+        <p>
+            Интерфейсы структурные: класс или объект подходит, если у него есть нужные поля и
+            методы. <code>implements</code> только просит компилятор проверить это в объявлении
+            класса.
+        </p>
+        <Example name="classes" />
+    </>
+}

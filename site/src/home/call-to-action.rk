@@ -1,0 +1,35 @@
+// The end of the home page: the way on, to the guide and the playground, over the board of the
+// rook again.
+
+import { LinkButton } from "../../ui/link-button.rk"
+import { Icon } from "../../ui/icon.rk"
+import { pageHref, text } from "../i18n.rk"
+import { Reveal } from "../layout/reveal.rk"
+import logo from "../rook.webp"
+import board from "./board.module.css"
+import common from "./section.module.css"
+import styles from "./call-to-action.module.css"
+
+export comp CallToAction() {
+    const t = text()
+    const h = t.home
+    return <section class={`${common.section} ${styles.cta}`}>
+        <div class={board.board} aria-hidden="true" />
+        <Reveal>
+            <div class={`${common.container} ${styles.ctaContent}`}>
+                <img class={styles.logo} src={logo} alt="" width={64} height={64} />
+                <div class={common.heading}>
+                    <h2>{h.ctaTitle}</h2>
+                    <p>{h.ctaLead}</p>
+                </div>
+                <div class={styles.actions}>
+                    <LinkButton kind="primary" size="lg" href={pageHref("docs")}>
+                        {t.getStarted}
+                        <Icon name="arrow-right" size={16} />
+                    </LinkButton>
+                    <LinkButton size="lg" href={pageHref("playground")} icon="play">{h.openPlayground}</LinkButton>
+                </div>
+            </div>
+        </Reveal>
+    </section>
+}

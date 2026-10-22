@@ -1,0 +1,55 @@
+// The section "Components" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Components() {
+    return <>
+        <p>
+            A component is declared with <code>comp</code> and used as a tag with a capital letter.
+            Its parameters are its properties: they are checked like the arguments of a function,
+            they can have default values, and <code>children Content</code> gets the markup between
+            the tags. An object with the properties can be passed whole:
+            {" "}<code>{"<Product {...product} />"}</code>.
+        </p>
+        <p>
+            Components do not exist in JS: every use is replaced by the component's code. The
+            {" "}<b>JavaScript</b> tab shows only the elements being created. When the copies of
+            a component would add more than 100 lines to a function and its calls, the component
+            becomes a function instead. Elements are created by <code>$$element</code> of the
+            {" "}runtime, which takes their attributes.
+        </p>
+        <Example name="components" />
+        <p>
+            The last property <code>...attrs</code> takes the attributes of a use that are not
+            properties, and <code>{"{...attrs}"}</code> puts them on one element of the component.
+            They are checked as attributes of that element, so a button keeps all of its own:
+            {" "}<code>disabled</code>, <code>type</code>, <code>aria-*</code>, handlers.
+        </p>
+        <Example name="attrs" />
+        <p>
+            A component can use itself, for a tree or nested comments. Such a component cannot be
+            inlined, so it becomes a function, and every call of it has its own state. The recursion
+            must end: the compiler accepts a use inside <code>{"{if ...}"}</code> or
+            {" "}<code>{"{for ...}"}</code> or after an early <code>return</code>, but not an
+            unconditional one. An early <code>return</code> picks the markup once, when the
+            component is created.
+        </p>
+        <Example name="tree" />
+        <p>
+            A component exported with <code>export comp</code> is imported by its name, as in
+            {" "}<code>{'import { Card } from "./card.rk"'}</code>, and used as a tag. Its module
+            compiles it to a function, which other modules call, or inline it when it is small,
+            by the same 100 lines.
+        </p>
+        <p>
+            A component is also a value: it can go into an array, a property or
+            {" "}<code>state</code>. Its type lists the properties with their names,
+            {" "}<code>comp(name string)</code>, and a tag takes the component from a value: a tag
+            with a dot, <code>{"<tab.content />"}</code>, or a variable with a capital letter,
+            {" "}<code>{"<Current />"}</code>. The tag passes the properties in the order of the
+            type, so a component fits it with the same names in the same order. Such a component
+            becomes a function; when the value changes, it is created again.
+        </p>
+        <Example name="component-values" />
+    </>
+}

@@ -1,0 +1,8 @@
+/* RookUI CardGrid: cards in columns, fewer on narrow screens. */
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}

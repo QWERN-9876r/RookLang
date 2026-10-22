@@ -1,0 +1,34 @@
+// The section "Modules" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+import { Callout } from "../../../ui/callout.rk"
+
+export comp Modules() {
+    return <>
+        <p>
+            Modules are ES modules: <code>import</code> and <code>export</code> as in JS. Imports of
+            {" "}<code>.rk</code> modules are checked: the compiler reads their exports and knows
+            their types.
+        </p>
+        <p>
+            Types of npm packages, <code>.ts</code> files and Node modules (<code>node:fs</code>)
+            come from TypeScript declarations: <code>readFileSync(path, "utf8")</code> is a
+            {" "}<code>string</code>, and <code>request.url</code> of an
+            {" "}<code>IncomingMessage</code> is a <code>?string</code>. A module without
+            declarations is <code>any</code>. The playground works without the TypeScript compiler,
+            so such imports are <code>any</code> here.
+        </p>
+        <p>
+            <code>rook build</code> compiles a file together with every <code>.rk</code> module
+            it imports and replaces <code>.rk</code> with <code>.js</code> in the paths. Next to
+            each <code>.js</code> it writes a <code>.d.ts</code>, so TypeScript code can import the
+            module with types, and a source map, <code>.js.map</code>, so that stack traces and
+            debuggers show the lines of the <code>.rk</code> file; <code>rook run</code> shows them
+            too.
+        </p>
+        <Callout kind="note">
+            The playground on this page does not load modules, so the example below does not run.
+        </Callout>
+        <Example name="modules" />
+    </>
+}

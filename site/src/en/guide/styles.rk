@@ -1,0 +1,53 @@
+// The section "Styles" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+import { highlight } from "../../highlight.rk"
+
+const CSS_MODULE = `import styles from "./button.module.css"
+
+type Kind "primary" | "ghost"
+
+export comp Button(kind Kind = "primary", children Content) {
+    return <button class={\`\${styles.button} \${styles[kind]}\`}>{children}</button>
+}`
+
+export comp Styles() {
+    return <>
+        <p>
+            <code>{"style { ... }"}</code> in a component's body is CSS for its own markup. The
+            elements of that markup get a class of the component, and so does every selector:
+            {" "}<code>.track</code> here reaches no other track on the page, and the styles of
+            other components do not reach these elements.
+        </p>
+        <Example name="styles" />
+        <ul>
+            <li>
+                <code>{"{expr}"}</code> in the value of a declaration comes from code. The value
+                becomes a CSS variable of the element the component returns, and it follows the
+                state, as markup does: press the button.
+            </li>
+            <li>
+                The markup passed in as <code>children</code> and the markup of other components
+                keep their own styles; <code>:global(...)</code> makes a selector one of the
+                whole page.
+            </li>
+            <li>
+                A selector that matches no element of the markup is a warning of the compiler:
+                usually a typo, or the element is in another component.
+            </li>
+            <li>
+                A decorator can have <code>style</code> too, for the markup of its wrapper.
+            </li>
+        </ul>
+        <p>
+            The main way to style components is a CSS module next to them, a plain
+            {" "}<code>.css</code> file. The compiler reads it: its classes get names of their own,
+            and <code>styles</code> is the object of those names, typed, so
+            {" "}<code>styles.buton</code> is a compile error and <code>styles[kind]</code> is
+            checked by the type of <code>kind</code>. The CSS gets onto the page with the module,
+            in <code>rook build</code> and in Vite alike; the playground has no files, so the
+            code is shown here:
+        </p>
+        <pre class="code">{highlight(CSS_MODULE, "rook")}</pre>
+    </>
+}

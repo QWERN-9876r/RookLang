@@ -1,0 +1,8 @@
+// Highlighted code: the Rook of an example in its first tab, and the JS that it compiles to.
+
+import { highlight } from "./highlight.rk"
+import styles from "./code-view.module.css"
+
+export comp CodeView(code string, language "rook" | "js" = "rook") {
+    return <pre class={styles.code}>{highlight(code, language)}</pre>
+}

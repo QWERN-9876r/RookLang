@@ -1,0 +1,23 @@
+// Раздел «try» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Try() {
+    return <>
+        <p>
+            JS-код сообщает об ошибках, бросая их, среди прочих <code>readFileSync</code> из Node и
+            {" "}<code>JSON.parse</code>. <code>try expr</code> превращает то, что бросило выражение,
+            в ошибку — второе значение, так, как возвращает ошибки код на Rook:
+            {" "}<code>const text, err = try readFileSync(path, "utf8")</code>. Он ловит всё, что
+            брошено в выражении после него, а с <code>await</code> внутри — и отклонённый Promise:
+            {" "}<code>try await fetch(url)</code>.
+        </p>
+        <p>
+            Выражение без значения, например <code>try writeFileSync(path, text)</code>, даёт одну
+            ошибку; вызов с результатом <code>(User, error)</code> даёт тот же
+            {" "}<code>(User, error)</code>, так что одна проверка покрывает оба способа сломаться.
+            {" "}<code>try</code>, ошибку которого не сохранили, — ошибка компиляции.
+        </p>
+        <Example name="try" />
+    </>
+}

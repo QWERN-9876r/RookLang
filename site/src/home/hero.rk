@@ -1,8 +1,8 @@
 // The first screen of the home page: the board of the rook with goroutines running down its
 // lines, what Rook is in one sentence, the ways to the guide and the playground, and the install.
 
-import { LinkButton } from "../../ui/button.rk"
-import { CopyButton } from "../../ui/code-block.rk"
+import { LinkButton } from "../../ui/link-button.rk"
+import { CopyButton } from "../../ui/copy-button.rk"
 import { Icon } from "../../ui/icon.rk"
 import { pageHref, text } from "../i18n.rk"
 import { INSTALL } from "./code.rk"

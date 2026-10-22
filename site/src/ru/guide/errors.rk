@@ -1,0 +1,26 @@
+// Раздел «Ошибки и defer» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Errors() {
+    return <>
+        <p>
+            Для обычных ошибок исключения не нужны: функция возвращает ошибку вторым значением, а
+            вызывающий код её проверяет. Ошибка создаётся функцией <code>error("...")</code>. Вместе
+            с ошибкой функция с результатом <code>(Person, error)</code> может вернуть
+            {" "}<code>null</code> вместо значения: пока <code>err</code> не проверена, значение может
+            быть <code>null</code>, после проверки — нет. Если значение бывает <code>null</code> и
+            без ошибки, результат пишут как <code>(?Person, error)</code>.
+            {" "}<code>error("load", err)</code> оборачивает ошибку, как <code>%w</code> в Go:
+            сообщение заканчивается сообщением <code>err</code>, а <code>cause</code> — сам
+            {" "}<code>err</code>.
+        </p>
+        <Example name="errors" />
+        <p>
+            Исключения из JS-кода ловят через <code>try</code> / <code>catch</code>.
+            {" "}<code>defer</code> откладывает вызов до выхода из функции — удобно для очистки
+            ресурсов: вызов выполнится и после <code>return</code>, и после исключения.
+        </p>
+        <Example name="defer" />
+    </>
+}

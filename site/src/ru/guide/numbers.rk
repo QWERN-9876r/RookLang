@@ -1,0 +1,34 @@
+// Раздел «bigint и типизированные массивы» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp Numbers() {
+    return <>
+        <p>
+            <code>bigint</code> хранит целые числа любого размера: <code>10n</code>,
+            {" "}<code>0xffn</code>, <code>2n ** 64n</code>. Как и в JS, bigint и number не
+            смешиваются в арифметике, где JS бросил бы исключение: компилятор просит перевести одно
+            из них через <code>BigInt(n)</code> или <code>Number(b)</code>. Сравнивать их через
+            {" "}<code>&lt;</code> можно, а <code>==</code> между ними — ошибка: результат всегда
+            false.
+        </p>
+        <Example name="bigint" />
+        <p>
+            <code>[]byte</code> — это <code>Uint8Array</code>, как срез байтов в Go, а
+            {" "}<code>byte</code> — число от 0 до 255. Список чисел там, где ждут
+            {" "}<code>[]byte</code>, становится им, <code>[]byte("текст")</code> даёт байты строки в
+            UTF-8, а <code>string(bytes)</code> читает их обратно.
+        </p>
+        <Example name="bytes" />
+        <p>
+            Остальные типизированные массивы тоже пишутся как срезы Go: <code>[]float64</code> — это
+            {" "}<code>Float64Array</code>, <code>[]int32</code> — <code>Int32Array</code>, а
+            {" "}<code>[]int64</code> — <code>BigInt64Array</code> из bigint.
+            {" "}<code>make([]float64, n)</code> создаёт такой из <code>n</code> нулей, а
+            {" "}<code>make([]float64, n, shared)</code> кладёт его на
+            {" "}<code>SharedArrayBuffer</code>, в который горутины <code>go for</code> пишут без
+            копий.
+        </p>
+        <Example name="typed-arrays" />
+    </>
+}

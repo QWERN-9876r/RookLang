@@ -1,0 +1,23 @@
+// The section "Topics" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Topics() {
+    return <>
+        <p>
+            <code>topic&lt;T&gt;(name)</code> passes values between the tabs of a site, over the
+            {" "}<code>BroadcastChannel</code> of that name. <code>{"cart <- e"}</code> sends to
+            every other tab that listens and goes on at once, so it is allowed in any function and
+            event handler; the tab that sends does not get its own value. <code>{"<-cart"}</code>,
+            {" "}<code>for e in cart</code> and <code>select</code> receive, as from a channel.
+        </p>
+        <p>
+            A topic listens from its first receive on and keeps what comes until it is received.
+            Two topics of the same name each get every value, and <code>close(cart)</code> stops
+            one, so a component closes its topic in the function that <code>mount()</code> returns.
+            The values go to other tabs as copies, so they are data, as the arguments of
+            {" "}<code>go</code> are; a goroutine that gets a topic sends to the tabs too.
+        </p>
+        <Example name="topics" />
+    </>
+}
