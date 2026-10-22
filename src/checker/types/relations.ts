@@ -1,5 +1,4 @@
 import { instanceMembers, isSubclass, publicMembers } from './classes.ts';
-import { memberNames } from './lazy.ts';
 import { isNullable, literalBase, nonNull, union } from './constructors.ts';
 import {
   UNKNOWN,
@@ -9,6 +8,7 @@ import {
   type Member,
   type Type,
 } from './model.ts';
+import { indexAssignable, iterableAssignable, numberIndexAssignable } from './iterables.ts';
 import { typedArrayOf, typeToString } from './printing.ts';
 import { isQueue, queueElement } from './queue.ts';
 import { isTopic, topicElement } from './topic.ts';
@@ -150,6 +150,10 @@ export function assignable(source: Type, target: Type, assuming: [Type, Type][])
         if (source.kind === 'function') return target.members.size === 0;
       }
 
+      // `Iterable<T>`: what `for` gives of the value fits.
+      const iterable = target.iterates && iterableAssignable(source, target, nested);
+
+      if (iterable !== undefined && iterable !== null) return iterable;
       if (target.index && !indexAssignable(source, target.index, nested)) return false;
       if (target.numberIndex && !numberIndexAssignable(source, target.numberIndex, nested)) {
         return false;
@@ -160,36 +164,12 @@ export function assignable(source: Type, target: Type, assuming: [Type, Type][])
   }
 }
 
-/** `{ [string]: T }` accepts an object whose own index and fields are all `T`. */
 /** The templates of channel types by name (channel.ts): no other type can have these names. */
 const CHAN_NAMES: ReadonlyMap<string, string> = new Map([
   ['chan', 'both'],
   ['chan<-', 'send'],
   ['<-chan', 'receive'],
 ]);
-
-function indexAssignable(source: Type, index: Type, assuming: [Type, Type][]): boolean {
-  if (source.kind !== 'object') return false;
-  if (source.index && !assignable(source.index, index, assuming)) return false;
-
-  return [...memberNames(source.members)].every((name) => {
-    const member = source.members.get(name);
-
-    return !member || member.method || assignable(member.type, index, assuming);
-  });
-}
-
-/** `ArrayLike<T>` from a `.d.ts` accepts an array, a string or a typed array of `T`. */
-function numberIndexAssignable(source: Type, index: Type, assuming: [Type, Type][]): boolean {
-  if (source.kind === 'array') return assignable(source.element, index, assuming);
-  if (source.kind === 'string') return assignable(source, index, assuming);
-
-  return (
-    source.kind === 'object' &&
-    source.numberIndex !== undefined &&
-    assignable(source.numberIndex, index, assuming)
-  );
-}
 
 function functionAssignable(source: FunctionType, target: FunctionType, assuming: [Type, Type][]) {
   // An iterator is a JS generator: it does not take the callback that a function of its shape does.

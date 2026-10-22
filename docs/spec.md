@@ -1786,6 +1786,9 @@ How TypeScript types become Rook types:
 - A type parameter with a default may be left out: `Buffer` is `Buffer<ArrayBufferLike>`. Such a
   class can be extended: `class Bus extends EventEmitter`.
 - Constraints of type parameters from a `.d.ts` are not checked.
+- `Iterable<T>` takes what `for` goes over at once, with values of `T`: an array, a string, a `Set`,
+  a typed array; `Array.from(new Set([1]))` is a `[]number`. An array is not an `IterableIterator`
+  or an `AsyncIterable`, as in TypeScript.
 - Types cannot reach a type inside a namespace (`http.Server`): it is imported by name.
 - The playground on the site works in the browser without the `typescript` package, so such imports
   are `any` there.

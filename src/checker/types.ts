@@ -6,6 +6,7 @@ export * from './types/lazy.ts';
 export * from './types/generics.ts';
 export * from './types/classes.ts';
 export * from './types/relations.ts';
+export * from './types/iterables.ts';
 export * from './types/params.ts';
 export * from './types/printing.ts';
 export * from './types/bytes.ts';

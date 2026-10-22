@@ -1,6 +1,7 @@
 import { instanceMembers } from './classes.ts';
 import { arrayOf, func, nonNull, nullable, union } from './constructors.ts';
 import { instantiate } from './generics.ts';
+import { iteratedBy } from './iterables.ts';
 import { memberNames } from './lazy.ts';
 import {
   VOID,
@@ -250,6 +251,14 @@ export function inferTypeParams(
             CHANNELS.has(arg.instanceOf?.template.name ?? '')))
       ) {
         param.instanceOf.args.forEach((each, i) => infer(each, arg.instanceOf!.args[i]!));
+        break;
+      }
+
+      // `Iterable<T>` from `[]number` or a `Set<number>`: T is what `for` gives of it.
+      const values = param.iterates && iteratedBy(arg);
+
+      if (values) {
+        infer(param.iterates!, values);
         break;
       }
 

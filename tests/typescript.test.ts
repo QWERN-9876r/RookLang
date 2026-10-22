@@ -308,3 +308,46 @@ const path number = join("a", "b")`,
     expect(message.length).toBeLessThan(1000);
   });
 });
+
+describe('iterables of the lib files', () => {
+  /** Errors of a module next to this file, with the lib files and @types/node. */
+  const libErrors = (source: string) =>
+    compile(source, { filename: join(import.meta.dirname, 'main.rk') }).diagnostics.map(
+      (d) => d.message,
+    );
+
+  it('take what for goes over, with values that fit', () => {
+    expect(
+      libErrors(`import { Readable } from "node:stream"
+const stream = Readable.from(["a", "b"])
+const strings Iterable<string> = ["a"]
+const chars Iterable<string> = "abc"
+const set Iterable<number> = new Set([1])
+const wrong Iterable<number> = ["a"]
+const nulls Iterable<number> = [1, null]
+const other Iterable<number> = new Set(["a"])`),
+    ).toEqual([
+      'cannot use []string as Iterable<number, any, any>',
+      'cannot use []?number as Iterable<number, any, any>',
+      'cannot use Set<string> as Iterable<number, any, any>',
+    ]);
+  });
+
+  it('do not take an array for an iterator or an async iterable, as in TypeScript', () => {
+    expect(
+      libErrors('const a IterableIterator<string> = ["a"]\nconst b AsyncIterable<string> = ["a"]'),
+    ).toEqual([
+      'cannot use []string as IterableIterator<string, any, any>',
+      'cannot use []string as AsyncIterable<string, any, any>',
+    ]);
+  });
+
+  it('give the type parameter of Iterable<T> from the values', () => {
+    expect(
+      libErrors(`const numbers = Array.from(new Set([1]))
+const n number = numbers[0]
+const chars = Array.from("abc")
+const wrong number = chars[0]`),
+    ).toEqual(['cannot use string as number']);
+  });
+});

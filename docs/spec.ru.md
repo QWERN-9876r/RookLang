@@ -1783,6 +1783,9 @@ func handle(request IncomingMessage, response ServerResponse) {
 - У параметров типа со значением по умолчанию аргумент можно не писать: `Buffer` — это
   `Buffer<ArrayBufferLike>`. От такого класса можно наследоваться: `class Bus extends EventEmitter`.
 - Ограничения параметров типа из `.d.ts` не проверяются.
+- `Iterable<T>` принимает то, что `for` перебирает сразу, со значениями типа `T`: массив, строку,
+  `Set`, типизированный массив; `Array.from(new Set([1]))` — это `[]number`. Массив — не
+  `IterableIterator` и не `AsyncIterable`, как и в TypeScript.
 - В типах нельзя обратиться к типу внутри пространства имён (`http.Server`): его импортируют по
   имени.
 - Песочница на сайте работает в браузере без пакета `typescript`, поэтому там такие импорты — `any`.
