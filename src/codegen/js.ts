@@ -86,8 +86,13 @@ class JsGenerator extends FunctionEmitter {
         : []),
       ...(styles.length > 0 ? ['const $$styles = [];'] : []),
     ];
+    // The types that decode checks against, before the code that may decode at the top level.
+    const types = this.decodeTypeLines();
     const mode = this.options.runtime ?? 'import';
-    const runtime = runtimeCode(runtimeNames([...own, ...styles, ...rest].join('\n')), mode);
+    const runtime = runtimeCode(
+      runtimeNames([...own, ...types, ...styles, ...rest].join('\n')),
+      mode,
+    );
 
     if (runtime.length === 0 && own.length === 0 && styles.length === 0) {
       return this.lines.length === 0 ? '' : `${this.lines.join('\n')}\n`;
@@ -101,6 +106,7 @@ class JsGenerator extends FunctionEmitter {
       mode === 'import' ? [...head, ...runtime] : head,
       mode === 'inline' ? runtime : [],
       own,
+      types,
       styles,
       rest,
     ].filter((section) => section.length > 0);

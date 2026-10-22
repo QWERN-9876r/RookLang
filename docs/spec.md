@@ -1408,6 +1408,61 @@ throw error("unreachable")
 
 `catch` is written without parentheses, and `e` has the type `any`.
 
+### decode
+
+```go
+interface User {
+    name string
+    age number
+    role "admin" | "user"
+    boss ?User                       // may be missing or null
+}
+
+const user, err = decode<User>(await request.text())
+if err != null {
+    console.error(err.message)       // decode User: age: expected number, got "42"
+    return
+}
+console.log(user.name)               // err is null, so user is a User
+```
+
+```js
+const $$typeUser = $$type("User", () => ({
+  name: "string",
+  age: "number",
+  role: { literal: ["admin", "user"] },
+  boss: { nullable: $$typeUser },
+}));
+
+const [user, err] = $$decodeJson(await request.text(), $$typeUser);
+```
+
+The types are erased, so a value from outside, the body of a request or a file, has the type that
+the program says it has, and nothing checks it. `decode<T>(x)` checks it when the program runs: the
+compiler writes the type `T` into the JS as data, and the runtime checks the value against it. The
+result is `(T, error)`, as in section 7: `user` may be `null` until `err` is checked.
+
+- **What it takes:** JSON text, if the argument is a `string`: it is parsed, then checked; or a
+  value from JS, if it is `any`, such as `await response.json()` or `JSON.parse(s)`: it is only
+  checked. `decode<number>(params.get("page") ?? "1")` reads a number from the text. Other types
+  are an error, since their values are checked already; a `?string` is checked for `null` first.
+- **What it gives:** the value itself, as it is, when it fits: fields that `T` does not have stay in
+  it, and nothing is copied. A field of `T` that is missing is an error, unless it is nullable
+  (`boss ?User`) or `any`. Only the own fields of an object count.
+- **The error** says where the value does not fit: `decode User: tags[1]: expected string, got 42`,
+  `decode User: name: missing`, `decode User: invalid JSON: ...`. Of a union, the member that the
+  value fits deepest is reported: `{ kind: "circle", r: "2" }` of `Circle | Square` gives
+  `r: expected number, got "2"`.
+- **Which types:** what JSON holds: `number`, `string`, `bool`, literal types, `?T`, arrays, unions,
+  interfaces and object types without methods, generic ones with their arguments (`Box<number>`),
+  and types that refer to themselves (`interface Tree { children []Tree }`). A class, `Date`,
+  `Map`, `bigint`, `[]byte`, a function or a channel is a compile error that says what to decode
+  instead, and so is a type parameter: the type must be known when the program compiles.
+- An object type is a constant of the module, `$$typeUser`, so the fields of each call are not
+  written again. With `rook build --no-check`, without the types, `decode` parses a string and
+  checks nothing.
+- `decode` is a name elsewhere, as `topic` is: it decodes only before `<T>(`.
+
 ## 8. Classes
 
 Classes as in JS and TypeScript, with Go-style types. Methods are declared without `func`, like

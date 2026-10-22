@@ -2,12 +2,12 @@ import type * as ast from '../ast.ts';
 import { isIterator } from '../iterators.ts';
 import { holdsBigInts, TYPED_ARRAYS, TYPED_ELEMENTS } from '../typed-arrays.ts';
 import { declarationsOf } from './analysis.ts';
-import { CallEmitter } from './calls.ts';
+import { DecodeEmitter } from './decode.ts';
 import { ARROW, arrayPattern, POSTFIX } from './syntax.ts';
 
 /** Statements: lists and blocks of them, variables, assignments, `return`; the others are in later layers. */
 
-export abstract class SimpleStatementEmitter extends CallEmitter {
+export abstract class SimpleStatementEmitter extends DecodeEmitter {
   // Implemented by later layers: the checking of statements, expressions and markup calls each other.
 
   protected abstract forInStatement(node: ast.ForInStatement): void;

@@ -9,6 +9,7 @@ import {
   typedArrayOf,
   type Type,
 } from '../checker/types.ts';
+import { goCaptures, goParams, goTarget } from '../goroutines.ts';
 import { isYieldCall } from '../iterators.ts';
 import { TYPED_ARRAYS, TYPED_ELEMENTS } from '../typed-arrays.ts';
 import { hasOptionalLink } from './analysis.ts';
@@ -50,6 +51,28 @@ export abstract class CallEmitter extends ExpressionEmitter {
     }
 
     return `${this.expression(node.callee, POSTFIX)}${node.optional ? '?.' : ''}(${args})`;
+  }
+
+  /**
+   * `go f(x)`: the worker module has the function under the same name, a literal under the name
+   * given to it, after the local names it uses; the arguments are copied there. In the worker
+   * module a literal runs in the same worker, with copies of those names as its first parameters.
+   */
+  protected override go(node: ast.GoExpression): string {
+    const { callee } = node.call;
+    const literal = callee.kind === 'FuncExpression' ? callee : null;
+    const captured = literal ? goCaptures(this.program, node) : [];
+    const args = [...captured.map((name) => this.name(name)), this.elements(node.call.arguments)];
+    // Without type checking, a callee that is neither fails when the call runs.
+    const fn =
+      literal && this.inWorker
+        ? this.expression(
+            { ...literal, params: [...goParams(literal, captured), ...literal.params] },
+            ARROW,
+          )
+        : JSON.stringify(goTarget(this.program, node));
+
+    return `$$go(${fn}, [${args.filter((arg) => arg !== '').join(', ')}])`;
   }
 
   /** `yield v` for `yield(v)` in an iterator, `yield [k, v]` for `yield(k, v)`; else `null`. */

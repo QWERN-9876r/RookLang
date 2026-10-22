@@ -205,8 +205,26 @@ export abstract class LiteralParser extends ExpressionParser {
     return { kind: 'TopicExpression', element, name, ...this.span(start) };
   }
 
+  /** `decode<User>(body)`; `decode < n` is a comparison, as `topic < n` is. */
+  protected override parseDecode(): ast.DecodeExpression | null {
+    const start = this.peek().start;
+    const type = this.parseMadeType();
+
+    if (!type) return null;
+    if (this.check(')')) {
+      this.fail('decode takes JSON text or a value from JS, e.g. decode<User>(body)');
+    }
+
+    const argument = this.nested(() => this.parseExpression());
+
+    this.accept(',');
+    this.expect(')', '")": decode takes one argument, e.g. decode<User>(body)');
+
+    return { kind: 'DecodeExpression', type, argument, ...this.span(start) };
+  }
+
   /**
-   * `<T>(` after `queue` or `topic`: the type of the values, with `(` read. Without `(` after the
+   * `<T>(` after `queue`, `topic` or `decode`: the type, with `(` read. Without `(` after the
    * type, gives null and reads nothing, so that `queue < n` stays a comparison.
    */
   private parseMadeType(): ast.TypeNode | null {

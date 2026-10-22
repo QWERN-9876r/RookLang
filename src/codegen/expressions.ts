@@ -1,6 +1,5 @@
 import type * as ast from '../ast.ts';
 import { decoratedName } from '../decorators.ts';
-import { goCaptures, goParams, goTarget } from '../goroutines.ts';
 import { isIterator, usesThis } from '../iterators.ts';
 import { containsElement, startsWithObjectLiteral } from './analysis.ts';
 import { Emitter } from './emitter.ts';
@@ -42,6 +41,12 @@ export abstract class ExpressionEmitter extends Emitter {
   protected abstract queue(node: ast.QueueExpression): string;
 
   protected abstract topic(node: ast.TopicExpression): string;
+
+  /** `go f(x)`; implemented by CallEmitter. */
+  protected abstract go(node: ast.GoExpression): string;
+
+  /** `decode<T>(x)`; implemented by DecodeEmitter. */
+  protected abstract decode(node: ast.DecodeExpression): string;
 
   /** `<-x` without its `await`; implemented by CallEmitter. */
   protected abstract receive(node: ast.Expression, withOk: boolean): string;
@@ -194,28 +199,11 @@ export abstract class ExpressionEmitter extends Emitter {
       case 'TopicExpression':
         return [this.topic(node), POSTFIX];
 
-      // The worker module has the function under the same name, a literal under the name given to
-      // it, after the local names it uses; the arguments are copied there. In the worker module a
-      // literal runs in the same worker, with copies of those names as its first parameters.
-      case 'GoExpression': {
-        const { callee } = node.call;
-        const literal = callee.kind === 'FuncExpression' ? callee : null;
-        const captured = literal ? goCaptures(this.program, node) : [];
-        const args = [
-          ...captured.map((name) => this.name(name)),
-          this.elements(node.call.arguments),
-        ];
-        // Without type checking, a callee that is neither fails when the call runs.
-        const fn =
-          literal && this.inWorker
-            ? this.expression(
-                { ...literal, params: [...goParams(literal, captured), ...literal.params] },
-                ARROW,
-              )
-            : JSON.stringify(goTarget(this.program, node));
+      case 'GoExpression':
+        return [this.go(node), POSTFIX];
 
-        return [`$$go(${fn}, [${args.filter((arg) => arg !== '').join(', ')}])`, POSTFIX];
-      }
+      case 'DecodeExpression':
+        return [this.decode(node), POSTFIX];
 
       case 'UnaryExpression':
         return [this.unary(node), UNARY];

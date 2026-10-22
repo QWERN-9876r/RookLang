@@ -1,85 +1,12 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { join } from 'node:path';
-import * as oniguruma from 'vscode-oniguruma';
 import * as textmate from 'vscode-textmate';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { loadGrammar, root, scopeOf, scopesOf, tokenize } from './textmate.ts';
 
 // The VS Code extension in editors/vscode: its grammar is run by the same engine that VS Code uses.
 
-const root = new URL('..', import.meta.url).pathname;
-// The grammars of markup and styles are separate files that the main one includes, as in VS Code.
-const grammarPaths: Record<string, string> = {
-  'source.rook': join(root, 'editors/vscode/syntaxes/rook.tmLanguage.json'),
-  'source.rook.markup': join(root, 'editors/vscode/syntaxes/rook-markup.tmLanguage.json'),
-  'source.rook.css': join(root, 'editors/vscode/syntaxes/rook-css.tmLanguage.json'),
-};
-
-let grammar: textmate.IGrammar;
-
-beforeAll(async () => {
-  const wasm = readFileSync(
-    createRequire(import.meta.url).resolve('vscode-oniguruma/release/onig.wasm'),
-  );
-
-  await oniguruma.loadWASM(wasm.buffer);
-
-  const registry = new textmate.Registry({
-    onigLib: Promise.resolve({
-      createOnigScanner: (patterns) => new oniguruma.OnigScanner(patterns),
-      createOnigString: (text) => new oniguruma.OnigString(text),
-    }),
-    loadGrammar: (scopeName) => {
-      const path = grammarPaths[scopeName];
-
-      return Promise.resolve(
-        path ? textmate.parseRawGrammar(readFileSync(path, 'utf8'), path) : null,
-      );
-    },
-  });
-  const loaded = await registry.loadGrammar('source.rook');
-
-  if (!loaded) throw new Error('the grammar did not load');
-  grammar = loaded;
-});
-
-interface Token {
-  text: string;
-  scopes: string[];
-}
-
-/** Tokens of each line, and the rule stack after the last line. */
-function tokenize(source: string): { tokens: Token[]; stack: textmate.StateStack } {
-  const tokens: Token[] = [];
-  let stack = textmate.INITIAL;
-
-  for (const line of source.split('\n')) {
-    const result = grammar.tokenizeLine(line, stack);
-
-    for (const token of result.tokens) {
-      tokens.push({ text: line.slice(token.startIndex, token.endIndex), scopes: token.scopes });
-    }
-
-    stack = result.ruleStack;
-  }
-
-  return { tokens, stack };
-}
-
-/** The innermost scope of each token with this text, in order. */
-function scopesOf(source: string, text: string): string[] {
-  return tokenize(source)
-    .tokens.filter((token) => token.text === text)
-    .map((token) => token.scopes.at(-1)!.replace(/\.rook$/, ''));
-}
-
-function scopeOf(source: string, text: string): string {
-  const [scope] = scopesOf(source, text);
-
-  if (scope === undefined) throw new Error(`no token "${text}" in ${source}`);
-
-  return scope;
-}
+beforeAll(loadGrammar);
 
 describe('VS Code grammar', () => {
   it('colours declarations, keywords and types', () => {
@@ -234,6 +161,15 @@ describe('VS Code grammar', () => {
     expect(scopeOf(source, 'await')).toBe('keyword.control.flow');
     expect(scopeOf('const f = async x => x', 'async')).toBe('storage.modifier.async');
     expect(scopeOf('const n = task.await', 'await')).not.toBe('keyword.control.flow');
+  });
+
+  it('colours decode before its type, and keeps it a name elsewhere', () => {
+    const source = 'const user, err = decode<User>(body)';
+
+    expect(scopeOf(source, 'decode')).toBe('support.function');
+    expect(scopeOf(source, 'User')).toBe('entity.name.type');
+    expect(scopeOf('const ok = decode < 2', 'decode')).not.toBe('support.function');
+    expect(scopeOf('const s = codec.decode<T>(x)', 'decode')).not.toBe('support.function');
   });
 
   it.each(['queue', 'topic'])('colours %s before a type, and keeps it a name elsewhere', (word) => {

@@ -48,7 +48,8 @@ close(results)
   }
   ```
 
-- **Static types with null safety.** A `?User` cannot be used without a check.
+- **Static types with null safety.** A `?User` cannot be used without a check, and
+  `decode<User>(body)` checks JSON from outside against the type when the program runs.
 - **JavaScript inside.** The same values, classes and modules, any JS library; markup creates real
   DOM elements, and components are compiled away.
 

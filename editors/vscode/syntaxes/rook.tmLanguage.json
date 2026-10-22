@@ -298,8 +298,9 @@
           "match": "(?<![\\w$)\\]}\"'`])\\?(?=[A-Za-z_$\\[(])"
         },
         {
+          "comment": "`error(...)`, and `decode` only before the `<` of `decode<User>(body)`: elsewhere it is a name, `decode < n`.",
           "name": "support.function.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)error(?=\\s*\\()"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:error(?=\\s*\\()|decode(?=<))"
         },
         {
           "comment": "`get` is special only before a member of a decorator: `get(@visible.shown)`.",

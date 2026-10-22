@@ -61,6 +61,9 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
     case 'TopicExpression':
       return `(topic ${ty(node.element)} ${sx(node.name)})`;
 
+    case 'DecodeExpression':
+      return `(decode ${ty(node.type)} ${sx(node.argument)})`;
+
     case 'MakeExpression':
       return `(make ${ty(node.type)} ${sx(node.length)}${node.shared ? ' shared' : ''})`;
 

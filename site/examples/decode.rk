@@ -1,0 +1,24 @@
+// The types are erased: decode checks JSON from outside against a type when the program runs
+interface Order {
+    id number
+    items []string
+    status "new" | "paid"
+    note ?string // may be missing
+}
+
+const bodies = [
+    `{"id": 1, "items": ["tea", "cake"], "status": "paid"}`,
+    `{"id": 2, "items": ["tea", 3], "status": "new"}`,
+    `{"id": 3, "items": [], "status": "sent"}`,
+    `{"items": [], "status": "new"}`,
+    `{"id": 5, "items": [`,
+]
+
+for body in bodies {
+    const order, err = decode<Order>(body)
+    if err != null {
+        console.log(err.message)
+        continue
+    }
+    console.log("order", order.id, "of", order.items.length, "items") // err is null, so order is an Order
+}

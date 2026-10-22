@@ -43,6 +43,8 @@ export abstract class ExpressionChecker extends FunctionChecker {
 
   protected abstract checkTopic(node: ast.TopicExpression): Type;
 
+  protected abstract checkDecode(node: ast.DecodeExpression): Type;
+
   /** `[]byte("text")`; implemented by BytesChecker. */
   protected abstract checkConversion(node: ast.ConversionExpression): Type;
 
@@ -152,6 +154,9 @@ export abstract class ExpressionChecker extends FunctionChecker {
       case 'TopicExpression':
         return this.checkTopic(node);
 
+      case 'DecodeExpression':
+        return this.checkDecode(node);
+
       case 'ConversionExpression':
         return this.checkConversion(node);
 
@@ -197,7 +202,9 @@ export abstract class ExpressionChecker extends FunctionChecker {
           ? `"${node.name}" is a type, not a value`
           : node.name === 'make'
             ? 'make takes the type of a typed array first, e.g. make([]float64, n)'
-            : `"${node.name}" is not defined`,
+            : node.name === 'decode'
+              ? 'decode takes the type first, e.g. decode<User>(body)'
+              : `"${node.name}" is not defined`,
         node,
       );
 

@@ -158,7 +158,8 @@ func identifierClass(text string, next string, language string) string {
             return "kw"
         }
     }
-    if next == "(" {
+    // decode<User>(body) is a call
+    if next == "(" || text == "decode" && next == "<" && language != "js" {
         return "fn"
     }
     return isCapitalized(text) ? "type" : ""

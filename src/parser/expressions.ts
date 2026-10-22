@@ -242,6 +242,12 @@ export abstract class ExpressionParser extends TypeParser {
           if (topic) return topic;
         }
 
+        if (this.checkWord('decode') && this.peek(1).kind === '<') {
+          const decode = this.parseDecode();
+
+          if (decode) return decode;
+        }
+
         this.next();
 
         return { kind: 'Identifier', name: token.text, start, end };

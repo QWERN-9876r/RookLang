@@ -117,6 +117,8 @@ export abstract class SimpleStatementParser extends ParserBase {
     if (values.length === 1 && call?.kind === 'CallExpression') return;
     // `chunks, failed = chan(res.body)`: the channel of a stream and that of its error.
     if (values.length === 1 && value?.kind === 'StreamChanExpression') return;
+    // `user, err = decode<User>(body)`: the value and the error.
+    if (values.length === 1 && value?.kind === 'DecodeExpression') return;
     this.error(
       `assignment mismatch: ${plural(targets, 'variable')} but ${plural(values.length, 'value')}`,
       start,

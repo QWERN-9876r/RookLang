@@ -1,0 +1,24 @@
+// The sections of the English guide about programs on a server; guide.rk lists them all.
+
+import { example } from "../example.rk"
+
+export comp Decode() {
+    return <>
+        <p>
+            The types are erased, so a value from outside, the body of a request or a file, has the
+            type that the program says it has, and nothing checks it.
+            {" "}<code>{"decode<Order>(body)"}</code> checks it when the program runs: the compiler
+            writes the type into the JS as data, and the runtime checks the value against it. The
+            result is <code>(Order, error)</code>, as of any function that may fail.
+        </p>
+        <p>
+            A <code>string</code> is JSON text: it is parsed, then checked; a value of type
+            {" "}<code>any</code>, such as <code>await response.json()</code>, is only checked. A
+            value that fits is returned as it is, with the fields that the type does not have. A
+            missing field is an error unless it is nullable, and the error says where the value does
+            not fit: <code>items[1]: expected string, got 3</code>. Types that JSON cannot hold,
+            such as a class, <code>Date</code> or <code>Map</code>, are a compile error.
+        </p>
+        {example("decode")}
+    </>
+}

@@ -91,6 +91,8 @@ export abstract class ParserBase {
 
   protected abstract parseTopic(): ast.TopicExpression | null;
 
+  protected abstract parseDecode(): ast.DecodeExpression | null;
+
   protected abstract parseArrowFunction(async?: boolean): ast.ArrowFunction;
 
   protected abstract parseFuncExpression(async?: boolean): ast.FuncExpression;

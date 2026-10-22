@@ -67,9 +67,10 @@ interface FunctionContext {
  * The base of the JS generator: the output buffer, scopes of declared names and the state of the
  * current function. The generator is split into layers, each adding to the previous one:
  *
- *     Emitter → ExpressionEmitter → CallEmitter → SimpleStatementEmitter → ControlStatementEmitter
- *       → ParallelLoopEmitter → StatementEmitter → UpdateEmitter → AttributeEmitter
- *       → CreationEmitter → ElementEmitter → ControlFlowEmitter → ComponentPropsEmitter
+ *     Emitter → ExpressionEmitter → CallEmitter → DecodeEmitter → SimpleStatementEmitter
+ *       → ControlStatementEmitter → ParallelLoopEmitter → StatementEmitter → UpdateEmitter
+ *       → AttributeEmitter → CreationEmitter → ElementEmitter → ControlFlowEmitter
+ *       → ComponentPropsEmitter
  *       → ComponentValueEmitter → EarlyReturnEmitter → RefEmitter
  *       → StyleEmitter → ComponentEmitter → WebComponentEmitter → FunctionEmitter → JsGenerator
  */

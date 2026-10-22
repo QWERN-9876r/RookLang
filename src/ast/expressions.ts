@@ -34,6 +34,7 @@ export type Expression =
   | StreamChanExpression
   | QueueExpression
   | TopicExpression
+  | DecodeExpression
   | ConversionExpression
   | MakeExpression;
 
@@ -77,6 +78,16 @@ export interface TopicExpression extends NodeBase {
   kind: 'TopicExpression';
   element: TypeNode;
   name: Expression;
+}
+
+/**
+ * `decode<User>(body)`: JSON text, or a value from JS, checked against a type when the program
+ * runs; it gives `(User, error)`.
+ */
+export interface DecodeExpression extends NodeBase {
+  kind: 'DecodeExpression';
+  type: TypeNode;
+  argument: Expression;
 }
 
 /**

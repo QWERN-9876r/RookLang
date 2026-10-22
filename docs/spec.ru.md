@@ -1408,6 +1408,60 @@ throw error("unreachable")
 
 `catch` записывается без скобок, `e` имеет тип `any`.
 
+### decode
+
+```go
+interface User {
+    name string
+    age number
+    role "admin" | "user"
+    boss ?User                       // может отсутствовать или быть null
+}
+
+const user, err = decode<User>(await request.text())
+if err != null {
+    console.error(err.message)       // decode User: age: expected number, got "42"
+    return
+}
+console.log(user.name)               // err равен null, значит user — это User
+```
+
+```js
+const $$typeUser = $$type("User", () => ({
+  name: "string",
+  age: "number",
+  role: { literal: ["admin", "user"] },
+  boss: { nullable: $$typeUser },
+}));
+
+const [user, err] = $$decodeJson(await request.text(), $$typeUser);
+```
+
+Типы стираются, поэтому у значения извне, тела запроса или файла, тот тип, который ему приписала
+программа, и никто его не проверяет. `decode<T>(x)` проверяет его во время работы: компилятор
+записывает тип `T` в JS как данные, а рантайм сверяет с ним значение. Результат — `(T, error)`, как в
+разделе 7: `user` может быть `null`, пока не проверен `err`.
+
+- **Что принимает:** JSON-текст, если аргумент — `string`: его разбирают, потом проверяют; или
+  значение из JS, если аргумент — `any`, например `await response.json()` или `JSON.parse(s)`: его
+  только проверяют. `decode<number>(params.get("page") ?? "1")` читает число из текста. Другие типы
+  — ошибка, их значения уже проверены; `?string` сначала проверяют на `null`.
+- **Что даёт:** само значение, как есть, если оно подходит: поля, которых нет в `T`, остаются в нём,
+  и ничего не копируется. Отсутствующее поле `T` — ошибка, если оно не nullable (`boss ?User`) и не
+  `any`. Считаются только собственные поля объекта.
+- **Ошибка** говорит, где значение не подходит: `decode User: tags[1]: expected string, got 42`,
+  `decode User: name: missing`, `decode User: invalid JSON: ...`. Для union сообщается о том члене,
+  в который значение прошло глубже всего: `{ kind: "circle", r: "2" }` для `Circle | Square` даёт
+  `r: expected number, got "2"`.
+- **Какие типы:** то, что умеет JSON: `number`, `string`, `bool`, литеральные типы, `?T`, массивы,
+  union, интерфейсы и объектные типы без методов, дженерики с аргументами (`Box<number>`) и типы,
+  которые ссылаются на себя (`interface Tree { children []Tree }`). Класс, `Date`, `Map`, `bigint`,
+  `[]byte`, функция или канал — ошибка компиляции, которая говорит, что декодировать вместо них;
+  параметр типа тоже: тип должен быть известен при компиляции.
+- Объектный тип — константа модуля, `$$typeUser`, поэтому поля не пишутся заново в каждом вызове.
+  С `rook build --no-check`, без типов, `decode` разбирает строку и ничего не проверяет.
+- В остальных местах `decode` — обычное имя, как `topic`: декодирует он только перед `<T>(`.
+
 ## 8. Классы
 
 Классы как в JS и TypeScript, типы — в стиле Go. Методы объявляются без `func`, как методы

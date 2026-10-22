@@ -164,13 +164,14 @@ export function countValues(count: number): string {
   return count === 1 ? '1 value' : `${count} values`;
 }
 
-/** A call, or `await` of a call or of `go`: it may give several values. */
+/** A call, `decode<T>(x)`, or `await` of a call or of `go`: it may give several values. */
 export function isCall(node: ast.Expression): boolean {
   if (node.kind === 'UnaryExpression' && node.operator === 'await') {
     return node.argument.kind === 'CallExpression' || node.argument.kind === 'GoExpression';
   }
 
-  return node.kind === 'CallExpression';
+  // `return decode<User>(body)` passes on the value and the error.
+  return node.kind === 'CallExpression' || node.kind === 'DecodeExpression';
 }
 
 /** How to name an expression in messages: `divide()`, `stats.minMax()`, or `this expression`. */
@@ -181,6 +182,7 @@ export function callName(node: ast.Expression): string {
 
   if (node.kind === 'GoExpression') return callName(node.call);
   if (node.kind === 'StreamChanExpression') return 'chan(stream)';
+  if (node.kind === 'DecodeExpression') return 'decode';
 
   if (node.kind !== 'CallExpression') return 'this expression';
 

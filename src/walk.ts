@@ -144,6 +144,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       break;
 
     case 'ConversionExpression':
+    case 'DecodeExpression':
       visit(node.type);
       visit(node.argument);
       break;

@@ -1,0 +1,24 @@
+// Типы стираются: decode сверяет JSON, пришедший извне, с типом во время работы программы
+interface Order {
+    id number
+    items []string
+    status "new" | "paid"
+    note ?string // может отсутствовать
+}
+
+const bodies = [
+    `{"id": 1, "items": ["чай", "торт"], "status": "paid"}`,
+    `{"id": 2, "items": ["чай", 3], "status": "new"}`,
+    `{"id": 3, "items": [], "status": "sent"}`,
+    `{"items": [], "status": "new"}`,
+    `{"id": 5, "items": [`,
+]
+
+for body in bodies {
+    const order, err = decode<Order>(body)
+    if err != null {
+        console.log(err.message)
+        continue
+    }
+    console.log("заказ", order.id, "из", order.items.length, "позиций") // err равен null, значит order — это Order
+}
