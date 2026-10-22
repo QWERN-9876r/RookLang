@@ -14,6 +14,7 @@ import type { RuntimeMode } from './codegen/runtime.ts';
 import { printDeclarations } from './declarations.ts';
 import type { Diagnostic } from './diagnostics.ts';
 import { goroutines, goTarget, workerProgram } from './goroutines.ts';
+import { withoutMarks, type SourceMap } from './source-map.ts';
 import { parse } from './parser/parser.ts';
 import { isStyleModule, styleModule, unusedClasses, type StyleModule } from './style-modules.ts';
 
@@ -45,6 +46,8 @@ export interface CoreCompileOptions {
    * without imports (src/codegen/runtime.ts).
    */
   runtime?: RuntimeMode | undefined;
+  /** The name of the source in the source maps, `app.rk`. */
+  sourceName?: string | undefined;
 }
 
 /**
@@ -68,6 +71,10 @@ export interface CompileResult {
   dependencies: string[];
   /** The `.d.ts` for the module, with the `declarations` option. */
   declarations?: string;
+  /** Where the lines of `code` come from in the source, when there is code. */
+  map?: SourceMap;
+  /** That of the worker module. */
+  workerMap?: SourceMap;
   /** The worker module that runs the functions `go` calls, when the module has `go`. */
   worker?: string;
 }
@@ -109,25 +116,35 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     runtime: options.runtime,
     ...importedCode(program, options.importModule),
   };
-  const code = generateJs(program, {
-    ...jsOptions,
-    goroutines: { workerUrl: options.workerUrl ?? workerUrl('main.rk', rewriteImports) },
-  });
+  const sourceName = options.sourceName ?? 'main.rk';
+  const main = withoutMarks(
+    generateJs(program, {
+      ...jsOptions,
+      goroutines: { workerUrl: options.workerUrl ?? workerUrl('main.rk', rewriteImports) },
+    }),
+    source,
+    sourceName,
+  );
   const targets = [
     ...new Set(goroutines(program).flatMap((node) => goTarget(program, node) ?? [])),
   ];
   const worker =
     targets.length > 0
-      ? generateJs(workerProgram(program, targets), { ...jsOptions, goroutines: { targets } })
+      ? withoutMarks(
+          generateJs(workerProgram(program, targets), { ...jsOptions, goroutines: { targets } }),
+          source,
+          sourceName,
+        )
       : undefined;
 
   return {
-    code,
+    code: main.code,
     diagnostics: [],
     warnings,
     dependencies,
     ...(declarations ? { declarations } : {}),
-    ...(worker === undefined ? {} : { worker }),
+    map: main.map,
+    ...(worker === undefined ? {} : { worker: worker.code, workerMap: worker.map }),
   };
 }
 

@@ -7,6 +7,7 @@ import { isMainThread } from 'node:worker_threads';
 import type * as Build from './build.ts';
 import type * as CompileFile from './compile-file.ts';
 import { RUNTIME_MODULE } from './runtime-module.ts';
+import { sourceMapComment, type SourceMap } from './source-map.ts';
 
 // `rook run` imports this module first (`node --import`): Node then imports `.rk` files,
 // compiled when they load, and `app.rk?goroutines` is the worker module of `go` in app.rk.
@@ -16,7 +17,8 @@ import { RUNTIME_MODULE } from './runtime-module.ts';
 // there: compiling again, with the types, would take each of them as long. So a worker does not
 // even load the compiler, which takes ~80 ms, unless a module is missing from the cache; the hooks
 // are synchronous, so it is loaded with require(). ROOK_NO_CHECK turns type checking off, and
-// ROOK_MARKUP, 1 or 0, markup and components on or off for every file.
+// ROOK_MARKUP, 1 or 0, markup and components on or off for every file. The code has its source map
+// in it, and the process runs with --enable-source-maps, so stack traces show the lines of .rk.
 
 const typeCheck = process.env['ROOK_NO_CHECK'] === undefined;
 const markupSetting = process.env['ROOK_MARKUP'];
@@ -62,15 +64,26 @@ registerHooks({
       quiet: !isMainThread,
     });
 
+    const code = withMap(result.code, result.map);
+    const worker =
+      result.worker === undefined ? undefined : withMap(result.worker, result.workerMap);
+
     if (isMainThread && cache) {
-      writeFileSync(cached(moduleUrl)!, result.code);
-      if (result.worker !== undefined) {
-        writeFileSync(cached(`${moduleUrl}?goroutines`)!, result.worker);
-      }
+      writeFileSync(cached(moduleUrl)!, code);
+      if (worker !== undefined) writeFileSync(cached(`${moduleUrl}?goroutines`)!, worker);
     }
 
-    const source = search === '?goroutines' ? (result.worker ?? '') : result.code;
+    const source = search === '?goroutines' ? (worker ?? '') : code;
 
     return { format: 'module', source, shortCircuit: true };
   },
 });
+
+/** The code with its source map in it. */
+function withMap(code: string, map: SourceMap | undefined): string {
+  if (map === undefined || code === '') return code;
+
+  const data = Buffer.from(JSON.stringify(map)).toString('base64');
+
+  return `${code}${sourceMapComment(`data:application/json;base64,${data}`)}`;
+}

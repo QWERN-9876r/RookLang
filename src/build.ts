@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import type { Diagnostic } from './diagnostics.ts';
 import { compile } from './index.ts';
+import { sourceMapComment, type SourceMap } from './source-map.ts';
 import { SourceFile } from './source.ts';
 
 export interface BuildOptions {
@@ -13,6 +14,8 @@ export interface BuildOptions {
   declarations?: boolean;
   /** Markup and components for every file; by default as its package.json says (config.ts). */
   markup?: boolean;
+  /** Write a source map next to each `.js`, `app.js.map`. Defaults to `true`. */
+  sourceMap?: boolean;
 }
 
 export interface BuildOutput {
@@ -25,6 +28,8 @@ export interface BuildOutput {
   declarations?: { output: string; code: string };
   /** Its worker module, `.worker.js`, when it has `go`. */
   worker?: { output: string; code: string };
+  /** The source maps of the module and of its worker module, `.js.map`, unless turned off. */
+  maps?: { output: string; code: string }[];
 }
 
 /** The errors or the warnings of a file. */
@@ -62,6 +67,8 @@ export function build(entries: readonly string[], options: BuildOptions = {}): B
     code: string;
     declarations: string | undefined;
     worker: string | undefined;
+    map: SourceMap | undefined;
+    workerMap: SourceMap | undefined;
   }[] = [];
   const errors: BuildError[] = [];
   const warnings: BuildError[] = [];
@@ -94,6 +101,8 @@ export function build(entries: readonly string[], options: BuildOptions = {}): B
         code: result.code,
         declarations: result.declarations,
         worker: result.worker,
+        map: result.map,
+        workerMap: result.workerMap,
       });
     }
 
@@ -112,9 +121,29 @@ export function build(entries: readonly string[], options: BuildOptions = {}): B
 
   // The output keeps the folder structure below the given directories and all the files.
   const root = commonDirectory(queue, directories);
-  const outputs = compiled.map(({ source, code, declarations: types, worker }): BuildOutput => {
+  const outputs = compiled.map((each): BuildOutput => {
+    const { source, declarations: types } = each;
     const target = options.outDir ? join(resolve(options.outDir), relative(root, source)) : source;
     const base = target.replace(/\.rk$/, '');
+    const maps: { output: string; code: string }[] = [];
+    // The code ends with where its map is, and the map says where the source is, from there.
+    const mapped = (code: string, output: string, map: SourceMap | undefined) => {
+      if (options.sourceMap === false || map === undefined) return code;
+
+      const sources = [relative(dirname(output), source).split(sep).join('/')];
+
+      maps.push({
+        output: `${output}.map`,
+        code: JSON.stringify({ ...map, file: basename(output), sources }),
+      });
+
+      return `${code}${sourceMapComment(`${basename(output)}.map`)}`;
+    };
+    const code = mapped(each.code, `${base}.js`, each.map);
+    const worker =
+      each.worker === undefined
+        ? undefined
+        : mapped(each.worker, `${base}.worker.js`, each.workerMap);
 
     return {
       source,
@@ -122,6 +151,7 @@ export function build(entries: readonly string[], options: BuildOptions = {}): B
       code,
       ...(types === undefined ? {} : { declarations: { output: `${base}.d.ts`, code: types } }),
       ...(worker === undefined ? {} : { worker: { output: `${base}.worker.js`, code: worker } }),
+      ...(maps.length > 0 ? { maps } : {}),
     };
   });
 

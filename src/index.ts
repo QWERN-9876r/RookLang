@@ -8,7 +8,7 @@ import { completeModule, type CompletionList } from './completion.ts';
 import { markupFor } from './config.ts';
 import { loadModuleExports } from './modules.ts';
 import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { importDeclarations, libraryFor } from './typescript/importer.ts';
 
 export type { CompileResult } from './compile.ts';
@@ -51,6 +51,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
     typeCheck: options.typeCheck ?? true,
     declarations: options.declarations ?? false,
     runtime: options.runtime,
+    sourceName: filename === undefined ? undefined : basename(filename),
   });
 }
 

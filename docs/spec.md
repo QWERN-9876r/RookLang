@@ -1768,6 +1768,21 @@ export declare class Stack<T> {
 - Imports are repeated with `.js` instead of `.rk`, so that the imported names can be used in
   types.
 
+### Source maps
+
+`rook build` writes a source map next to each `.js`, `app.js.map` (and `app.worker.js.map` for the
+worker module), and the `.js` ends with `//# sourceMappingURL=app.js.map`: stack traces in Node
+(`node --enable-source-maps`) and in browsers, and debuggers, show the lines of `app.rk`.
+`--no-source-map` writes none. `rook run` puts the map into the code it runs and runs it with
+`--enable-source-maps`, so the stack trace of an exception, in a goroutine too, points to the `.rk`
+file. The Vite plugin gives Vite the map of each module.
+
+- Each statement maps to where it starts in the source; a line of the JS without a statement of its
+  own, as the `}` of a block, goes with the statement before it. The map has the source in it
+  (`sourcesContent`).
+- Imports are not mapped, nor the code of components inlined from other modules: its places are in
+  their files.
+
 ### Markup
 
 **Markup and components are off by default,** so that Rook can be the language of the logic
@@ -2385,7 +2400,6 @@ types of other imports come from TypeScript declarations (section 10).
 - **`if` with an initializer:** `if const v, err = f(); err != null { }`.
 - **Labels** for `break`/`continue`.
 - **Regular expression literals** `/.../g`. For now, `new RegExp("...", "g")`.
-- **Source maps.**
 - **A WASM backend** for a subset of the language (numbers, arrays, classes).
 
 Planned next, around goroutines and what the browser has:

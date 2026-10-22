@@ -118,7 +118,7 @@ export abstract class Emitter {
   /** The decorators that components of the module apply, by name. */
   protected readonly appliedDecorators = new Set<string>();
   /** Copies of the code of other modules: their positions are in the sources of those. */
-  private readonly foreign = new WeakSet<ast.Node>();
+  protected readonly foreign = new WeakSet<ast.Node>();
   /** Components of other modules inlined here, by name, with what their packages bring. */
   protected readonly inlinedImports = new Map<string, LocalizedPackage>();
   /** The components that decorators of other modules bring, by the names of the decorators. */

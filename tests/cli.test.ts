@@ -65,7 +65,9 @@ describe('rook build', () => {
     const result = rook(dir, 'build', 'main.rk');
 
     expect(result.stderr).toBe('');
-    expect(result.stdout).toBe('main.rk → main.js + .d.ts\nlib/geom.rk → lib/geom.js + .d.ts\n');
+    expect(result.stdout).toBe(
+      'main.rk → main.js + .d.ts + .js.map\nlib/geom.rk → lib/geom.js + .d.ts + .js.map\n',
+    );
     expect(readFileSync(join(dir, 'main.js'), 'utf8')).toContain(
       'import { dist } from "./lib/geom.js";',
     );
@@ -82,7 +84,7 @@ export declare function dist(p: Point): number;
     const dir = project({ 'geom.rk': geom });
     const result = rook(dir, 'build', 'geom.rk', '--no-check');
 
-    expect(result.stdout).toBe('geom.rk → geom.js\n');
+    expect(result.stdout).toBe('geom.rk → geom.js + .js.map\n');
     expect(existsSync(join(dir, 'geom.d.ts'))).toBe(false);
   });
 

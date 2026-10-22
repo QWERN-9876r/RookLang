@@ -330,7 +330,9 @@ comp Modules() {
             <code>rook build</code> compiles a file together with every <code>.rk</code> module
             it imports and replaces <code>.rk</code> with <code>.js</code> in the paths. Next to
             each <code>.js</code> it writes a <code>.d.ts</code>, so TypeScript code can import the
-            module with types.
+            module with types, and a source map, <code>.js.map</code>, so that stack traces and
+            debuggers show the lines of the <code>.rk</code> file; <code>rook run</code> shows them
+            too.
         </p>
         <Callout kind="note">
             The playground on this page does not load modules, so the example below does not run.

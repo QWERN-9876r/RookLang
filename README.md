@@ -103,7 +103,8 @@ staged version is formatted, so edits that are not staged stay out of the commit
 | `npm run vscode:package`          | Pack the VS Code extension into `rooklang.vsix`         |
 
 Options of `build`: `--out-dir dir` writes the `.js` files to a separate folder, `--stdout` prints
-the JS of one file, `--no-check` skips type checking. `--markup` and `--no-markup` turn markup and
+the JS of one file, `--no-check` skips type checking, `--no-source-map` writes no source maps
+(`app.js.map`, by default next to each `.js`). `--markup` and `--no-markup` turn markup and
 components on or off for all files (with `run` too); by default they are off, and a package turns
 them on in its `package.json`: `"rook": { "markup": true }`.
 

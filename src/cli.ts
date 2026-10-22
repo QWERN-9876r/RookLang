@@ -39,6 +39,7 @@ Options:
       --out-dir <dir>   build: write the .js files to <dir>, keeping the folder structure
                         (by default they go next to the .rk files)
       --stdout          build: print the JS of a single file instead of writing files
+      --no-source-map   build: do not write the source maps, app.js.map
       --no-check        Skip type checking
       --markup          Turn markup and components on; by default they are on where the
                         package.json has "rook": { "markup": true }
@@ -56,6 +57,7 @@ function main(): void {
       'out-dir': { type: 'string' },
       stdout: { type: 'boolean' },
       'no-check': { type: 'boolean' },
+      'no-source-map': { type: 'boolean' },
       markup: { type: 'boolean' },
       'no-markup': { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
@@ -105,7 +107,12 @@ function main(): void {
 
         process.stdout.write(compileFile(file, { rewriteImports: true, typeCheck, markup }).code);
       } else {
-        buildFiles(files, { outDir: values['out-dir'], typeCheck, markup });
+        buildFiles(files, {
+          outDir: values['out-dir'],
+          typeCheck,
+          markup,
+          sourceMap: !values['no-source-map'],
+        });
       }
 
       break;
@@ -150,13 +157,14 @@ function buildFiles(entries: string[], options: BuildOptions): void {
     throw new CompileError(messages.join('\n\n'));
   }
 
-  for (const { source, output, code, declarations, worker } of outputs) {
-    const extra = `${declarations ? ' + .d.ts' : ''}${worker ? ' + .worker.js' : ''}`;
+  for (const { source, output, code, declarations, worker, maps = [] } of outputs) {
+    const extra = `${declarations ? ' + .d.ts' : ''}${worker ? ' + .worker.js' : ''}${maps.length > 0 ? ' + .js.map' : ''}`;
 
     mkdirSync(dirname(output), { recursive: true });
     writeFileSync(output, code);
     if (declarations) writeFileSync(declarations.output, declarations.code);
     if (worker) writeFileSync(worker.output, worker.code);
+    for (const map of maps) writeFileSync(map.output, map.code);
     console.log(`${displayPath(source)} → ${displayPath(output)}${extra}`);
   }
 }
@@ -174,7 +182,8 @@ function runFile(file: string, typeCheck: boolean, markup: boolean | undefined):
   const cache = mkdtempSync(join(tmpdir(), 'rook-run-'));
 
   try {
-    const { status, signal } = spawnSync(process.execPath, ['--import', loader, run, file], {
+    const args = ['--enable-source-maps', '--import', loader, run, file];
+    const { status, signal } = spawnSync(process.execPath, args, {
       stdio: 'inherit',
       env: {
         ...process.env,

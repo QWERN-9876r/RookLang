@@ -7,6 +7,7 @@ coverage/
 # Output of `rook build` next to the examples
 examples/**/*.js
 examples/**/*.d.ts
+examples/**/*.js.map
 
 # Output of `rook build` for the test site
 site/dist/

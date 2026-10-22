@@ -1,5 +1,6 @@
 import type * as ast from '../ast.ts';
 import { isIterator } from '../iterators.ts';
+import { sourceMark } from '../source-map.ts';
 import { holdsBigInts, TYPED_ARRAYS, TYPED_ELEMENTS } from '../typed-arrays.ts';
 import { declarationsOf } from './analysis.ts';
 import { TryEmitter } from './try.ts';
@@ -82,8 +83,39 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
     return this.block(() => this.blockStatements(node.body));
   }
 
+  /**
+   * The start of the statement being written, which its first line gets as a mark for the source
+   * map (source-map.ts). Imports have none, since the import of the runtime goes among them, and
+   * neither does the code of other modules, whose places are in their own sources.
+   */
+  private sourceMark: number | null = null;
+
   protected override statement(node: ast.Statement): void {
-    this.withHoisting(true, () => this.emitStatement(node));
+    // A statement may write the statements inside it first, as a function writes its body before
+    // its first line: then the mark waits for that line.
+    const outer = this.sourceMark;
+
+    this.sourceMark =
+      node.kind === 'ImportDeclaration' || this.foreign.has(node) ? null : node.start;
+    try {
+      this.withHoisting(true, () => this.emitStatement(node));
+    } finally {
+      this.sourceMark = outer;
+    }
+  }
+
+  // The marks of the updates of components stand alone in their lines (updates.ts).
+  protected override line(text: string): void {
+    if (this.sourceMark === null || text.startsWith('\uE000')) {
+      super.line(text);
+
+      return;
+    }
+
+    const mark = sourceMark(this.sourceMark);
+
+    this.sourceMark = null;
+    super.line(mark + text);
   }
 
   protected emitStatement(node: ast.Statement): void {

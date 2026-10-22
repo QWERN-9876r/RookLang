@@ -104,7 +104,8 @@ Node.js ≥ 24 (`nvm use`). Компилятор написан на TypeScript,
 | `npm run vscode:package`          | Упаковать расширение для VS Code в `rooklang.vsix`       |
 
 Опции `build`: `--out-dir dir` — писать `.js` в отдельную папку, `--stdout` — вывести JS одного
-файла в консоль, `--no-check` — без проверки типов. `--markup` и `--no-markup` включают или
+файла в консоль, `--no-check` — без проверки типов, `--no-source-map` — без source maps
+(`app.js.map`, по умолчанию рядом с каждым `.js`). `--markup` и `--no-markup` включают или
 выключают разметку и компоненты для всех файлов (и в `run`); по умолчанию они выключены, а пакет
 включает их в своём `package.json`: `"rook": { "markup": true }`.
 

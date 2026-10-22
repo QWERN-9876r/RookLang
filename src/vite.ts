@@ -109,7 +109,9 @@ export function rook(options: RookPluginOptions = {}): Plugin {
         this.addWatchFile(resolve(dirname(path), dependency));
       }
 
-      return { code: worker ? (result.worker ?? '') : result.code, map: null };
+      return worker
+        ? { code: result.worker ?? '', map: result.workerMap ?? null }
+        : { code: result.code, map: result.map ?? null };
     },
   };
 }
