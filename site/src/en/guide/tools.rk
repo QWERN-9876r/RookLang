@@ -7,6 +7,7 @@ const COMMANDS = `npm install rooklang
 npx rook build app.rk            # app.js next to the source
 npx rook build src --out-dir dist   # every module of a folder
 npx rook run app.rk              # compile and run
+npx rook run --watch app.rk      # and again on every change
 npx rook build app.rk --markup   # with markup and components`
 
 const REPOSITORY_COMMANDS = `npm run site:dev         # this site on the Vite dev server

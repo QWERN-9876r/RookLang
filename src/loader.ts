@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire, registerHooks } from 'node:module';
-import { extname, join } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainThread } from 'node:worker_threads';
 import type * as Build from './build.ts';
@@ -19,6 +19,8 @@ import { sourceMapComment, type SourceMap } from './source-map.ts';
 // are synchronous, so it is loaded with require(). ROOK_NO_CHECK turns type checking off, and
 // ROOK_MARKUP, 1 or 0, markup and components on or off for every file. The code has its source map
 // in it, and the process runs with --enable-source-maps, so stack traces show the lines of .rk.
+// The main thread lists the files it compiles, and those they read, in `files` of the directory of
+// the run, with the time each was changed, for `rook run --watch` (run-file.ts).
 
 const typeCheck = process.env['ROOK_NO_CHECK'] === undefined;
 const markupSetting = process.env['ROOK_MARKUP'];
@@ -57,6 +59,9 @@ registerHooks({
     const { displayPath } = require(`./build${extension}`) as typeof Build;
     const { compileFile } = require(`./compile-file${extension}`) as typeof CompileFile;
     const path = displayPath(fileURLToPath(moduleUrl));
+
+    if (isMainThread && cache) list([resolve(path)]);
+
     const result = compileFile(path, {
       rewriteImports: false,
       typeCheck,
@@ -69,6 +74,10 @@ registerHooks({
       result.worker === undefined ? undefined : withMap(result.worker, result.workerMap);
 
     if (isMainThread && cache) {
+      // The CSS modules it imports; the .rk modules are listed when they are loaded.
+      const read = result.dependencies.map((each) => resolve(dirname(path), each));
+
+      list(read.filter((each) => existsSync(each)));
       writeFileSync(cached(moduleUrl)!, code);
       if (worker !== undefined) writeFileSync(cached(`${moduleUrl}?goroutines`)!, worker);
     }
@@ -86,4 +95,11 @@ function withMap(code: string, map: SourceMap | undefined): string {
   const data = Buffer.from(JSON.stringify(map)).toString('base64');
 
   return `${code}${sourceMapComment(`data:application/json;base64,${data}`)}`;
+}
+
+/** Adds files to the list of the run: a line of the path and the time it was changed. */
+function list(paths: readonly string[]): void {
+  const lines = paths.map((path) => `${path}\t${statSync(path).mtimeMs}\n`);
+
+  appendFileSync(join(cache!, 'files'), lines.join(''));
 }

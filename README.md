@@ -67,6 +67,7 @@ npm install rooklang
 npx rook build app.rk                # app.js next to the source
 npx rook build src --out-dir dist       # every module of a folder
 npx rook run app.rk                  # compile and run
+npx rook run --watch app.rk          # and again when a file of it changes
 ```
 
 The compiled code imports what channels, goroutines and markup need from `rooklang/runtime`, so
@@ -107,7 +108,8 @@ Options of `build`: `--out-dir dir` writes the `.js` files to a separate folder,
 the JS of one file, `--no-check` skips type checking, `--no-source-map` writes no source maps
 (`app.js.map`, by default next to each `.js`). `--markup` and `--no-markup` turn markup and
 components on or off for all files (with `run` too); by default they are off, and a package turns
-them on in its `package.json`: `"rook": { "markup": true }`.
+them on in its `package.json`: `"rook": { "markup": true }`. `run --watch` runs the program again
+when a `.rk` file or a CSS module of it changes, after stopping it with `SIGTERM`.
 
 ## Releases
 

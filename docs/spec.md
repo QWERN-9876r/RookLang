@@ -2492,4 +2492,4 @@ For programs on a server:
 
 - **Classes in goroutines:** an instance of a class whose fields are data goes to a goroutine and
   back with its class: the worker, which loads the class anyway, gives the copy its prototype.
-- **`rook run --watch` and `rook test`.**
+- **`rook test`.**
