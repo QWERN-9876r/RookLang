@@ -194,6 +194,20 @@ build, and in development they show up over the page. Markup and components are 
 so `.rk` modules fit a React, Svelte or Vue app as they are; turn them on with
 `"rook": { "markup": true }` in `package.json`, or `rook({ markup: true })`.
 
+### Tests
+
+Rook has no test runner of its own: Vitest, with the same plugin in `vitest.config.ts`, runs tests
+of `.rk` modules, written in JS or TS. Goroutines work there too: a worker thread of Vitest loads
+the `.rk` modules with the loader of `rook run`.
+
+```ts
+// math.test.ts
+import { expect, it } from 'vitest';
+import { add } from './math.rk';
+
+it('adds', () => expect(add(1, 2)).toBe(3));
+```
+
 ## Conventions
 
 - Imports are written with the `.ts` extension (`import { x } from './lexer.ts'`).

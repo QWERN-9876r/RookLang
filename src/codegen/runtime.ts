@@ -98,13 +98,13 @@ export function runtimeCode(names: readonly string[], mode: RuntimeMode): string
  * The `go` of a module: in a module, a call in a worker that starts with its worker module; in the
  * worker module, a call in the same worker, of a function of `$$goroutines`.
  */
-export function moduleGo(workerUrl: string | null): string[] {
+export function moduleGo(workerUrl: string | null, nodeLoader?: string): string[] {
   if (workerUrl === null) {
     return ['const $$go = (fn, args) => $$goHere($$goroutines, fn, args);'];
   }
 
   return [
-    ...startWorker(workerUrl),
+    ...startWorker(workerUrl, nodeLoader),
     '',
     'const $$go = (name, args) => $$goWorker($$startWorker, name, args);',
   ];
@@ -114,9 +114,16 @@ export function moduleGo(workerUrl: string | null): string[] {
  * The start of a worker of a module: a Web Worker, or a worker thread of Node. Node takes only the
  * path of a `file:` URL, without the query of `app.rk?goroutines`, so its worker starts with a
  * module that imports the whole URL. An absolute URL, such as the Blob of the playground, is used
- * as it is.
+ * as it is. With `nodeLoader`, as under Vitest, the worker of Node imports the loader of `.rk`
+ * files first, since its thread has neither Vite nor the loader of `rook run`.
  */
-function startWorker(url: string): string[] {
+function startWorker(url: string, nodeLoader?: string): string[] {
+  // The loader registers its hooks when it runs, so the module comes after it, by a dynamic import.
+  const code =
+    nodeLoader === undefined
+      ? '`import ${JSON.stringify(url.href)};`'
+      : `\`import ${JSON.stringify(nodeLoader)}; await import(\${JSON.stringify(url.href)});\``;
+
   const base = /^[a-z][a-z\d+.-]*:/i.test(url) ? '' : ', import.meta.url';
   const workerUrl = `new URL(${JSON.stringify(url)}${base})`;
 
@@ -129,7 +136,7 @@ function startWorker(url: string): string[] {
     '  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);',
     // Vite bundles the Web Worker; this URL is only for Node.
     `  const url = new URL(/* @vite-ignore */ ${JSON.stringify(url)}${base});`,
-    '  const code = `import ${JSON.stringify(url.href)};`;',
+    `  const code = ${code};`,
     '  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));',
     '}',
   ];

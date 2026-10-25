@@ -2537,7 +2537,3 @@ types of other imports come from TypeScript declarations (section 10).
 Planned next, around goroutines and what the browser has:
 
 - **State that survives a reload,** see Stages in [components.md](components.md).
-
-For programs on a server:
-
-- **`rook test`.**

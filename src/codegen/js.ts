@@ -82,7 +82,10 @@ class JsGenerator extends FunctionEmitter {
     // What is the module's own: its `go`, and the CSS of its components for their shadow roots.
     const own = [
       ...(/(?<![.\w$])\$\$go(?![\w$])/.test(rest.join('\n'))
-        ? moduleGo(inWorker ? null : (goroutines?.workerUrl ?? ''))
+        ? moduleGo(
+            inWorker ? null : (goroutines?.workerUrl ?? ''),
+            goroutines && 'nodeLoader' in goroutines ? goroutines.nodeLoader : undefined,
+          )
         : []),
       ...(styles.length > 0 ? ['const $$styles = [];'] : []),
     ];

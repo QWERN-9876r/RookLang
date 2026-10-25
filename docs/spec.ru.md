@@ -2536,7 +2536,3 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 - **Состояние, которое переживает перезагрузку,** см. «Этапы» в
   [components.ru.md](components.ru.md).
-
-Для программ на сервере:
-
-- **`rook test`.**

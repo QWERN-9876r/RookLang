@@ -40,6 +40,8 @@ export interface CoreCompileOptions {
   readStyleModule?: ((specifier: string) => string | null) | undefined;
   /** Where the worker module of `go` is, relative to the module; see workerUrl(). */
   workerUrl?: string | undefined;
+  /** A module that a worker thread of Node imports first, to load `.rk` files (vite.ts). */
+  nodeLoader?: string | undefined;
   /**
    * How the code gets the runtime of Rook: `import`, the default, imports it from
    * "rooklang/runtime"; `inline` puts the parts it uses into the module, for code that runs
@@ -128,7 +130,10 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
   const main = withoutMarks(
     generateJs(program, {
       ...jsOptions,
-      goroutines: { workerUrl: options.workerUrl ?? workerUrl('main.rk', rewriteImports) },
+      goroutines: {
+        workerUrl: options.workerUrl ?? workerUrl('main.rk', rewriteImports),
+        nodeLoader: options.nodeLoader,
+      },
     }),
     source,
     sourceName,

@@ -194,6 +194,20 @@ export default defineConfig({ plugins: [rook()] });
 есть; включить их можно через `"rook": { "markup": true }` в `package.json` или
 `rook({ markup: true })`.
 
+### Тесты
+
+Своего запускателя тестов у Rook нет: Vitest с тем же плагином в `vitest.config.ts` запускает тесты
+`.rk`-модулей, написанные на JS или TS. Горутины там тоже работают: поток воркера Vitest загружает
+`.rk`-модули загрузчиком `rook run`.
+
+```ts
+// math.test.ts
+import { expect, it } from 'vitest';
+import { add } from './math.rk';
+
+it('adds', () => expect(add(1, 2)).toBe(3));
+```
+
 ## Соглашения
 
 - Импорты пишутся с расширением `.ts` (`import { x } from './lexer.ts'`).

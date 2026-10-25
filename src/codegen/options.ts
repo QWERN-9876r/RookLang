@@ -25,7 +25,10 @@ export interface JsOptions {
   /** The CSS modules the module imports, by their paths as written. */
   styleModules?: ReadonlyMap<string, StyleModule> | undefined;
   /** For `go`: where the worker module is (`./app.worker.js`), or in it, the functions it runs. */
-  goroutines?: { workerUrl: string } | { targets: readonly string[] } | undefined;
+  goroutines?:
+    | { workerUrl: string; nodeLoader?: string | undefined }
+    | { targets: readonly string[] }
+    | undefined;
   /** How the module gets the runtime it uses: imported, by default, or in it (runtime.ts). */
   runtime?: RuntimeMode | undefined;
   /** The data classes of the module, whose imports stay even if only types use them. */

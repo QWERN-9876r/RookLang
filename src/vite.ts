@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 import { RUNTIME_MODULE } from './runtime-module.ts';
@@ -15,6 +15,9 @@ import { SourceFile } from './source.ts';
 // runtime, "rooklang/runtime", of the plugin's own package.
 
 const GOROUTINES = '.goroutines.js';
+
+/** The loader of `.rk` files of `rook run`, next to this file: .ts in src, .js in the package. */
+const LOADER = new URL(`./loader${extname(fileURLToPath(import.meta.url))}`, import.meta.url).href;
 
 export interface RookPluginOptions {
   /** Check types before generating code. Defaults to `true`. */
@@ -63,7 +66,7 @@ export function rook(options: RookPluginOptions = {}): Plugin {
 
       return readFileSync(path.slice(0, -GOROUTINES.length), 'utf8');
     },
-    transform(source, id) {
+    transform(source, id, transformOptions) {
       const [name = id, query] = id.split('?');
       const worker = name.endsWith(`.rk${GOROUTINES}`);
       const path = worker ? name.slice(0, -GOROUTINES.length) : name;
@@ -77,7 +80,11 @@ export function rook(options: RookPluginOptions = {}): Plugin {
         rewriteImports: false,
         typeCheck,
         markup: options.markup,
-        workerUrl: `./${basename(path)}${GOROUTINES}`,
+        // In Node, as under Vitest, a worker thread loads the module itself, `app.rk?goroutines`,
+        // with the loader of `rook run`, which it imports first: it has no Vite.
+        ...(transformOptions?.ssr === true
+          ? { workerUrl: `./${basename(path)}?goroutines`, nodeLoader: LOADER }
+          : { workerUrl: `./${basename(path)}${GOROUTINES}` }),
       });
       const file = new SourceFile(relative(root, path), source);
       // Vite counts columns from 0.
