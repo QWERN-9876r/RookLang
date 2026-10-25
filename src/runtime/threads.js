@@ -4,6 +4,7 @@
 // modules; the operations of a thread on the channels of another go straight to that thread
 // through a MessagePort, which the main thread sets up on the first need (go.js).
 
+import { $$classOf, $$reclass } from './classes.js';
 import { $$Queue } from './queue.js';
 
 // The state of this thread that its modules share: the channels it made, its ports to the other
@@ -48,9 +49,11 @@ export function $$post(key, message) {
 
   if (registry.gone.has(key)) return;
 
-  const { channels, moved } = $$walk(message);
+  const { channels, moved, instances } = $$walk(message);
 
   for (const channel of channels) $$hold(channel.$$chan, 1);
+  // The copies of the instances of data classes are listed in the copy, by reference.
+  if (instances.length > 0) message = { ...message, $$instances: instances };
 
   const port = registry.ports.get(key);
 
@@ -142,6 +145,7 @@ export function $$incoming(key, data) {
   const registry = $$registry();
 
   $$adopt(data);
+  $$reclassed(data);
   if ('answer' in data) {
     const request = registry.requests.get(data.answer);
 
@@ -172,6 +176,11 @@ export function $$hold(id, count) {
   if (state.holders <= 0) registry.states.delete(id);
 }
 
+// A message with copies of the instances of data classes gives them their classes back.
+export function $$reclassed(data) {
+  if (data.$$instances) $$reclass(data.$$instances);
+}
+
 export function $$adopt(value) {
   const { held } = $$registry();
 
@@ -181,11 +190,19 @@ export function $$adopt(value) {
 // A copy in this thread. One that `own` the runtime, such as the arguments of `go` that wait for
 // a worker, moves its buffers on.
 export function $$copy(value, own = false) {
-  const { channels, moved } = $$walk(value);
+  const { channels, moved, instances } = $$walk(value);
 
   for (const channel of channels) $$hold(channel.$$chan, 1);
 
-  const copy = structuredClone(value, { transfer: moved });
+  const { copy, $$instances } = structuredClone(
+    { copy: value, $$instances: instances },
+    {
+      transfer: moved,
+    },
+  );
+
+  $$reclass($$instances);
+
   const { held } = $$registry();
 
   for (const channel of $$walk(copy, own).channels) held.register(channel, channel.$$chan);
@@ -206,7 +223,7 @@ export function $$transfer(value) {
 export function $$walk(
   value,
   own = false,
-  found = { channels: new Set(), moved: [] },
+  found = { channels: new Set(), moved: [], instances: [] },
   seen = new Set(),
 ) {
   if (typeof value !== 'object' || value === null || seen.has(value)) return found;
@@ -227,6 +244,10 @@ export function $$walk(
   }
 
   if (Array.isArray(value.$$queue)) Object.setPrototypeOf(value, $$Queue.prototype);
+
+  const id = $$classOf(value);
+
+  if (id !== undefined) found.instances.push([value, id]);
   if (typeof value.$$chan === 'string') {
     if (!$$isEmpty(value.$$chan)) found.channels.add(value);
 

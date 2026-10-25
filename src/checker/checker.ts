@@ -30,8 +30,31 @@ class Checker extends CompletionChecker {
       warnings: this.warnings,
       ...this.collectDeclarations(),
       types: this.checkedTypes,
+      dataClasses: this.dataClasses(),
       ...(this.completion ? { completion: this.completion } : {}),
     };
+  }
+
+  /** The names of the module that are data classes: its own, and those it imports. */
+  private dataClasses(): Set<string> {
+    const names = new Set<string>();
+
+    for (const statement of this.program.body) {
+      const declared =
+        statement.kind === 'ClassDeclaration'
+          ? [statement.name.name]
+          : statement.kind === 'ImportDeclaration'
+            ? statement.namedImports.map((specifier) => specifier.local.name)
+            : [];
+
+      for (const name of declared) {
+        const type = this.lookupValue(name)?.type;
+
+        if (type?.kind === 'classValue' && type.info.data === true) names.add(name);
+      }
+    }
+
+    return names;
   }
 }
 

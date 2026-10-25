@@ -32,7 +32,8 @@ close(results)
   channels, `select`, `after`, `tick` and `cancel` work as in Go, and signals and `AbortSignal`
   are channels too, `signal("SIGTERM")` and `done(request.signal)`; `go for i, v in pixels { ... }`
   splits an array among the processors. The compiler checks that what goes to another thread can be
-  copied there, and warns of a channel that is never closed.
+  copied there, and warns of a channel that is never closed; an instance of a `data class` goes
+  with its class and methods.
 - **Topics between tabs.** `topic<CartEvent>("cart")` passes values between the tabs of a site
   over a `BroadcastChannel`: `cart <- e` sends and waits for nobody, `for e in cart` receives what
   the other tabs send. `Channel` and `Topic` have what channels and topics compile to, by name, and

@@ -35,5 +35,13 @@ export comp Goroutines() {
             it uses are copied to it, as to a function literal.
         </p>
         <Example name="go-for" />
+        <p>
+            A copy keeps the data of a value but not its class, so an instance of a class cannot go
+            to a goroutine, unless the class is a <code>data class</code>: its fields are data, and
+            its instances go to goroutines and back, and through channels, with their class, so the
+            other thread calls their methods. A subclass of one is marked too:
+            {" "}<code>data class Admin extends User</code>.
+        </p>
+        <Example name="data-classes" />
     </>
 }

@@ -22,8 +22,10 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
 
     // Imports used only as types (e.g. interfaces) do not exist at runtime, and neither do
     // components: a component used as a value is its function, imported below.
+    // A data class, even used only as a type, registers itself where it is imported.
     const used = (name: ast.Identifier) =>
-      this.valueNames.has(name.name) && !this.options.components?.has(name.name);
+      (this.valueNames.has(name.name) || this.options.dataClasses?.has(name.name) === true) &&
+      !this.options.components?.has(name.name);
     const clauses: string[] = [];
 
     if (node.defaultImport && used(node.defaultImport)) {
@@ -146,6 +148,13 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
     });
 
     this.line(`${exported}class ${this.name(node.name.name)}${superClass} ${body}`);
+    // A data class is registered, so that its instances get it back in another thread
+    // (runtime/classes.js); the id is the same in the worker module, which has a copy of it.
+    if (node.data) {
+      const id = `${node.name.name}:${hash(this.options.source.slice(node.start, node.end))}`;
+
+      this.line(`$$dataClass(${this.name(node.name.name)}, ${JSON.stringify(id)});`);
+    }
   }
 
   /** Visibility modifiers are checked by the compiler and do not exist in the output. */
@@ -183,4 +192,16 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
       }
     }
   }
+}
+
+/** FNV-1a of a text, as 8 hex digits: an id that changes only with the text. */
+function hash(text: string): string {
+  let value = 0x811c9dc5;
+
+  for (let i = 0; i < text.length; i++) {
+    value ^= text.charCodeAt(i);
+    value = Math.imul(value, 0x01000193) >>> 0;
+  }
+
+  return value.toString(16).padStart(8, '0');
 }

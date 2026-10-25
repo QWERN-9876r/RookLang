@@ -150,7 +150,9 @@ func identifierClass(text string, next string, language string) string {
             (text == "effect" || text == "style" || text == "select") && next == "{" {
             return "kw"
         }
-        if text == "dec" && next == "Identifier" || text == "public" && PUBLIC_NEXT.includes(next) {
+        // data is a keyword only before class: data class Point
+        if text == "dec" && next == "Identifier" || text == "public" && PUBLIC_NEXT.includes(next) ||
+            text == "data" && next == "class" {
             return "kw"
         }
         // value as Type, and delete before what it removes

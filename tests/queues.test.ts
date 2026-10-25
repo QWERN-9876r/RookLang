@@ -143,7 +143,7 @@ func runAll(q queue Job) {}
 go count(queue<number>())
 go runAll(queue<Job>())`),
     ).toEqual([
-      '"runAll" runs in a worker, which gets a copy of argument 1, but a copy of Job would lose its class and methods',
+      '"runAll" runs in a worker, which gets a copy of argument 1, but a copy of Job would lose its class and methods: mark it to keep them, e.g. data class Job',
     ]);
   });
 });

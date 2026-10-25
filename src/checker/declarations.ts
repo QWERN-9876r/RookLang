@@ -53,6 +53,8 @@ export abstract class DeclarationChecker extends ImportChecker {
         case 'ClassDeclaration': {
           const info = createClass(statement.name.name);
 
+          info.data = statement.data;
+
           info.typeParams = this.createTypeParams(statement.typeParams);
           this.declareType(statement.name, info.instance);
           this.declareValue(statement.name, 'class', info.value);

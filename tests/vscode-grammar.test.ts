@@ -164,6 +164,11 @@ describe('VS Code grammar', () => {
     expect(scopeOf('const res, err = try await load()', 'try')).toBe('keyword.control.trycatch');
   });
 
+  it('colours data before class, and keeps it a name elsewhere', () => {
+    expect(scopeOf('export data class Point {', 'data')).toBe('storage.modifier');
+    expect(scopeOf('const data = load()', 'data')).not.toBe('storage.modifier');
+  });
+
   it('colours decode before its type, and keeps it a name elsewhere', () => {
     const source = 'const user, err = decode<User>(body)';
 

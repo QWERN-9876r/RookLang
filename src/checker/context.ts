@@ -69,6 +69,8 @@ export interface CheckResult {
   declarations: ModuleExports;
   /** Types of checked expressions, for code generation (e.g. how to insert element children). */
   types: WeakMap<ast.Expression, Type>;
+  /** The data classes that the module declares or imports, by their names here. */
+  dataClasses: Set<string>;
   /** With the `completion` option: what can be written at the cursor, if the check reached it. */
   completion?: CompletionResult;
 }

@@ -235,6 +235,9 @@ export abstract class StatementParser extends SimpleStatementParser {
 
       default:
         if (this.isDecoratorDeclaration()) return this.parseDecoratorDeclaration(start, exported);
+        // `data` is a keyword only before `class`: elsewhere it is a name.
+        if (this.checkWord('data') && this.peek(1).kind === 'class')
+          return this.parseClass(start, exported);
 
         return undefined;
     }

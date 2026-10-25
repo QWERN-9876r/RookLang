@@ -7,7 +7,7 @@ import {
   type ModuleExports,
 } from './checker/checker.ts';
 import { property, STRING, type Type } from './checker/types.ts';
-import type { ImportedDecorator } from './codegen/emitter.ts';
+import type { ImportedDecorator } from './codegen/options.ts';
 import type { ImportedComponent } from './codegen/imported.ts';
 import { generateJs } from './codegen/js.ts';
 import type { RuntimeMode } from './codegen/runtime.ts';
@@ -91,6 +91,12 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
 
   let types: WeakMap<ast.Expression, Type> | undefined;
   let declarations: string | undefined;
+  // Without the checker, only the data classes that the module declares are known.
+  let dataClasses: ReadonlySet<string> = new Set(
+    program.body.flatMap((each) =>
+      each.kind === 'ClassDeclaration' && each.data ? [each.name.name] : [],
+    ),
+  );
   let warnings: Diagnostic[] = [];
 
   if (options.typeCheck ?? true) {
@@ -104,6 +110,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     }
 
     types = checked.types;
+    dataClasses = checked.dataClasses;
     if (options.declarations) declarations = printDeclarations(program, checked);
   }
 
@@ -114,6 +121,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     types,
     styleModules,
     runtime: options.runtime,
+    dataClasses,
     ...importedCode(program, options.importModule),
   };
   const sourceName = options.sourceName ?? 'main.rk';
@@ -131,7 +139,10 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
   const worker =
     targets.length > 0
       ? withoutMarks(
-          generateJs(workerProgram(program, targets), { ...jsOptions, goroutines: { targets } }),
+          generateJs(workerProgram(program, targets, dataClasses), {
+            ...jsOptions,
+            goroutines: { targets },
+          }),
           source,
           sourceName,
         )

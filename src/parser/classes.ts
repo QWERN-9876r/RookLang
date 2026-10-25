@@ -7,6 +7,8 @@ import { MODIFIERS } from './syntax.ts';
 
 export abstract class ClassParser extends DecoratorParser {
   protected override parseClass(start: number, exported: boolean): ast.ClassDeclaration {
+    const data = this.acceptWord('data');
+
     this.expect('class');
 
     const name = this.parseIdentifier('class name');
@@ -52,6 +54,7 @@ export abstract class ClassParser extends DecoratorParser {
     return {
       kind: 'ClassDeclaration',
       exported,
+      data,
       name,
       typeParams,
       superClass,

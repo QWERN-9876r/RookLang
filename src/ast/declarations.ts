@@ -141,6 +141,8 @@ export interface VariableDeclaration extends NodeBase {
 export interface ClassDeclaration extends NodeBase {
   kind: 'ClassDeclaration';
   exported: boolean;
+  /** `data class Point`: its fields are data, and its instances go to goroutines with the class. */
+  data: boolean;
   name: Identifier;
   typeParams: TypeParameter[];
   /** An expression, as in JS, so that classes from JS modules can be extended. */

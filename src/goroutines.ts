@@ -219,9 +219,14 @@ export function reach(program: ast.Program, names: Iterable<string>): Reach {
  * The program of the worker module: the imports and the declarations that the functions `targets`
  * reach, unexported, since the worker module is only loaded by the worker.
  */
-export function workerProgram(program: ast.Program, targets: readonly string[]): ast.Program {
+export function workerProgram(
+  program: ast.Program,
+  targets: readonly string[],
+  dataClasses: Iterable<string> = [],
+): ast.Program {
   const lifted = { ...program, body: [...program.body, ...literalFunctions(program)] };
-  const { statements, imports } = reach(lifted, targets);
+  // The data classes come too, so that their instances get their class here (runtime/classes.js).
+  const { statements, imports } = reach(lifted, [...targets, ...dataClasses]);
   const body: ast.Statement[] = [];
 
   for (const [statement, names] of imports) {

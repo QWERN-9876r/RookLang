@@ -1,10 +1,10 @@
 import type * as ast from '../ast.ts';
 import { declarationsOf } from './analysis.ts';
-import type { JsOptions } from './emitter.ts';
+import type { JsOptions } from './options.ts';
 import { FunctionEmitter } from './functions.ts';
 import { moduleGo, runtimeCode, runtimeNames } from './runtime.ts';
 
-export type { JsOptions } from './emitter.ts';
+export type { JsOptions } from './options.ts';
 
 /** A component whose inlined copies add more lines than this to its module becomes a function. */
 export const INLINE_LIMIT = 100;

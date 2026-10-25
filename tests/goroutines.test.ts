@@ -116,8 +116,8 @@ go take(document.body)`),
     ).toEqual([
       '"callback" runs in a worker, which gets a copy of argument 1, but a function cannot be copied',
       '"shape" runs in a worker, which gets a copy of argument 1, but a function cannot be copied',
-      '"box" runs in a worker, which gets a copy of argument 1, but a copy of Box would lose its class and methods',
-      '"makeBox" runs in a worker, which sends back a copy of its result, but a copy of Box would lose its class and methods',
+      '"box" runs in a worker, which gets a copy of argument 1, but a copy of Box would lose its class and methods: mark it to keep them, e.g. data class Box',
+      '"makeBox" runs in a worker, which sends back a copy of its result, but a copy of Box would lose its class and methods: mark it to keep them, e.g. data class Box',
       '"take" runs in a worker, which gets a copy of argument 1, but a copy of HTMLElement would lose its methods',
     ]);
   });

@@ -3,6 +3,7 @@ import { inlinePackages, type ModulePackages } from '../inline-packages.ts';
 import type { ModuleExports } from './context.ts';
 import { DeclarationChecker } from './declarations.ts';
 import { isSuperCall, assignsField } from './helpers.ts';
+import { notCopied } from './transfer.ts';
 import {
   explainMismatch,
   findClassMember,
@@ -67,6 +68,8 @@ export abstract class ClassChecker extends DeclarationChecker {
       }
     }
 
+    if (node.data) this.checkDataBase(node, info);
+
     for (const member of node.members) {
       switch (member.kind) {
         case 'FieldDeclaration': {
@@ -81,6 +84,16 @@ export abstract class ClassChecker extends DeclarationChecker {
 
             if (declared) this.expectAssignable(valueType, declared, value);
             else type = this.inferredType(valueType, value);
+          }
+
+          // The fields of a data class are what goes to another thread.
+          const reason = node.data && !member.isStatic ? notCopied(type) : null;
+
+          if (reason !== null) {
+            this.error(
+              `the fields of a data class go to other threads as copies: ${reason}`,
+              member.type ?? member.name,
+            );
           }
 
           this.declareMember(info, member.isStatic, member.name, {
@@ -107,6 +120,23 @@ export abstract class ClassChecker extends DeclarationChecker {
           info.ctorVisibility = member.visibility;
           break;
       }
+    }
+  }
+
+  /** A data class extends only a data class: its fields go with it, and its class is restored. */
+  private checkDataBase(node: ast.ClassDeclaration, info: ClassInfo): void {
+    const base = info.superClass;
+
+    if (info.untypedBase) {
+      this.error(
+        'a data class cannot extend a class of JS: its copy in another thread could not get the class back',
+        node.superClass!,
+      );
+    } else if (base && base.data !== true) {
+      this.error(
+        `a data class extends only a data class: mark ${base.name} as one, e.g. data class ${base.name}`,
+        node.superClass!,
+      );
     }
   }
 

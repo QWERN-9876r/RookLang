@@ -4,6 +4,7 @@
 
 export * from './chan.js';
 export * from './channel.js';
+export * from './classes.js';
 export * from './core.js';
 export * from './decode.js';
 export * from './go.js';

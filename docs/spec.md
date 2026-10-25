@@ -732,8 +732,9 @@ Workers in the browser and worker threads in Node, and a worker can run several 
   are these names.
 - **Copies:** the goroutine gets copies of the arguments, and the program gets a copy of the result
   (the structured clone of `postMessage`). So they are data: numbers, strings, `bool`, arrays,
-  objects of interfaces without methods, `Map`, `Set`, `Date`, typed arrays, queues, `error`. A function,
-  an instance of a class or a DOM element is a compile error: its copy would lose its methods.
+  objects of interfaces without methods, `Map`, `Set`, `Date`, typed arrays, queues, `error`, and
+  instances of a `data class` (section 8), which keep their class. A function, an instance of another
+  class or a DOM element is a compile error: its copy would lose its methods.
   Changing a copy does not change the original.
 - **Moving instead of copying:** `transfer(x)` gives `x`, an `ArrayBuffer` or a typed array, and
   marks its buffer: the next time it goes to another thread, as an argument, a result or through a
@@ -1655,6 +1656,55 @@ class User {
 - A field without a value gets the zero value of its type. If the type has none (a class, an
   interface, a function), the field must be assigned in the constructor.
 
+### data class
+
+```go
+data class Point {
+    x, y number
+
+    constructor(x, y number) {
+        this.x = x
+        this.y = y
+    }
+
+    length() number {
+        return Math.hypot(this.x, this.y)
+    }
+}
+
+func far(p Point) bool {
+    return p.length() > 10             // the copy in the worker has the methods
+}
+
+const ok = await go far(new Point(6, 8))
+```
+
+```js
+class Point {
+  // ...
+}
+$$dataClass(Point, "Point:5d1f0a2c");
+```
+
+A goroutine gets copies of its arguments, and a copy made by `postMessage` has the data of a value
+but not its class. `data class` marks a class whose instances go to other threads with their class:
+as arguments and results of `go`, through channels, inside arrays and objects.
+
+- **Its fields are data,** as the arguments of `go` are: numbers, strings, arrays, objects of
+  interfaces, other data classes, channels. A field of a function type is a compile error; methods
+  are the class's, not the instance's, so they are fine.
+- **It extends only a data class,** whose fields go with it; a subclass is marked too,
+  `data class Admin extends User`, and one that is not is an ordinary class, whose instances
+  cannot go to a goroutine. A data class cannot extend a class of JS.
+- **How:** the module registers the class with the runtime, `$$dataClass(Point, id)`, with an id of
+  its name and a hash of its code, the same in the module and in its worker module, which has a
+  copy of the class. The thread that sends lists the instances in the copy, and the one that gets
+  it gives them their class again (`Object.setPrototypeOf`). The worker module has the data classes
+  of its module and imports those of other modules, also those used there only as types.
+- **Not to other tabs:** a topic is a compile error for a data class, since another tab may not
+  have its code; send an object of an interface.
+- `data` is a name elsewhere: it is a keyword only before `class`.
+
 ## 9. Interfaces
 
 An interface describes the shape of a value: its fields and methods. As in TS, it exists only at
@@ -2490,6 +2540,4 @@ Planned next, around goroutines and what the browser has:
 
 For programs on a server:
 
-- **Classes in goroutines:** an instance of a class whose fields are data goes to a goroutine and
-  back with its class: the worker, which loads the class anyway, gives the copy its prototype.
 - **`rook test`.**

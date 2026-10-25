@@ -241,8 +241,9 @@
           "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|type|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
         },
         {
+          "comment": "`extends`, and `data` only before `class`: `data class Point`.",
           "name": "storage.modifier.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)extends(?![\\w$])"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:extends(?![\\w$])|data(?=\\s+class(?![\\w$])))"
         },
         {
           "name": "keyword.operator.new.rook",

@@ -9,6 +9,7 @@ import {
   $$gone,
   $$incoming,
   $$post,
+  $$reclassed,
   $$registry,
   $$transfer,
 } from './threads.js';
@@ -142,6 +143,7 @@ export function $$pool() {
       worker.owns = data.owns;
     } else if ('returned' in data) {
       $$adopt(data);
+      $$reclassed(data);
 
       const call = calls.get(data.returned);
 
@@ -311,6 +313,7 @@ export async function $$serve(functions) {
     if ('gone' in data) return $$gone(data.gone);
     setTimeout(free);
     $$adopt(data.args);
+    $$reclassed(data);
 
     const { main } = registry;
 

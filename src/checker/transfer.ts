@@ -76,9 +76,18 @@ export function notCopied(type: Type, seen = new Set<Type>(), tab = false): stri
     case 'classValue':
       return `the class ${type.info.name} cannot be copied`;
 
+    // A data class goes with its class (runtime/classes.js), but not to another tab, which may not
+    // have it.
     case 'class':
-      return type.info.name === 'Error'
-        ? null
+      if (type.info.name === 'Error') return null;
+      if (type.info.data === true) {
+        return tab
+          ? `${typeToString(type)} cannot go to another tab, which may not have its class: send an object of an interface`
+          : inner(type.args ?? []);
+      }
+
+      return type.info.data === false && !tab
+        ? `a copy of ${typeToString(type)} would lose its class and methods: mark it to keep them, e.g. data class ${type.info.name}`
         : `a copy of ${typeToString(type)} would lose its class and methods`;
 
     case 'object': {

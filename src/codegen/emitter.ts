@@ -1,45 +1,14 @@
 import type * as ast from '../ast.ts';
-import type { Type } from '../checker/types.ts';
 import { decorate, type DecoratorSource } from '../decorators.ts';
 import { htmlTagName } from '../html-tag.ts';
-import type { InlinePackage } from '../inline-packages.ts';
-import { type ImportedComponent, type LocalizedPackage, localize } from './imported.ts';
+import { type LocalizedPackage, localize } from './imported.ts';
 import { assignedNames, collectValueNames } from '../names.ts';
 import { recursiveComponents } from '../recursion.ts';
 import type { Root } from '../refs.ts';
-import type { StyleModule } from '../style-modules.ts';
 import { forEachChild } from '../walk.ts';
 import type { BindingKind } from './analysis.ts';
-import type { RuntimeMode } from './runtime.ts';
+import type { JsOptions } from './options.ts';
 import { JS_RESERVED, JS_UNDECLARABLE } from './syntax.ts';
-
-export interface JsOptions {
-  /** The Rook source, used to keep the blank lines between statements. */
-  source: string;
-  /** Replace `.rk` with `.js` in relative import paths, for output written next to the sources. */
-  rewriteImports: boolean;
-  /** Types from the checker, when it ran; without them the generated code is more general. */
-  types?: WeakMap<ast.Expression, Type> | undefined;
-  /** Decorators imported from other modules, by name: their code is inlined here. */
-  decorators?: ReadonlyMap<string, ImportedDecorator> | undefined;
-  /** Components imported from other modules, by name: called, or inlined when they are small. */
-  components?: ReadonlyMap<string, ImportedComponent> | undefined;
-  /** Components of the module that become functions, since inlining them adds too many lines. */
-  functions?: ReadonlySet<string> | undefined;
-  /** The CSS modules the module imports, by their paths as written. */
-  styleModules?: ReadonlyMap<string, StyleModule> | undefined;
-  /** For `go`: where the worker module is (`./app.worker.js`), or in it, the functions it runs. */
-  goroutines?: { workerUrl: string } | { targets: readonly string[] } | undefined;
-  /** How the module gets the runtime it uses: imported, by default, or in it (runtime.ts). */
-  runtime?: RuntimeMode | undefined;
-}
-
-/** A decorator of another module, with the types of the expressions of that module. */
-export interface ImportedDecorator extends DecoratorSource {
-  types: WeakMap<ast.Expression, Type> | null;
-  /** The components of that module its code uses, which go with it into the components here. */
-  inline: InlinePackage | null;
-}
 
 /** How a function implements its `defer` statements. */
 export type DeferMode =

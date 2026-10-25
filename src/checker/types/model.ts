@@ -134,6 +134,11 @@ export interface ClassInfo {
   /** Type arguments for a generic base class: the defaults of a class from a `.d.ts`. */
   superArgs?: Type[];
   ctorVisibility: Visibility;
+  /**
+   * `data class Point`: its fields are data, and its instances go to other threads with their
+   * class. False for the other classes of Rook; not set for those of a `.d.ts`.
+   */
+  data?: boolean;
   /** What `for v in x` waits for: the values of `[Symbol.asyncIterator]()` in a `.d.ts`. */
   asyncIterates?: Type;
   instance: ClassType;

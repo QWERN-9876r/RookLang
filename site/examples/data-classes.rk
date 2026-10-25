@@ -1,0 +1,27 @@
+// A copy that goes to another thread has the data of a value but not its class; a data class
+// goes with its class, so the goroutine can call its methods
+data class Order {
+    items []number
+
+    constructor(items []number) {
+        this.items = items
+    }
+
+    total() number {
+        return this.items.reduce((sum, price) => sum + price, 0)
+    }
+}
+
+func biggest(orders []Order) Order {
+    let best = orders[0]
+    for order in orders {
+        if order.total() > best.total() {
+            best = order
+        }
+    }
+    return best
+}
+
+const orders = [new Order([3, 4]), new Order([10, 2, 1]), new Order([7])]
+const best = await go biggest(orders)
+console.log(best instanceof Order, best.total())
