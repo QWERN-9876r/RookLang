@@ -350,4 +350,17 @@ const chars = Array.from("abc")
 const wrong number = chars[0]`),
     ).toEqual(['cannot use string as number']);
   });
+
+  it('infer the types of a tuple [K, V] by position', () => {
+    expect(
+      libErrors(`const m = new Map([["a", 1], ["b", 2]])
+const n number = m.get("a") ?? 0
+const key string = [...m.keys()][0]
+const prices = { tea: 3 }
+const fromEntries = new Map(Object.entries(prices))
+const price number = fromEntries.get("tea") ?? 0
+const mixed = new Map([["a", 1], ["b", "x"]])
+const wrong number = mixed.get("a") ?? 0`),
+    ).toEqual(['cannot use number | string as number']);
+  });
 });

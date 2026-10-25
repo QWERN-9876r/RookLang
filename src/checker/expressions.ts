@@ -5,14 +5,11 @@ import { expectsLiteral, callName, isUntyped } from './helpers.ts';
 import {
   ANY,
   BIGINT,
-  arrayOf,
   BOOL,
-  commonType,
   hasUntypedBase,
   instanceMembers,
   isAssignable,
   literal,
-  NEVER,
   nonNull,
   NULL,
   nullable,
@@ -44,6 +41,9 @@ export abstract class ExpressionChecker extends FunctionChecker {
   protected abstract checkTopic(node: ast.TopicExpression): Type;
 
   protected abstract checkDecode(node: ast.DecodeExpression): Type;
+
+  /** `[1, 2]`; implemented by ArrayLiteralChecker. */
+  protected abstract checkArrayLiteral(node: ast.ArrayLiteral, expected: Type | null): Type;
 
   protected abstract checkTryExpression(node: ast.TryExpression): Type;
 
@@ -262,47 +262,6 @@ export abstract class ExpressionChecker extends FunctionChecker {
     this.error(`class "${info.name}" has no base class`, node);
 
     return UNKNOWN;
-  }
-
-  protected checkArrayLiteral(node: ast.ArrayLiteral, expected: Type | null): Type {
-    const context = expected ? nonNull(expected) : null;
-    const expectedElement =
-      context?.kind === 'array' ? context.element : context?.kind === 'any' ? ANY : null;
-    let element: Type = expectedElement ?? NEVER;
-
-    for (const item of node.elements) {
-      let type: Type;
-
-      if (item.kind === 'SpreadElement') {
-        const spread = this.checkValue(item.argument, expectedElement && arrayOf(expectedElement));
-
-        if (spread.kind === 'array') type = spread.element;
-        else if (spread.kind === 'any' || spread.kind === 'unknown') type = spread;
-        // JS spreads any iterable: a Set, a typed array, a `[]byte`.
-        else if (spread.kind === 'object' && spread.iterates) type = spread.iterates;
-        else {
-          this.error(
-            `cannot spread ${typeToString(spread)}: it is not an array or an iterable`,
-            item.argument,
-          );
-          type = UNKNOWN;
-        }
-      } else {
-        type = this.checkValue(item, expectedElement);
-      }
-
-      if (expectedElement) {
-        this.expectAssignable(
-          type,
-          expectedElement,
-          item.kind === 'SpreadElement' ? item.argument : item,
-        );
-      } else {
-        element = commonType(element, type);
-      }
-    }
-
-    return arrayOf(element);
   }
 
   protected checkObjectLiteral(node: ast.ObjectLiteral, expected: Type | null): Type {

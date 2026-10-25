@@ -1804,6 +1804,9 @@ How TypeScript types become Rook types:
 - `Iterable<T>` takes what `for` goes over at once, with values of `T`: an array, a string, a `Set`,
   a typed array; `Array.from(new Set([1]))` is a `[]number`. An array is not an `IterableIterator`
   or an `AsyncIterable`, as in TypeScript.
+- A tuple `[K, V]` is a `[](K | V)`, but a call infers `K` and `V` by position, from an array literal
+  or another tuple: `new Map([["a", 1]])` is a `Map<string, number>`, and
+  `new Map(Object.entries(prices))` a `Map<string, number>` too.
 - Types cannot reach a type inside a namespace (`http.Server`): it is imported by name.
 - The playground on the site works in the browser without the `typescript` package, so such imports
   are `any` there.

@@ -68,7 +68,10 @@ export function substitute(type: Type, bindings: Map<TypeParam, Type>, fallback?
       return bindings.get(type) ?? fallback ?? type;
 
     case 'array':
-      return arrayOf(substitute(type.element, bindings, fallback));
+      return arrayOf(
+        substitute(type.element, bindings, fallback),
+        type.positions?.map((each) => substitute(each, bindings, fallback)),
+      );
 
     case 'nullable':
       return nullable(substitute(type.type, bindings, fallback));
@@ -203,7 +206,17 @@ export function inferTypeParams(
       break;
 
     case 'array':
-      if (arg.kind === 'array') infer(param.element, arg.element);
+      // `[K, V]` from `["a", 1]`: each by its position; else the union of K and V would take all.
+      if (
+        arg.kind === 'array' &&
+        param.positions?.length === arg.positions?.length &&
+        arg.positions
+      ) {
+        param.positions!.forEach((each, i) => infer(each, arg.positions![i]!));
+      } else if (arg.kind === 'array') {
+        infer(param.element, arg.element);
+      }
+
       break;
 
     case 'nullable':

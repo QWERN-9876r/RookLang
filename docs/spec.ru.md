@@ -1801,6 +1801,9 @@ func handle(request IncomingMessage, response ServerResponse) {
 - `Iterable<T>` принимает то, что `for` перебирает сразу, со значениями типа `T`: массив, строку,
   `Set`, типизированный массив; `Array.from(new Set([1]))` — это `[]number`. Массив — не
   `IterableIterator` и не `AsyncIterable`, как и в TypeScript.
+- Кортеж `[K, V]` — это `[](K | V)`, но вызов выводит `K` и `V` по позициям, из литерала массива
+  или другого кортежа: `new Map([["a", 1]])` — это `Map<string, number>`, и
+  `new Map(Object.entries(prices))` — тоже `Map<string, number>`.
 - В типах нельзя обратиться к типу внутри пространства имён (`http.Server`): его импортируют по
   имени.
 - Песочница на сайте работает в браузере без пакета `typescript`, поэтому там такие импорты — `any`.

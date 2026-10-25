@@ -40,6 +40,11 @@ export const UNKNOWN: SimpleType = { kind: 'unknown' };
 export interface ArrayType {
   kind: 'array';
   element: Type;
+  /**
+   * The types by position of a tuple of a `.d.ts`, `[K, V]`, or of an array literal: only for
+   * inferring type parameters, since the array may change. `element` is the union of them.
+   */
+  positions?: Type[];
 }
 
 /** `?T`; the inner type itself is never nullable. */

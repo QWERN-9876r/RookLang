@@ -18,8 +18,8 @@ import { typesEqual } from './relations.ts';
 
 // Making types: arrays, nullable types, literals, unions, functions, members, classes.
 
-export function arrayOf(element: Type): ArrayType {
-  return { kind: 'array', element };
+export function arrayOf(element: Type, positions?: Type[]): ArrayType {
+  return positions ? { kind: 'array', element, positions } : { kind: 'array', element };
 }
 
 export function nullable(type: Type): Type {

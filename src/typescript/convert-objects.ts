@@ -30,11 +30,14 @@ export abstract class ObjectConverter extends ConverterBase {
       return arrayOf(element ? this.convert(element) : ANY);
     }
 
-    // A tuple is an array of any of its elements: `[string, number]` is `[](string | number)`.
+    // A tuple is an array of any of its elements: `[string, number]` is `[](string | number)`,
+    // which keeps them by position too, to infer the type parameters of `[K, V]`.
     if (checker.isTupleType(type)) {
-      const elements = checker.getTypeArguments(type as TS.TypeReference);
+      const elements = checker
+        .getTypeArguments(type as TS.TypeReference)
+        .map((each) => this.convert(each));
 
-      return arrayOf(elements.length > 0 ? union(elements.map((each) => this.convert(each))) : ANY);
+      return elements.length > 0 ? arrayOf(union(elements), elements) : arrayOf(ANY);
     }
 
     if (type.objectFlags & ObjectFlags.Reference) {

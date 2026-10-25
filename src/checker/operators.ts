@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
 import { bigintBinary, bigintUnary } from './bigint.ts';
-import { ExpressionChecker } from './expressions.ts';
+import { ArrayLiteralChecker } from './array-literals.ts';
 import { withNarrowing } from './flow.ts';
 import { isUntyped, isNumeric, instanceTypeOf } from './helpers.ts';
 import { chanDirection, elementOf, isChan, received } from './channel.ts';
@@ -26,7 +26,7 @@ import {
 
 // Unary, binary and conditional operators.
 
-export abstract class OperatorChecker extends ExpressionChecker {
+export abstract class OperatorChecker extends ArrayLiteralChecker {
   /** In the operation of a `select` case, a channel may be null: that case never goes on. */
   protected inSelectCase = false;
 
