@@ -12,5 +12,12 @@ export comp Control() {
             {" "}<code>switch</code> has no <code>break</code>: each case ends by itself.
         </p>
         <Example name="control" />
+        <p>
+            As in Go, <code>if</code> and <code>switch</code> can start with an initializer:
+            {" "}<code>if const n, err = parse(text); err != null</code>. Its variables are seen in
+            every branch and not after the statement. A label before a loop lets <code>break</code>
+            {" "}and <code>continue</code> in a nested loop leave the outer one.
+        </p>
+        <Example name="labels" />
     </>
 }

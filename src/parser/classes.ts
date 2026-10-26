@@ -1,12 +1,13 @@
 import type * as ast from '../ast.ts';
-import { isKeyword } from '../lexer/token.ts';
+import { isKeyword, type Token } from '../lexer/token.ts';
 import { DecoratorParser } from './decorators.ts';
-import { MODIFIERS } from './syntax.ts';
+import { MODIFIERS, VISIBILITIES } from './syntax.ts';
 
 // Classes and their members, interfaces and `type` aliases.
 
 export abstract class ClassParser extends DecoratorParser {
   protected override parseClass(start: number, exported: boolean): ast.ClassDeclaration {
+    const abstract = this.acceptWord('abstract');
     const data = this.acceptWord('data');
 
     this.expect('class');
@@ -55,6 +56,7 @@ export abstract class ClassParser extends DecoratorParser {
       kind: 'ClassDeclaration',
       exported,
       data,
+      ...(abstract ? { abstract } : {}),
       name,
       typeParams,
       superClass,
@@ -67,7 +69,7 @@ export abstract class ClassParser extends DecoratorParser {
   protected parseClassMember(): ast.ClassMember[] {
     const start = this.peek().start;
     let visibility: ast.Visibility | null = null;
-    let isStatic = false;
+    const modifiers = new Map<string, Token>();
 
     // Modifiers are contextual: `static` is a modifier only when a member name follows it.
     while (this.peek().kind === 'Identifier' && MODIFIERS.has(this.peek().text)) {
@@ -77,15 +79,19 @@ export abstract class ClassParser extends DecoratorParser {
 
       const modifier = this.next();
 
-      if (modifier.text === 'static') {
-        if (isStatic) this.error('duplicate "static" modifier', modifier.start, modifier.end);
-        isStatic = true;
-      } else {
+      if (VISIBILITIES.has(modifier.text)) {
         if (visibility) this.error('duplicate visibility modifier', modifier.start, modifier.end);
         visibility = modifier.text as ast.Visibility;
+      } else {
+        if (modifiers.has(modifier.text)) {
+          this.error(`duplicate "${modifier.text}" modifier`, modifier.start, modifier.end);
+        }
+
+        modifiers.set(modifier.text, modifier);
       }
     }
 
+    const isStatic = modifiers.has('static');
     // `async load()`; a method named `async` is `async()`.
     const asyncToken = this.check('async') && this.peek(1).kind !== '(' ? this.next() : null;
     const async = asyncToken !== null;
@@ -94,8 +100,13 @@ export abstract class ClassParser extends DecoratorParser {
       this.next();
       if (isStatic) this.error('constructors cannot be static', start, this.span(start).end);
       if (async) this.error('a constructor cannot be async', start, this.span(start).end);
+      for (const word of ['readonly', 'abstract']) {
+        const modifier = modifiers.get(word);
 
-      const params = this.parseParams(false);
+        if (modifier) this.error(`a constructor cannot be ${word}`, modifier.start, modifier.end);
+      }
+
+      const params = this.parseParams(false, false, false, true);
       const resultsStart = this.peek().start;
 
       if (this.parseResults().length > 0) {
@@ -115,29 +126,32 @@ export abstract class ClassParser extends DecoratorParser {
       ];
     }
 
+    // `get area()`; a method named `get` is `get()`, a field `get string`.
+    const accessorToken =
+      (this.checkWord('get') || this.checkWord('set')) &&
+      isName(this.peek(1)) &&
+      this.peek(2).kind === '('
+        ? this.next()
+        : null;
     const name = this.parsePropertyName('member name');
 
     if (this.check('(')) {
-      const params = this.parseParams(false);
-      const results = this.parseResults();
-      const body = this.parseFunctionBody(async);
-
       return [
-        {
-          kind: 'MethodDeclaration',
-          visibility: visibility ?? 'public',
-          isStatic,
-          ...(async ? { async } : {}),
-          name,
-          params,
-          results,
-          body,
-          ...this.span(start),
-        },
+        this.parseMethod(start, name, visibility ?? 'public', modifiers, asyncToken, accessorToken),
       ];
     }
 
     if (asyncToken) this.error('only methods can be async', asyncToken.start, asyncToken.end);
+
+    const abstract = modifiers.get('abstract');
+
+    if (abstract) {
+      this.error(
+        'only methods can be abstract: for a field, declare an abstract getter, e.g. abstract get name() string',
+        abstract.start,
+        abstract.end,
+      );
+    }
 
     // Fields: `name string`, `count = 0`, `x, y number`.
     const names = [name];
@@ -160,11 +174,97 @@ export abstract class ClassParser extends DecoratorParser {
       kind: 'FieldDeclaration',
       visibility: visibility ?? 'public',
       isStatic,
+      ...(modifiers.has('readonly') ? { readonly: true } : {}),
       name: fieldName,
       type,
       value,
       ...span,
     }));
+  }
+
+  /** A method, a getter or a setter, after its name; an abstract one has no body. */
+  private parseMethod(
+    start: number,
+    name: ast.Identifier,
+    visibility: ast.Visibility,
+    modifiers: ReadonlyMap<string, Token>,
+    asyncToken: Token | null,
+    accessorToken: Token | null,
+  ): ast.MethodDeclaration {
+    const isStatic = modifiers.has('static');
+    const readonly = modifiers.get('readonly');
+    const abstract = modifiers.get('abstract');
+    const accessor = accessorToken?.text as 'get' | 'set' | undefined;
+    const async = asyncToken !== null;
+
+    if (readonly) {
+      this.error(
+        'only fields can be readonly: a method cannot be assigned anyway',
+        readonly.start,
+        readonly.end,
+      );
+    }
+
+    if (abstract && isStatic) {
+      this.error('a static method cannot be abstract', abstract.start, abstract.end);
+    } else if (abstract && visibility === 'private') {
+      this.error(
+        'an abstract method cannot be private: the subclasses that implement it could not see it',
+        abstract.start,
+        abstract.end,
+      );
+    }
+
+    if (accessor && asyncToken) {
+      this.error(`a ${accessor}ter cannot be async`, asyncToken.start, asyncToken.end);
+    }
+
+    const params = this.parseParams(false);
+    const results = this.parseResults();
+    const header = this.span(start);
+
+    if (accessor === 'get' && (params.length > 0 || results.length !== 1)) {
+      this.error(
+        'a getter takes nothing and returns one value, e.g. get area() number',
+        header.start,
+        header.end,
+      );
+    } else if (accessor === 'set' && (params.length !== 1 || results.length > 0)) {
+      this.error(
+        'a setter takes one value and returns nothing, e.g. set area(v number)',
+        header.start,
+        header.end,
+      );
+    }
+
+    let body: ast.BlockStatement | null = null;
+
+    if (!abstract) body = this.parseFunctionBody(async);
+    else if (this.check('{')) {
+      const block = this.parseFunctionBody(async);
+
+      this.error(
+        'an abstract method has no body: the subclasses implement it',
+        block.start,
+        block.end,
+      );
+    } else {
+      this.endStatement();
+    }
+
+    return {
+      kind: 'MethodDeclaration',
+      visibility,
+      isStatic,
+      ...(async ? { async } : {}),
+      ...(accessor ? { accessor } : {}),
+      ...(abstract ? { abstract: true } : {}),
+      name,
+      params,
+      results,
+      body,
+      ...this.span(start),
+    };
   }
 
   protected override parseInterface(start: number, exported: boolean): ast.InterfaceDeclaration {
@@ -200,4 +300,9 @@ export abstract class ClassParser extends DecoratorParser {
       ...this.span(start),
     };
   }
+}
+
+/** A member name: keywords can be names after `.` and in classes. */
+function isName(token: Token): boolean {
+  return token.kind === 'Identifier' || isKeyword(token.kind);
 }

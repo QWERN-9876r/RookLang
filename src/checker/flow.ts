@@ -1,5 +1,5 @@
 import type * as ast from '../ast.ts';
-import { containsBreak } from '../walk.ts';
+import { containsBreak } from '../breaks.ts';
 import type { Flow, Narrowing } from './context.ts';
 import {
   BIGINT,
@@ -142,7 +142,7 @@ export function isTerminating(node: ast.Statement): boolean {
       );
 
     case 'ForStatement':
-      return node.condition === null && !containsBreak(node.body.body);
+      return node.condition === null && !containsBreak(node.body.body, node.label ?? null);
 
     case 'SwitchStatement':
       return (
@@ -150,7 +150,11 @@ export function isTerminating(node: ast.Statement): boolean {
         node.cases.every((switchCase) => {
           const last = switchCase.body.at(-1);
 
-          return last !== undefined && isTerminating(last) && !containsBreak(switchCase.body);
+          return (
+            last !== undefined &&
+            isTerminating(last) &&
+            !containsBreak(switchCase.body, node.label ?? null)
+          );
         })
       );
 
@@ -159,7 +163,11 @@ export function isTerminating(node: ast.Statement): boolean {
       return node.cases.every((selectCase) => {
         const last = selectCase.body.at(-1);
 
-        return last !== undefined && isTerminating(last) && !containsBreak(selectCase.body);
+        return (
+          last !== undefined &&
+          isTerminating(last) &&
+          !containsBreak(selectCase.body, node.label ?? null)
+        );
       });
 
     case 'TryStatement':

@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { SimpleStatementParser } from './simple-statements.ts';
 import { FOREIGN_KEYWORDS, FUNCTION_BODY, describe } from './syntax.ts';
 
-// Statements: blocks, `return`, `mount()`, and which statement a token starts.
+// Statements: blocks, `mount()`, and which statement a token starts.
 
 export abstract class StatementParser extends SimpleStatementParser {
   protected parseStatements(isEnd: () => boolean): ast.Statement[] {
@@ -104,6 +104,11 @@ export abstract class StatementParser extends SimpleStatementParser {
 
       default:
         break;
+    }
+
+    // `outer: for`; `x := 1` is reported as Go's declaration.
+    if (token.kind === 'Identifier' && this.peek(1).kind === ':' && this.peek(2).kind !== '=') {
+      return this.parseLabeled();
     }
 
     const hint = token.kind === 'Identifier' ? FOREIGN_KEYWORDS.get(token.text) : undefined;
@@ -233,13 +238,18 @@ export abstract class StatementParser extends SimpleStatementParser {
         return declaration;
       }
 
-      default:
+      default: {
         if (this.isDecoratorDeclaration()) return this.parseDecoratorDeclaration(start, exported);
-        // `data` is a keyword only before `class`: elsewhere it is a name.
-        if (this.checkWord('data') && this.peek(1).kind === 'class')
-          return this.parseClass(start, exported);
 
-        return undefined;
+        // `data` and `abstract` are keywords only before `class`: elsewhere they are names.
+        let words = this.checkWord('abstract') ? 1 : 0;
+
+        if (this.peek(words).text === 'data') words++;
+
+        return words > 0 && this.peek(words).kind === 'class'
+          ? this.parseClass(start, exported)
+          : undefined;
+      }
     }
   }
 
@@ -351,35 +361,6 @@ export abstract class StatementParser extends SimpleStatementParser {
   }
 
   /** An if/for/switch header, where `{` starts the block rather than an object literal. */
-  protected parseHeaderExpression(): ast.Expression {
-    return this.withContext({ noObjectLiteral: true }, () => this.parseExpression());
-  }
-
-  protected parseReturn(): ast.ReturnStatement {
-    const start = this.next().start;
-
-    if (this.context.inGoFor) {
-      this.error(
-        '"return" cannot leave "go for": its body runs in workers; skip an element with "continue"',
-        start,
-        this.span(start).end,
-      );
-    } else if (!this.context.inFunction) {
-      this.error('"return" outside of a function', start, this.span(start).end);
-    } else if (this.context.inDefer) {
-      this.error('"return" is not allowed inside "defer"', start, this.span(start).end);
-    }
-
-    const values =
-      this.check(';') || this.check('}') || this.check('EOF') ? [] : this.parseExpressionList();
-    const statement: ast.ReturnStatement = { kind: 'ReturnStatement', values, ...this.span(start) };
-
-    this.endStatement();
-
-    return statement;
-  }
-
-  /** `}` + newline + `else`: the newline ends the `if`, so explain the error instead of failing. */
   protected checkSameLine(keyword: 'else' | 'catch' | 'finally'): void {
     if (this.isImplicitSemicolon() && this.peek(1).kind === keyword) {
       const token = this.peek(1);

@@ -1,0 +1,35 @@
+abstract class Shape {
+    // A parameter with readonly is also a field, which the constructor assigns
+    constructor(readonly name string) { }
+
+    // An abstract method has no body: each subclass implements it
+    abstract area() number
+
+    describe() string {
+        return `${this.name}: ${this.area().toFixed(2)}`
+    }
+}
+
+class Circle extends Shape {
+    constructor(private r number) {
+        super("circle")
+    }
+
+    area() number {
+        return Math.PI * this.r ** 2
+    }
+
+    // A getter and a setter are read and assigned as a field
+    get diameter() number {
+        return this.r * 2
+    }
+
+    set diameter(value number) {
+        this.r = value / 2
+    }
+}
+
+const circle = new Circle(1)
+circle.diameter = 4
+console.log(circle.describe(), circle.diameter)
+// new Shape("blob") and circle.name = "disc" are compile errors

@@ -54,7 +54,6 @@ func sum(count number) number {
     expect(items).toContain('return');
     expect(items).toContain('if');
     expect(items).not.toContain('later');
-    expect(items).not.toContain('map');
   });
 
   it('gives the narrowed type of a variable', () => {

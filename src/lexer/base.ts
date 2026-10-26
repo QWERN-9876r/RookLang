@@ -1,5 +1,5 @@
 import type { Diagnostic } from '../diagnostics.ts';
-import { ENDS_STATEMENT, isDigit, type Mode } from './tables.ts';
+import { ENDS_STATEMENT, ENDS_VALUE, isDigit, type Mode } from './tables.ts';
 import type { StringKind, Token, TokenKind } from './token.ts';
 
 // The lexer is a chain of layers: base → literals → markup → style → Lexer (lexer.ts). This layer
@@ -57,6 +57,13 @@ export abstract class LexerBase {
     }
 
     return sawNewline;
+  }
+
+  /** After a value `/` divides; elsewhere it starts a regular expression, as in JS. */
+  protected lastEndsValue(): boolean {
+    const last = this.tokens.at(-1);
+
+    return last !== undefined && ENDS_VALUE.has(last.kind);
   }
 
   protected lastEndsStatement(): boolean {

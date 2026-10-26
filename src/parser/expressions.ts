@@ -1,11 +1,6 @@
 import type * as ast from '../ast.ts';
-import {
-  BINARY_PRECEDENCE,
-  isBinaryOperator,
-  isUnaryOperator,
-  RESERVED,
-  describe,
-} from './syntax.ts';
+import type { StringToken } from '../lexer/token.ts';
+import { BINARY_PRECEDENCE, isBinaryOperator, isUnaryOperator, describe } from './syntax.ts';
 import { TypeParser } from './types.ts';
 
 // Expressions: operators with their precedence, member access, calls and indexing.
@@ -274,6 +269,18 @@ export abstract class ExpressionParser extends TypeParser {
       case 'String':
         return this.parseStringLiteral();
 
+      case 'RegExp': {
+        const { value } = this.next() as StringToken;
+
+        return {
+          kind: 'RegExpLiteral',
+          pattern: value,
+          flags: token.text.slice(value.length + 2),
+          start,
+          end,
+        };
+      }
+
       case 'Template':
       case 'TemplateHead':
         return this.parseTemplate(token);
@@ -368,8 +375,6 @@ export abstract class ExpressionParser extends TypeParser {
         return this.parseDecoratorMember();
 
       default:
-        if (RESERVED.has(token.kind)) this.fail(`"${token.text}" is reserved for future use`);
-
         return this.fail(`expected expression, found ${describe(token)}`);
     }
   }

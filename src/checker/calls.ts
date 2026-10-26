@@ -110,6 +110,12 @@ export abstract class CallChecker extends MemberChecker {
     const { info } = callee;
 
     this.ensureClassResolved(info);
+    if (info.abstract) {
+      this.error(
+        `cannot create an instance of the abstract class "${info.name}": create one of a class that extends it`,
+        node,
+      );
+    }
 
     const { type, owner } = constructorOf(info);
 

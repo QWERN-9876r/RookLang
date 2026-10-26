@@ -1,0 +1,35 @@
+abstract class Shape {
+    // Параметр с readonly — ещё и поле, которое присваивает конструктор
+    constructor(readonly name string) { }
+
+    // У абстрактного метода нет тела: его реализует каждый подкласс
+    abstract area() number
+
+    describe() string {
+        return `${this.name}: ${this.area().toFixed(2)}`
+    }
+}
+
+class Circle extends Shape {
+    constructor(private r number) {
+        super("circle")
+    }
+
+    area() number {
+        return Math.PI * this.r ** 2
+    }
+
+    // Геттер и сеттер читают и присваивают как поле
+    get diameter() number {
+        return this.r * 2
+    }
+
+    set diameter(value number) {
+        this.r = value / 2
+    }
+}
+
+const circle = new Circle(1)
+circle.diameter = 4
+console.log(circle.describe(), circle.diameter)
+// new Shape("blob") и circle.name = "disc" — ошибки компиляции

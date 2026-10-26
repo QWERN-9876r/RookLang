@@ -169,6 +169,42 @@ describe('VS Code grammar', () => {
     expect(scopeOf('const data = load()', 'data')).not.toBe('storage.modifier');
   });
 
+  it('colours the modifiers and accessors of classes', () => {
+    expect(scopeOf('abstract class Shape {', 'abstract')).toBe('storage.modifier');
+    expect(scopeOf('abstract data class Point {', 'abstract')).toBe('storage.modifier');
+    expect(scopeOf('const abstract = 1', 'abstract')).not.toBe('storage.modifier');
+    expect(scopeOf('    abstract area() number', 'abstract')).toBe('storage.modifier');
+    expect(scopeOf('    private readonly id string', 'private readonly')).toBe('storage.modifier');
+    expect(scopeOf('    get area() number {', 'get')).toBe('storage.type.property');
+    expect(scopeOf('    set area(v number) {', 'set')).toBe('storage.type.property');
+    expect(scopeOf('    get() number {', 'get')).not.toBe('storage.type.property');
+
+    const constructor = '    constructor(private name string, readonly id number) { }';
+
+    expect(scopeOf(constructor, 'private')).toBe('storage.modifier');
+    expect(scopeOf(constructor, 'readonly')).toBe('storage.modifier');
+    expect(scopeOf('func f(readonly number) { }', 'readonly')).not.toBe('storage.modifier');
+  });
+
+  it('colours regular expressions, and keeps / a division after a value', () => {
+    expect(scopeOf('const r = /a+\\/b[/]/gi', '/a+\\/b[/]/gi')).toBe('string.regexp');
+    expect(scopeOf('if /x/.test(s) {', '/x/')).toBe('string.regexp');
+    expect(scopeOf('s.replace(/-/g, "+")', '/-/g')).toBe('string.regexp');
+    expect(scopesOf('const n = a / b / c', '/')).toEqual([
+      'keyword.operator.arithmetic',
+      'keyword.operator.arithmetic',
+    ]);
+    expect(scopeOf('const n = f(x) / 2 // half', '/')).toBe('keyword.operator.arithmetic');
+  });
+
+  it('colours labels', () => {
+    expect(scopeOf('outer: for row in grid {', 'outer')).toBe('entity.name.label');
+    expect(scopeOf('outer:', 'outer')).toBe('entity.name.label');
+    expect(scopeOf('        break outer', 'outer')).toBe('entity.name.label');
+    expect(scopeOf('        continue outer', 'continue')).toBe('keyword.control.loop');
+    expect(scopeOf('const o = {\n    key: 1,\n}', 'key')).toBe('meta.object-literal.key');
+  });
+
   it('colours decode before its type, and keeps it a name elsewhere', () => {
     const source = 'const user, err = decode<User>(body)';
 

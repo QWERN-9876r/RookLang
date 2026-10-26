@@ -14,5 +14,14 @@ export comp Classes() {
             declared.
         </p>
         <Example name="classes" />
+        <p>
+            Getters and setters are written as in JS, with <code>get</code> and <code>set</code>,
+            and are read and assigned as fields. A <code>readonly</code> field is assigned only in
+            the constructor, and a constructor parameter with <code>private</code>,
+            {" "}<code>public</code> or <code>readonly</code> is a field too. An
+            {" "}<code>abstract</code> class has no instances of its own; its abstract methods have
+            no body, and each subclass implements them.
+        </p>
+        <Example name="class-members" />
     </>
 }

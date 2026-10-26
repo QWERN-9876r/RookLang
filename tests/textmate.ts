@@ -9,9 +9,14 @@ import * as textmate from 'vscode-textmate';
 
 export const root = new URL('..', import.meta.url).pathname;
 
-// The grammars of markup and styles are separate files that the main one includes, as in VS Code.
+// The grammars of declarations, markup and styles are separate files that the main one includes, as
+// in VS Code.
 const grammarPaths: Record<string, string> = {
   'source.rook': join(root, 'editors/vscode/syntaxes/rook.tmLanguage.json'),
+  'source.rook.declarations': join(
+    root,
+    'editors/vscode/syntaxes/rook-declarations.tmLanguage.json',
+  ),
   'source.rook.markup': join(root, 'editors/vscode/syntaxes/rook-markup.tmLanguage.json'),
   'source.rook.css': join(root, 'editors/vscode/syntaxes/rook-css.tmLanguage.json'),
 };

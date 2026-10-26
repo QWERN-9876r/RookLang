@@ -70,9 +70,14 @@ export function isAssignmentOperator(kind: TokenKind): kind is ast.AssignmentOpe
   return ASSIGNMENT_OPERATORS.has(kind);
 }
 
-export const RESERVED: ReadonlySet<string> = new Set(['map']);
+export const VISIBILITIES: ReadonlySet<string> = new Set(['public', 'protected', 'private']);
 
-export const MODIFIERS: ReadonlySet<string> = new Set(['public', 'protected', 'private', 'static']);
+export const MODIFIERS: ReadonlySet<string> = new Set([
+  ...VISIBILITIES,
+  'static',
+  'readonly',
+  'abstract',
+]);
 
 /** Words from JS that Rook spells differently. */
 export const FOREIGN_KEYWORDS: ReadonlyMap<string, string> = new Map([
@@ -129,6 +134,15 @@ export interface Context {
   inComponent: boolean;
   /** In the blocks of `{if ...}` and `{for ...}` inside markup, where elements are statements. */
   inMarkup: boolean;
+  /** The labels of the enclosing statements, innermost last, which `break` and `continue` name. */
+  labels: readonly Label[];
+}
+
+/** `outer: for`: `loop` tells `continue outer` from a label of a switch or select. */
+export interface Label {
+  name: string;
+  loop: boolean;
+  used: boolean;
 }
 
 export const FUNCTION_BODY: Partial<Context> = {
@@ -141,6 +155,7 @@ export const FUNCTION_BODY: Partial<Context> = {
   inAsync: false,
   noObjectLiteral: false,
   inMarkup: false,
+  labels: [],
 };
 
 /** Thrown to abandon the current statement after its syntax error has been reported. */
@@ -156,6 +171,9 @@ export function describe(token: Token): string {
 
     case 'String':
       return 'string';
+
+    case 'RegExp':
+      return 'regular expression';
 
     case 'Number':
       return `number ${token.text}`;

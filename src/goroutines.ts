@@ -300,8 +300,8 @@ function usedNames(statement: ast.Statement): Set<string> {
       for (const member of statement.members) {
         if (member.kind === 'FieldDeclaration') {
           if (member.value) add(freeNames({ params: [], body: block([expression(member.value)]) }));
-        } else {
-          add(freeNames(member));
+        } else if (member.body) {
+          add(freeNames({ params: member.params, body: member.body }));
         }
       }
 

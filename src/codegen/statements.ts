@@ -1,4 +1,5 @@
 import type * as ast from '../ast.ts';
+import { isSuperCall } from '../checker/helpers.ts';
 import { isIterator } from '../iterators.ts';
 import { decoratedName, moduleNamesOf } from '../decorators.ts';
 import { inlinePackages, type InlinePackage } from '../inline-packages.ts';
@@ -137,7 +138,10 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
     const body = this.block(() => {
       let previous: ast.ClassMember | undefined;
 
+      // An abstract method has no code: only the subclasses have it.
       for (const member of node.members) {
+        if (member.kind === 'MethodDeclaration' && member.abstract) continue;
+
         const bothFields =
           previous?.kind === 'FieldDeclaration' && member.kind === 'FieldDeclaration';
 
@@ -175,23 +179,66 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
       }
 
       case 'ConstructorDeclaration': {
-        const [params, body] = this.func(member.params, member.body);
+        const [params, body] = this.func(member.params, assignProperties(member));
 
         this.line(`constructor(${params}) ${body}`);
         break;
       }
 
       case 'MethodDeclaration': {
-        const [params, body] = this.func(member.params, member.body);
+        if (!member.body) break;
 
-        const modifiers = `${member.isStatic ? 'static ' : ''}${member.async ? 'async ' : ''}`;
-        const star = isIterator(member.params) ? '*' : '';
+        const [params, body] = this.func(member.params, member.body);
+        const modifiers =
+          `${member.isStatic ? 'static ' : ''}${member.async ? 'async ' : ''}` +
+          (member.accessor ? `${member.accessor} ` : '');
+        const star = isIterator(member.params) && !member.accessor ? '*' : '';
 
         this.line(`${modifiers}${star}${member.name.name}(${params}) ${body}`);
         break;
       }
     }
   }
+}
+
+/**
+ * The body of a constructor whose parameters are properties, `constructor(private name string)`:
+ * it assigns them first, `this.name = name`, or right after `super(...)` in a derived class.
+ */
+function assignProperties(node: ast.ConstructorDeclaration): ast.BlockStatement {
+  const assignments = node.params.flatMap((param): ast.Statement[] => {
+    if (!param.property) return [];
+
+    const at = { start: param.start, end: param.end };
+    const self: ast.ThisExpression = { kind: 'ThisExpression', ...at };
+    const target: ast.MemberExpression = {
+      kind: 'MemberExpression',
+      object: self,
+      property: param.name,
+      optional: false,
+      ...at,
+    };
+
+    return [
+      {
+        kind: 'AssignmentStatement',
+        operator: '=',
+        targets: [target],
+        values: [param.name],
+        ...at,
+      },
+    ];
+  });
+
+  if (assignments.length === 0) return node.body;
+
+  const statements = node.body.body;
+  const after = statements.findIndex(isSuperCall) + 1;
+
+  return {
+    ...node.body,
+    body: [...statements.slice(0, after), ...assignments, ...statements.slice(after)],
+  };
 }
 
 /** FNV-1a of a text, as 8 hex digits: an id that changes only with the text. */

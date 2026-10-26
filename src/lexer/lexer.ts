@@ -77,6 +77,8 @@ class Lexer extends StyleLexer {
       // The end of `{ ... }` inside markup: back to the tag or the element content.
       this.push('}', start, start + 1);
       this.modes.pop();
+    } else if (c === '/' && !this.lastEndsValue()) {
+      this.scanRegExp(start);
     } else if (c === '<' && this.startsElement()) {
       this.push('JsxTagOpen', start, start + 1);
       this.modes.push({ kind: 'tag', start });

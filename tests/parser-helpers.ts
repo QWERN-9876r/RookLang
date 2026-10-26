@@ -75,6 +75,9 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
     case 'StringLiteral':
       return node.raw;
 
+    case 'RegExpLiteral':
+      return `/${node.pattern}/${node.flags}`;
+
     case 'BooleanLiteral':
       return String(node.value);
 

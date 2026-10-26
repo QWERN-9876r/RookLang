@@ -1,7 +1,7 @@
 import type * as ast from '../ast.ts';
 import { inlinePackages, type ModulePackages } from '../inline-packages.ts';
 import type { ModuleExports } from './context.ts';
-import { DeclarationChecker } from './declarations.ts';
+import { ClassMemberChecker } from './class-members.ts';
 import { isSuperCall, assignsField } from './helpers.ts';
 import { notCopied } from './transfer.ts';
 import {
@@ -13,13 +13,12 @@ import {
   typeToString,
   UNKNOWN,
   type ClassInfo,
-  type Member,
   type Type,
 } from './types.ts';
 
 // Classes: their base class and members, method bodies, overrides and `implements`; and the declarations a module exports.
 
-export abstract class ClassChecker extends DeclarationChecker {
+export abstract class ClassChecker extends ClassMemberChecker {
   protected override ensureClassResolved(info: ClassInfo): void {
     const resolve = this.unresolvedClasses.get(info);
 
@@ -69,6 +68,7 @@ export abstract class ClassChecker extends DeclarationChecker {
     }
 
     if (node.data) this.checkDataBase(node, info);
+    info.abstract = node.abstract === true;
 
     for (const member of node.members) {
       switch (member.kind) {
@@ -101,16 +101,23 @@ export abstract class ClassChecker extends DeclarationChecker {
             method: false,
             visibility: member.visibility,
             owner: info,
+            ...(member.readonly ? { readonly: true } : {}),
           });
           break;
         }
 
         case 'MethodDeclaration':
+          if (member.accessor) {
+            this.declareAccessor(info, member, member.accessor);
+            break;
+          }
+
           this.declareMember(info, member.isStatic, member.name, {
             type: this.signature(member.params, member.results, member.async),
             method: true,
             visibility: member.visibility,
             owner: info,
+            ...(member.abstract ? { abstract: true } : {}),
           });
           break;
 
@@ -118,6 +125,7 @@ export abstract class ClassChecker extends DeclarationChecker {
           if (info.ctor) this.error('a class can have only one constructor', member);
           info.ctor = this.signature(member.params, []);
           info.ctorVisibility = member.visibility;
+          this.declareParamProperties(member, info, info.ctor);
           break;
       }
     }
@@ -140,18 +148,6 @@ export abstract class ClassChecker extends DeclarationChecker {
     }
   }
 
-  protected declareMember(
-    info: ClassInfo,
-    isStatic: boolean,
-    name: ast.Identifier,
-    member: Member,
-  ): void {
-    const members = isStatic ? info.statics : info.members;
-
-    if (members.has(name.name)) this.error(`duplicate member "${name.name}"`, name);
-    members.set(name.name, member);
-  }
-
   /** Method bodies and the checks that need every member of the class. */
   protected override checkClassBodies(node: ast.ClassDeclaration, info: ClassInfo): void {
     this.withTypeParams(info.typeParams, null, () => this.checkClassMembers(node, info));
@@ -162,15 +158,20 @@ export abstract class ClassChecker extends DeclarationChecker {
 
     for (const member of node.members) {
       if (member.kind === 'MethodDeclaration') {
-        const type = (member.isStatic ? info.statics : info.members).get(member.name.name)?.type;
+        const { body } = member;
+        const type = member.accessor
+          ? this.accessorSignatures.get(member)
+          : (member.isStatic ? info.statics : info.members).get(member.name.name)?.type;
 
         if (type?.kind !== 'function') continue;
-        this.withClass({ info, isStatic: member.isStatic }, () =>
-          this.checkFunction(member.params, type, type.results, member.body, {
-            async: member.async,
-          }),
-        );
+        if (body) {
+          this.withClass({ info, isStatic: member.isStatic }, () =>
+            this.checkFunction(member.params, type, type.results, body, { async: member.async }),
+          );
+        }
+
         this.checkOverride(info, member);
+        if (member.accessor) this.checkAccessorOverride(info, member.name, member.isStatic);
       } else if (member.kind === 'ConstructorDeclaration' && info.ctor) {
         constructorNode = member;
 
@@ -188,9 +189,13 @@ export abstract class ClassChecker extends DeclarationChecker {
       }
     }
 
+    this.checkAbstract(node, info);
+
     // Fields without a zero value must get one at once or in the constructor.
     for (const member of node.members) {
-      if (member.kind !== 'FieldDeclaration' || member.isStatic || member.value) continue;
+      if (member.kind !== 'FieldDeclaration') continue;
+      this.checkAccessorOverride(info, member.name, member.isStatic);
+      if (member.isStatic || member.value) continue;
 
       const type = info.members.get(member.name.name)?.type;
 

@@ -11,6 +11,7 @@ import {
   nullable,
   typeToString,
   UNKNOWN,
+  type Member,
   type Type,
 } from './types.ts';
 
@@ -173,6 +174,18 @@ export abstract class AssignmentChecker extends InitializerChecker {
           return UNKNOWN;
         }
 
+        if (member.accessor === 'get') {
+          this.error(
+            `cannot assign to "${target.property.name}": it has a getter and no setter`,
+            target,
+          );
+        } else if (member.readonly && !this.initializes(target, member)) {
+          this.error(
+            `cannot assign to "${target.property.name}": it is readonly, so only the constructor of ${member.owner?.name ?? 'its class'} assigns it`,
+            target,
+          );
+        }
+
         return member.type;
       }
 
@@ -199,6 +212,17 @@ export abstract class AssignmentChecker extends InitializerChecker {
 
         return UNKNOWN;
     }
+  }
+
+  /** `this.id = id` in the constructor of the class that has the readonly field `id`. */
+  private initializes(target: ast.MemberExpression, member: Member): boolean {
+    return (
+      target.object.kind === 'ThisExpression' &&
+      this.fn?.isConstructor === true &&
+      this.cls !== null &&
+      !this.cls.isStatic &&
+      this.cls.info === member.owner
+    );
   }
 
   protected checkReturn(node: ast.ReturnStatement): void {

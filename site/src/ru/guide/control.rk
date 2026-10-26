@@ -13,5 +13,12 @@ export comp Control() {
             сама.
         </p>
         <Example name="control" />
+        <p>
+            Как в Go, <code>if</code> и <code>switch</code> могут начинаться с инициализатора:
+            {" "}<code>if const n, err = parse(text); err != null</code>. Его переменные видны во
+            всех ветках, но не после оператора. Метка перед циклом позволяет <code>break</code> и
+            {" "}<code>continue</code> во вложенном цикле выйти из внешнего.
+        </p>
+        <Example name="labels" />
     </>
 }

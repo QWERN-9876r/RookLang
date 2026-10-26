@@ -36,8 +36,6 @@ export const KEYWORDS = [
   'instanceof',
   'async',
   'await',
-  // Reserved for future use.
-  'map',
 ] as const;
 
 export const PUNCTUATORS = [
@@ -108,7 +106,8 @@ export type Punctuator = (typeof PUNCTUATORS)[number];
  * substitutions: `a${x}b${y}c` becomes TemplateHead("a") x TemplateMiddle("b") y TemplateTail("c"),
  * and a template without substitutions is a single Template token. In markup, JsxText is the text
  * between tags and JsxString an attribute value in quotes; both have HTML entities decoded. CssText is
- * the raw text of a `style { ... }` block between the values from code.
+ * the raw text of a `style { ... }` block between the values from code. RegExp is `/ab+c/g`, whose
+ * value is the pattern as it is written, without the slashes and the flags.
  */
 export type StringKind =
   | 'String'
@@ -118,7 +117,8 @@ export type StringKind =
   | 'TemplateTail'
   | 'JsxText'
   | 'JsxString'
-  | 'CssText';
+  | 'CssText'
+  | 'RegExp';
 
 /**
  * Tokens of markup such as `<a href="/">text</a>`: JsxTagOpen `<`, JsxCloseTagOpen `</`, JsxName

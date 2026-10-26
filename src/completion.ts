@@ -9,7 +9,6 @@ import { prepareCheck, type CoreCompileOptions } from './compile.ts';
 import { tokenize } from './lexer/lexer.ts';
 import { KEYWORDS, type Token } from './lexer/token.ts';
 import { parse } from './parser/parser.ts';
-import { RESERVED } from './parser/syntax.ts';
 import { forEachChild } from './walk.ts';
 
 // Completion for editors: what can be written at a position of a module. The name being typed
@@ -42,9 +41,10 @@ const STRINGS = new Set<Token['kind']>([
   'JsxText',
   'JsxString',
   'CssText',
+  'RegExp',
 ]);
 
-const VALUE_KEYWORDS = KEYWORDS.filter((keyword) => !RESERVED.has(keyword));
+const VALUE_KEYWORDS = KEYWORDS;
 // `queue` is a type of its own only in a type: elsewhere it is a name.
 const TYPE_KEYWORDS = ['func', 'comp', 'chan', 'queue', 'topic'];
 /** Keywords only at the start of a statement at the top level of a component or a decorator. */

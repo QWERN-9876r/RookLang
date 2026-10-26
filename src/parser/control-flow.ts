@@ -1,11 +1,12 @@
 import type * as ast from '../ast.ts';
 import { StatementParser } from './statements.ts';
 
-// if, for, switch, break and continue, throw, try and defer.
+// if, for, switch, select, throw, try and defer.
 
 export abstract class ControlFlowParser extends StatementParser {
   protected override parseIf(): ast.IfStatement {
     const start = this.next().start;
+    const init = this.parseHeaderInit('if');
     const condition = this.parseHeaderExpression();
     const consequent = this.parseBlock();
     let alternate: ast.BlockStatement | ast.IfStatement | null = null;
@@ -15,7 +16,32 @@ export abstract class ControlFlowParser extends StatementParser {
       alternate = this.check('if') ? this.parseIf() : this.parseBlock();
     }
 
-    return { kind: 'IfStatement', condition, consequent, alternate, ...this.span(start) };
+    return { kind: 'IfStatement', init, condition, consequent, alternate, ...this.span(start) };
+  }
+
+  protected parseHeaderExpression(): ast.Expression {
+    return this.withContext({ noObjectLiteral: true }, () => this.parseExpression());
+  }
+
+  /** `const v, err = f();` before the condition of `if` or the value of `switch`. */
+  private parseHeaderInit(keyword: 'if' | 'switch'): ast.VariableDeclaration | null {
+    if (!this.check('const') && !this.check('let')) return null;
+
+    const init = this.withContext({ noObjectLiteral: true }, () =>
+      this.parseVariableDeclaration(this.peek().start, false),
+    );
+
+    if (this.context.inMarkup) {
+      this.error(
+        `the ${keyword} of markup has no initializer: declare the variable before the markup`,
+        init.start,
+        init.end,
+      );
+    }
+
+    this.expect(';', `";" after the initializer of ${keyword}`);
+
+    return init;
   }
 
   protected override parseFor(): ast.ForStatement | ast.ForInStatement {
@@ -89,8 +115,9 @@ export abstract class ControlFlowParser extends StatementParser {
     }
 
     // The parts run at once in workers: nothing can leave the loop but `continue`.
-    const body = this.withContext({ inLoop: true, inBreakable: false, inGoFor: true }, () =>
-      this.parseBlock(),
+    const body = this.withContext(
+      { inLoop: true, inBreakable: false, inGoFor: true, labels: [] },
+      () => this.parseBlock(),
     );
 
     return { kind: 'ForInStatement', key, value, iterable, body, go, ...this.span(start) };
@@ -118,6 +145,7 @@ export abstract class ControlFlowParser extends StatementParser {
 
   protected override parseSwitch(): ast.SwitchStatement {
     const start = this.next().start;
+    const init = this.parseHeaderInit('switch');
     const discriminant = this.check('{') ? null : this.parseHeaderExpression();
 
     this.expect('{');
@@ -153,7 +181,7 @@ export abstract class ControlFlowParser extends StatementParser {
 
     this.expect('}');
 
-    return { kind: 'SwitchStatement', discriminant, cases, ...this.span(start) };
+    return { kind: 'SwitchStatement', init, discriminant, cases, ...this.span(start) };
   }
 
   /** `select { case v = <-ch: ... case ch <- v: ... default: ... }`; it waits, as `await` does. */
@@ -237,32 +265,6 @@ export abstract class ControlFlowParser extends StatementParser {
     return [names, first];
   }
 
-  protected override parseBreakOrContinue(): ast.BreakStatement | ast.ContinueStatement {
-    const token = this.next();
-    let statement: ast.BreakStatement | ast.ContinueStatement;
-
-    if (token.kind === 'break') {
-      if (!this.context.inBreakable) {
-        this.error(
-          this.context.inGoFor
-            ? '"break" cannot stop "go for": its parts run at once in workers; skip an element with "continue"'
-            : '"break" outside of a loop or switch',
-          token.start,
-          token.end,
-        );
-      }
-
-      statement = { kind: 'BreakStatement', start: token.start, end: token.end };
-    } else {
-      if (!this.context.inLoop) this.error('"continue" outside of a loop', token.start, token.end);
-      statement = { kind: 'ContinueStatement', start: token.start, end: token.end };
-    }
-
-    this.endStatement();
-
-    return statement;
-  }
-
   protected override parseThrow(): ast.ThrowStatement {
     const start = this.next().start;
     const argument = this.parseExpression();
@@ -316,7 +318,7 @@ export abstract class ControlFlowParser extends StatementParser {
 
     if (this.check('{')) {
       const body = this.withContext(
-        { inDefer: true, inAsync: false, inLoop: false, inBreakable: false },
+        { inDefer: true, inAsync: false, inLoop: false, inBreakable: false, labels: [] },
         () => this.parseBlock(),
       );
 

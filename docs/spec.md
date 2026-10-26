@@ -67,6 +67,9 @@ const point = {
   `0xffn`.
 - Strings: `"..."`, `'...'` and template strings `` `Hello, ${name}` ``.
 - `true`, `false`, `null`.
+- Regular expressions as in JS: `/ab+c/gi`, a `RegExp`. Where a value cannot end, `/` starts one,
+  and after a value it divides: `a / b / c`. The compiler checks the pattern and the flags, as JS
+  does when the module loads, so `/(/` is a compile error.
 - Arrays `[1, 2, ...rest]` and objects `{ name: "Ann", age, "content-type": t, ...defaults }`
   (the shorthand `age` and spread are as in JS).
 
@@ -79,13 +82,14 @@ try  catch  finally  throw  import  export  async  await  go  chan
 null  true  false  typeof  instanceof
 ```
 
-Inside a class declaration `static`, `private`, `protected`, `public` and `implements` are keywords
-too, in `import` and `export` so is `from`, at the start of a statement in a component's body
+Inside a class declaration `static`, `private`, `protected`, `public`, `readonly`, `abstract` and
+`implements` are keywords too, and so are `get` and `set` before the name of a method; before
+`class` so are `data` and `abstract`, in `import` and `export` so is `from`, at the start of a statement in a component's body
 `state`, `derived`, `ref`, `style`, `mount` and `effect`, at the start of a top-level declaration `dec`, after its
 parameters `needs`, in a decorator's body `public`, before `{` at the start of a statement
 `select`, and `queue` in a type before the type of its values and before the `<` that makes a
-queue. Elsewhere they are ordinary names; `get` is special only in `get(@name.member)`. Reserved
-for the future: `map`. Decorators are written before `comp`: `@html-tag` (see
+queue. Elsewhere they are ordinary names; outside of classes `get` is special only in
+`get(@name.member)`. Decorators are written before `comp`: `@html-tag` (see
 "Web components") and those declared with `dec` (see "Decorators").
 
 After `.` and in object keys, keywords can be used as ordinary names: `xs.map(f)`, `event.type`,
@@ -227,6 +231,9 @@ methods of the needed types.
 - **An object used as a map,** `{ [string]: number }`, has any keys with values of that type; the
   key is `string` or `number`. An object literal or another object fits it if all its fields do.
   `scores["ann"]` and `scores[name]` are a `number`, and `delete scores[name]` removes a key.
+- **There is no `map[K]V` of Go:** an object with string keys is the map that JS code and JSON
+  use, written as a literal, and a `Map<K, V>` of JS, typed from its lib, takes keys of any type.
+  A third map with its own syntax would only have to be converted to them.
 
 ### bigint
 
@@ -1219,6 +1226,36 @@ JS, there is no truthy/falsy. `if count {` is an error, write `if count > 0 {`, 
 An object literal in the header of `if`, `for` or `switch` goes in parentheses, or its `{` would be
 taken for the start of the block (the same rule as in Go).
 
+**An initializer** goes before the condition, as in Go: a `const` or `let` declaration and `;`. Its
+variables are seen in the condition and in every branch, `else` included, and not after the `if`,
+so a value that only the `if` needs does not stay in the function:
+
+```go
+if const user, err = load(id); err != null {
+    console.log(err.message)
+} else if let age = user.age; age >= 18 {
+    console.log(`${user.name}, ${age}`)
+}
+```
+
+```js
+{
+  const [user, err] = load(id);
+  if (err != null) {
+    console.log(err.message);
+  } else {
+    let age = user.age;
+    if (age >= 18) {
+      console.log(`${user.name}, ${age}`);
+    }
+  }
+}
+```
+
+The condition narrows the variables, as any condition does: in `if const u = find(); u != null`,
+`u` is not null in the branch. `switch` takes an initializer in the same way (see `switch`); the
+`{if}` of markup does not: declare the value before the markup.
+
 ### for, the only loop
 
 | Rook                               | JS                                                              |
@@ -1262,7 +1299,8 @@ index; here one variable gets the value, and two get the index and the value.
   allowed only where `await` is; it has no keys. `break` and `return` close the iterator, as they
   do in JS. A type that is iterable at once too goes over at once.
 
-`break` and `continue` work as usual.
+`break` and `continue` work as usual; to leave a loop around the one they are in, give it a label
+(see "Labels").
 
 ### Iterators
 
@@ -1381,6 +1419,52 @@ if (score >= 90) {
   grade = "C";
 }
 ```
+
+`switch` takes an initializer as `if` does, `switch const kind = node.kind; kind { ... }`, also
+without an expression: `switch const n = items.length; { case n > 10: ... }`.
+
+### Labels
+
+A label before `for`, `switch` or `select` names the statement for `break` and `continue` inside
+nested loops, as in Go and JS:
+
+```go
+outer: for row in grid {
+    for v in row {
+        if v < 0 {
+            continue outer                 // the next row
+        }
+        if v == target {
+            console.log("found")
+            break outer                    // both loops
+        }
+    }
+}
+```
+
+```js
+outer: for (const row of grid) {
+  for (const v of row) {
+    if (v < 0) {
+      continue outer;
+    }
+    if (v === target) {
+      console.log("found");
+      break outer;
+    }
+  }
+}
+```
+
+- **`break outer`** leaves the loop, the `switch` or the `select` labeled `outer`, and
+  **`continue outer`** goes to the next iteration of the loop labeled so: a `switch` or a `select`
+  has no iterations to go to.
+- **Where labels are seen:** in the statement they label, not in the functions inside it, and not in
+  the body of `go for`, whose parts run in workers; `go for` itself has no label for that reason.
+- **The rules of Go:** a label that no `break` or `continue` uses is an error, and so is a label
+  that an enclosing statement already has. Other statements, such as `if` or a block, have no
+  labels.
+- `outer:` can stand on its own line before the loop, as in Go.
 
 ## 7. Errors
 
@@ -1655,6 +1739,103 @@ class User {
 - Methods can return several values.
 - A field without a value gets the zero value of its type. If the type has none (a class, an
   interface, a function), the field must be assigned in the constructor.
+
+### Getters, setters and readonly fields
+
+```go
+class Circle {
+    readonly center Point
+    private r number
+
+    constructor(center Point, r number) {
+        this.center = center
+        this.r = r
+    }
+
+    get area() number {
+        return Math.PI * this.r ** 2
+    }
+
+    set area(value number) {
+        this.r = Math.sqrt(value / Math.PI)
+    }
+
+    get diameter() number {
+        return this.r * 2
+    }
+}
+
+c.area = 10                                // the setter
+c.diameter = 4                             // an error: a getter without a setter
+c.center = origin                          // an error: readonly
+```
+
+- **Getters and setters** are written as in JS, `get name() T` and `set name(v T)`, and compile to
+  the same. They make one member of the class: it is read and assigned as a field, `c.area`. A
+  getter takes nothing and returns one value, a setter takes one value; when both are declared,
+  they have one type. A getter alone cannot be assigned, a setter alone cannot be read.
+- **A field and an accessor of a base class do not override each other:** in JS a field is set on
+  each instance and would hide the getter of the prototype, so a getter where the base has a field,
+  or a field where it has a getter, is an error.
+- **`readonly`** fields are assigned only by their value or in the constructor of their class,
+  `this.center = center`, as in TypeScript. Like visibility, it is checked by the compiler only and
+  does not get into JS.
+
+### Properties of constructor parameters
+
+A parameter of a constructor with `public`, `protected`, `private` or `readonly` is a field too,
+which the constructor assigns first, as in TypeScript:
+
+```go
+class User {
+    constructor(readonly id string, private name string) { }
+}
+```
+
+```js
+class User {
+  constructor(id, name) {
+    this.id = id;
+    this.name = name;
+  }
+}
+```
+
+In a derived class the fields are assigned right after `super(...)`. `readonly` alone makes a
+public field; elsewhere than in a constructor the modifiers are an error.
+
+### Abstract classes
+
+```go
+abstract class Shape {
+    abstract area() number
+
+    describe() string {
+        return `area: ${this.area()}`
+    }
+}
+
+class Square extends Shape {
+    constructor(private side number) {
+        super()
+    }
+
+    area() number {
+        return this.side ** 2
+    }
+}
+
+const s Shape = new Square(2)              // new Shape() is an error
+```
+
+- An **abstract class** has no instances of its own: `new Shape()` is an error, and its subclasses
+  make them. It is an ordinary class in JS.
+- An **abstract method** has no body; it does not get into JS. A class that is not abstract
+  implements the abstract methods of its bases, and only an abstract class declares them.
+  Getters and setters can be abstract too, `abstract get name() string`, fields cannot.
+- An abstract method is not `private`, which the subclasses that implement it could not see, nor
+  `static`, and `super.area()` cannot call it.
+- `abstract` is a name elsewhere: a keyword only before `class` and in a class.
 
 ### data class
 
@@ -2526,12 +2707,6 @@ types of other imports come from TypeScript declarations (section 10).
 
 ## 14. Not in v0
 
-- **`map[K]V`**, compiled to `Map`: `m[k]` → `m.get(k)`, `m[k] = v` → `m.set(k, v)`.
-- **Classes:** getters and setters, `readonly`, abstract classes, constructor parameter properties
-  (`constructor(private name string)`).
-- **`if` with an initializer:** `if const v, err = f(); err != null { }`.
-- **Labels** for `break`/`continue`.
-- **Regular expression literals** `/.../g`. For now, `new RegExp("...", "g")`.
 - **A WASM backend** for a subset of the language (numbers, arrays, classes).
 
 Planned next, around goroutines and what the browser has:

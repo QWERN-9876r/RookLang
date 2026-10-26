@@ -78,7 +78,9 @@ export function renamer(
     const result: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(node)) {
-      if (Array.isArray(value)) {
+      // Labels are not values: `outer: for` and `break outer` keep their names.
+      if (key === 'label') result[key] = value;
+      else if (Array.isArray(value)) {
         result[key] = value.map((item: unknown) => (isNode(item) ? copy(item, hidden) : item));
       } else {
         result[key] = isNode(value) ? copy(value, hidden) : value;
@@ -154,7 +156,7 @@ export function renamer(
           {
             ...node,
             params: node.params.map((param) => copy(param, inner)),
-            body: copy(node.body, inner),
+            body: node.body && copy(node.body, inner),
           } as T,
           node,
         );

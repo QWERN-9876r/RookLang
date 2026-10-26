@@ -97,6 +97,24 @@ export class Dog extends Animal {
         return "woof"
     }
 }
+
+export abstract class Shape {
+    readonly sides number
+
+    constructor(sides number, private readonly label string) {
+        this.sides = sides
+    }
+
+    abstract area() number
+
+    get name() string {
+        return this.label
+    }
+
+    set name(value string) {
+        console.log(value)
+    }
+}
 `;
 
 let dir: string;
@@ -175,6 +193,14 @@ export declare class Animal {
 export declare class Dog extends Animal {
     speak(): string;
 }
+export declare abstract class Shape {
+    readonly sides: number;
+    private readonly label;
+    constructor(sides: number, label: string);
+    abstract area(): number;
+    get name(): string;
+    set name(value: string);
+}
 `);
   });
 
@@ -202,13 +228,22 @@ console.log(q, error, head, filter, box, top, sound, x, version);
 
   it('let TypeScript find type errors in code that uses the module', () => {
     expect(
-      typescriptErrors(`import { filterTodos, Stack } from "./todos.js";
+      typescriptErrors(`import { filterTodos, Shape, Stack } from "./todos.js";
 filterTodos([], "everything");
 new Stack<number>().push("a");
+class Square extends Shape {
+    area(): number { return this.sides }
+}
+const square = new Square(4, "square");
+square.sides = 5;
+const name: string = square.name;
+new Shape(3, "triangle");
 `),
     ).toEqual([
       `Argument of type '"everything"' is not assignable to parameter of type 'Filter'.`,
       `Argument of type 'string' is not assignable to parameter of type 'number'.`,
+      `Cannot assign to 'sides' because it is a read-only property.`,
+      `Cannot create an instance of an abstract class.`,
     ]);
   });
 });

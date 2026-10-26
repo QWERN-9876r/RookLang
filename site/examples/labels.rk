@@ -1,0 +1,28 @@
+func parse(text string) (number, ?error) {
+    const n = parseInt(text)
+    if isNaN(n) {
+        return 0, error(`not a number: ${text}`)
+    }
+    return n, null
+}
+
+// The variables of the initializer are seen in every branch, and not after the if
+for text in ["12", "guava"] {
+    if const n, err = parse(text); err != null {
+        console.log(err.message)
+    } else {
+        console.log(n * 2)
+    }
+}
+
+// A label lets break and continue leave the loop around the one they are in
+const grid = [[1, 2, 3], [4, -1, 6], [7, 8, 9]]
+outer: for row in grid {
+    for v in row {
+        if v < 0 {
+            console.log("a negative number: stop")
+            break outer
+        }
+        console.log(v)
+    }
+}

@@ -314,6 +314,11 @@ export abstract class Emitter {
     return rename ? `${name}$` : name;
   }
 
+  /** Labels are names of their own in JS, which cannot be reserved words either. */
+  protected label(name: ast.Identifier): string {
+    return JS_RESERVED.has(name.name) ? `${name.name}$` : name.name;
+  }
+
   protected params(params: ast.Parameter[]): string {
     // Several `_` parameters would be duplicate names in JS.
     const blanks = params.filter((param) => param.name.name === '_').length;

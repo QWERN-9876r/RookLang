@@ -94,6 +94,15 @@ export interface Member {
   visibility: Visibility;
   /** The class that declares the member, for visibility checks. */
   owner: ClassInfo | null;
+  /** `readonly id string`: only its value and the constructor of its class assign it. */
+  readonly?: true;
+  /**
+   * A getter, a setter or both, as in `get area() number`: the member is a value of its type, which
+   * a getter alone cannot be assigned and a setter alone cannot be read.
+   */
+  accessor?: 'get' | 'set' | 'both';
+  /** `abstract area() number`: a subclass that is not abstract implements it. */
+  abstract?: true;
 }
 
 /** Interfaces, object type literals and the types of object literals. */
@@ -134,6 +143,8 @@ export interface ClassInfo {
   /** Type arguments for a generic base class: the defaults of a class from a `.d.ts`. */
   superArgs?: Type[];
   ctorVisibility: Visibility;
+  /** `abstract class Shape`: `new` makes only instances of its subclasses. */
+  abstract?: boolean;
   /**
    * `data class Point`: its fields are data, and its instances go to other threads with their
    * class. False for the other classes of Rook; not set for those of a `.d.ts`.

@@ -69,6 +69,11 @@ export interface Parameter extends NodeBase {
    * properties, which `{...attrs}` puts on one of its elements.
    */
   rest?: true;
+  /**
+   * `constructor(private name string)`: the parameter is a property too, which the constructor
+   * assigns, as in TypeScript.
+   */
+  property?: { visibility: Visibility; readonly?: true };
 }
 
 /**
@@ -143,6 +148,8 @@ export interface ClassDeclaration extends NodeBase {
   exported: boolean;
   /** `data class Point`: its fields are data, and its instances go to goroutines with the class. */
   data: boolean;
+  /** `abstract class Shape`: it has no instances of its own, only those of its subclasses. */
+  abstract?: true;
   name: Identifier;
   typeParams: TypeParameter[];
   /** An expression, as in JS, so that classes from JS modules can be extended. */
@@ -161,6 +168,8 @@ export interface FieldDeclaration extends NodeBase {
   /** `public` when no modifier is written. */
   visibility: Visibility;
   isStatic: boolean;
+  /** `readonly id string`: assigned only by its value or in the constructor of its class. */
+  readonly?: true;
   name: Identifier;
   type: TypeNode | null;
   value: Expression | null;
@@ -181,10 +190,15 @@ export interface MethodDeclaration extends NodeBase {
   isStatic: boolean;
   /** `async load() User`, like `async func`. */
   async?: true;
+  /** `get area() number { ... }` and `set area(v number) { ... }`, as in JS. */
+  accessor?: 'get' | 'set';
+  /** `abstract area() number`: no body, each subclass that is not abstract implements it. */
+  abstract?: true;
   name: Identifier;
   params: Parameter[];
   results: TypeNode[];
-  body: BlockStatement;
+  /** `null` for an abstract method. */
+  body: BlockStatement | null;
 }
 
 /** `interface Shape { name string; area() number }` */

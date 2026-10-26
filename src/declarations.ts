@@ -1,6 +1,6 @@
 import type * as ast from './ast.ts';
 import type { CheckResult } from './checker/checker.ts';
-import type { FunctionType, ObjectType, TypeParam } from './checker/types.ts';
+import type { FunctionType, ObjectType, Type, TypeParam } from './checker/types.ts';
 import { JS_RESERVED } from './codegen/syntax.ts';
 import { generatorType, property, resultType, tsType } from './ts-types.ts';
 
@@ -190,7 +190,7 @@ class DeclarationPrinter {
       switch (member.kind) {
         case 'FieldDeclaration': {
           const found = (member.isStatic ? info.statics : info.members).get(member.name.name);
-          const modifiers = this.modifiers(member.visibility, member.isStatic);
+          const modifiers = this.modifiers(member.visibility, member.isStatic, member.readonly);
 
           // As in the declaration files TypeScript writes, private members have no type.
           if (member.visibility === 'private') lines.push(`${modifiers}${member.name.name};`);
@@ -201,6 +201,21 @@ class DeclarationPrinter {
         case 'ConstructorDeclaration': {
           const modifiers = this.modifiers(member.visibility, false);
 
+          // The parameters that are properties are declared as fields, as TypeScript writes them.
+          member.params.forEach((param, i) => {
+            const { property } = param;
+            const type = info.ctor?.params[i];
+
+            if (!property) return;
+
+            const field = `${this.modifiers(property.visibility, false, property.readonly)}${param.name.name}`;
+
+            lines.push(
+              property.visibility === 'private' || !type
+                ? `${field};`
+                : `${field}: ${tsType(type)};`,
+            );
+          });
           if (info.ctor) {
             lines.push(`${modifiers}constructor${parameters(member.params, info.ctor)};`);
           }
@@ -210,9 +225,13 @@ class DeclarationPrinter {
 
         case 'MethodDeclaration': {
           const found = (member.isStatic ? info.statics : info.members).get(member.name.name);
-          const modifiers = this.modifiers(member.visibility, member.isStatic);
+          const modifiers =
+            this.modifiers(member.visibility, member.isStatic) +
+            (member.abstract ? 'abstract ' : '');
 
-          if (member.visibility === 'private') lines.push(`${modifiers}${member.name.name}();`);
+          if (member.accessor) lines.push(accessor(member, modifiers, found?.type));
+          else if (member.visibility === 'private')
+            lines.push(`${modifiers}${member.name.name}();`);
           else if (found?.type.kind === 'function') {
             lines.push(
               `${modifiers}${member.name.name}${this.signature(member.params, found.type)};`,
@@ -225,14 +244,17 @@ class DeclarationPrinter {
     }
 
     this.lines.push(
-      `${exported}declare class ${jsName(node.name.name)}${this.typeParams(info.typeParams)}${heritage} {`,
+      `${exported}declare ${node.abstract ? 'abstract ' : ''}class ${jsName(node.name.name)}${this.typeParams(info.typeParams)}${heritage} {`,
       ...lines.map((line) => `    ${line}`),
       '}',
     );
   }
 
-  private modifiers(visibility: ast.Visibility, isStatic: boolean): string {
-    return `${visibility === 'public' ? '' : `${visibility} `}${isStatic ? 'static ' : ''}`;
+  private modifiers(visibility: ast.Visibility, isStatic: boolean, readonly?: true): string {
+    return (
+      `${visibility === 'public' ? '' : `${visibility} `}${isStatic ? 'static ' : ''}` +
+      (readonly ? 'readonly ' : '')
+    );
   }
 
   /** `<T, U extends Shape>` */
@@ -263,6 +285,20 @@ function parameters(params: readonly ast.Parameter[], type: FunctionType): strin
   });
 
   return `(${list.join(', ')})`;
+}
+
+/** `get area(): number;` or `set area(v: number);`; a private one, as TypeScript writes it, untyped. */
+function accessor(node: ast.MethodDeclaration, modifiers: string, type: Type | undefined): string {
+  const head = `${modifiers}${node.accessor} ${node.name.name}`;
+  const param = jsName(node.params[0]?.name.name ?? 'value');
+
+  if (node.visibility === 'private' || !type) {
+    return node.accessor === 'get' ? `${head}();` : `${head}(${param});`;
+  }
+
+  return node.accessor === 'get'
+    ? `${head}(): ${tsType(type)};`
+    : `${head}(${param}: ${tsType(type)});`;
 }
 
 /** `Base` or `events.EventEmitter` in `extends`; other expressions cannot be written in types. */

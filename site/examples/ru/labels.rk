@@ -1,0 +1,28 @@
+func parse(text string) (number, ?error) {
+    const n = parseInt(text)
+    if isNaN(n) {
+        return 0, error(`не число: ${text}`)
+    }
+    return n, null
+}
+
+// Переменные инициализатора видны во всех ветках, но не после if
+for text in ["12", "гуава"] {
+    if const n, err = parse(text); err != null {
+        console.log(err.message)
+    } else {
+        console.log(n * 2)
+    }
+}
+
+// Метка позволяет break и continue выйти из цикла, внутри которого стоит текущий
+const grid = [[1, 2, 3], [4, -1, 6], [7, 8, 9]]
+outer: for row in grid {
+    for v in row {
+        if v < 0 {
+            console.log("отрицательное число: стоп")
+            break outer
+        }
+        console.log(v)
+    }
+}

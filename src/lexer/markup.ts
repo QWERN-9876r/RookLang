@@ -1,16 +1,14 @@
 import { LiteralLexer } from './literals.ts';
-import { ENDS_VALUE, JSX_NAME, decodeEntities, type MarkupMode } from './tables.ts';
+import { JSX_NAME, decodeEntities, type MarkupMode } from './tables.ts';
 
 // Markup: where an element starts, tags with their attributes, and text content.
 
 export abstract class MarkupLexer extends LiteralLexer {
   /** `<` starts markup where a value is expected and is "less than" after a value. */
   protected startsElement(): boolean {
-    const last = this.tokens.at(-1);
-
-    if (last && ENDS_VALUE.has(last.kind)) return false;
+    if (this.lastEndsValue()) return false;
     // `chan<number>(10)` makes a channel: its `<` opens the type of the values.
-    if (last?.kind === 'chan') return false;
+    if (this.tokens.at(-1)?.kind === 'chan') return false;
 
     const next = this.text[this.pos + 1];
 

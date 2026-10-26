@@ -4,7 +4,7 @@ import type { StringToken, Token, TokenKind } from '../lexer/token.ts';
 import { STATEMENT_KEYWORDS, BRACKETS, type Context, ParseError, describe } from './syntax.ts';
 
 // The parser is a chain of layers, one per area: base → simple statements → statements → control
-// flow → declarations → decorators → classes → types → expressions → literals → markup → Parser
+// flow → jumps → declarations → decorators → classes → types → expressions → literals → markup → Parser
 // (parser.ts). Statements, expressions and markup contain each other, so methods of later layers
 // that earlier ones call are declared here as abstract.
 //
@@ -14,6 +14,10 @@ export abstract class ParserBase {
   // Implemented by later layers: the checking of statements, expressions and markup calls each other.
 
   protected abstract parseBreakOrContinue(): ast.BreakStatement | ast.ContinueStatement;
+
+  protected abstract parseLabeled(): ast.Statement;
+
+  protected abstract parseReturn(): ast.ReturnStatement;
 
   protected abstract parseDefer(): ast.DeferStatement;
 
@@ -133,6 +137,7 @@ export abstract class ParserBase {
     noObjectLiteral: false,
     inComponent: false,
     inMarkup: false,
+    labels: [],
   };
 
   /** Expressions written in parentheses, which the tree itself does not record. */

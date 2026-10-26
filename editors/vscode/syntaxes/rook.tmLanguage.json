@@ -12,7 +12,9 @@
         { "include": "source.rook.css#style" },
         { "include": "#decorators" },
         { "include": "source.rook.markup#markup" },
-        { "include": "#declarations" },
+        { "include": "#regexp" },
+        { "include": "#label" },
+        { "include": "source.rook.declarations#declarations" },
         { "include": "#keywords" },
         { "include": "#types" },
         { "include": "#numbers" },
@@ -100,112 +102,19 @@
       }
     },
 
-    "declarations": {
-      "patterns": [
-        {
-          "match": "(?<![\\w$])(?<![^.]\\.)(func)\\s+([A-Za-z_$][\\w$]*)",
-          "captures": {
-            "1": { "name": "storage.type.function.rook" },
-            "2": { "name": "entity.name.function.rook" }
-          }
-        },
-        {
-          "comment": "`dec` is a keyword only in a declaration: `dec visible(`.",
-          "match": "(?<![\\w$])(?<![^.]\\.)(dec)\\s+([A-Za-z_$][\\w$]*)(?=\\s*\\()",
-          "captures": {
-            "1": { "name": "storage.type.decorator.rook" },
-            "2": { "name": "entity.name.function.decorator.rook" }
-          }
-        },
-        {
-          "comment": "`needs` is a keyword only after the parameters of a decorator: `dec cartBadge() needs cart, auth {`.",
-          "begin": "(?<=\\))\\s*(needs)(?=\\s+[A-Za-z_$])",
-          "beginCaptures": { "1": { "name": "storage.modifier.needs.rook" } },
-          "end": "(?=\\{)",
-          "patterns": [
-            { "name": "entity.name.function.decorator.rook", "match": "[A-Za-z_$][\\w$]*" },
-            { "name": "punctuation.separator.comma.rook", "match": "," }
-          ]
-        },
-        {
-          "match": "(?<![\\w$])(?<![^.]\\.)(comp)\\s+([A-Za-z_$][\\w$]*)",
-          "captures": {
-            "1": { "name": "storage.type.component.rook" },
-            "2": { "name": "entity.name.type.component.rook" }
-          }
-        },
-        {
-          "match": "(?<![\\w$])(?<![^.]\\.)(class)\\s+([A-Za-z_$][\\w$]*)",
-          "captures": {
-            "1": { "name": "storage.type.class.rook" },
-            "2": { "name": "entity.name.type.class.rook" }
-          }
-        },
-        {
-          "comment": "Separate from `class Name`: type parameters can come between, `class Stack<T> implements Source<T>`.",
-          "match": "(?<![\\w$])(?<![^.]\\.)(extends)\\s+([A-Za-z_$][\\w$.]*)",
-          "captures": {
-            "1": { "name": "storage.modifier.rook" },
-            "2": { "name": "entity.other.inherited-class.rook" }
-          }
-        },
-        {
-          "name": "storage.modifier.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)implements(?![\\w$])"
-        },
-        {
-          "match": "(?<![\\w$])(?<![^.]\\.)(interface|type)\\s+([A-Za-z_$][\\w$]*)",
-          "captures": {
-            "1": { "name": "storage.type.rook" },
-            "2": { "name": "entity.name.type.rook" }
-          }
-        },
-        {
-          "comment": "`mount() {` in a component, like `state`, is a keyword only at the start of a statement.",
-          "match": "^\\s*(mount)(?=\\s*\\(\\s*\\)\\s*\\{)",
-          "captures": {
-            "1": { "name": "storage.type.mount.rook" }
-          }
-        },
-        {
-          "comment": "`effect {` in a component, like `mount() {`.",
-          "match": "^\\s*(effect)(?=\\s*\\{)",
-          "captures": {
-            "1": { "name": "storage.type.effect.rook" }
-          }
-        },
-        {
-          "comment": "`state`, `derived` and `ref` are keywords only at the start of a statement, followed by a name; a decorator's state may be `public state`.",
-          "match": "^\\s*(?:(public)\\s+)?(state|derived|ref)(?=\\s+[A-Za-z_$])",
-          "captures": {
-            "1": { "name": "storage.modifier.rook" },
-            "2": { "name": "storage.type.state.rook" }
-          }
-        },
-        {
-          "comment": "Modifiers of class members.",
-          "match": "^\\s*((?:(?:static|private|protected|public)\\s+)+)(?=[A-Za-z_$])",
-          "captures": { "1": { "name": "storage.modifier.rook" } }
-        },
-        {
-          "match": "(?<![\\w$])(?<![^.]\\.)(from)(?=\\s*[\"'])",
-          "captures": { "1": { "name": "keyword.control.import.rook" } }
-        },
-        {
-          "match": "(\\*)\\s*(as)(?![\\w$])",
-          "captures": {
-            "1": { "name": "constant.language.import-export-all.rook" },
-            "2": { "name": "keyword.control.as.rook" }
-          }
-        }
-      ]
-    },
-
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.conditional.rook",
           "match": "(?<![\\w$])(?<![^.]\\.)(?:if|else|switch|case|default|select(?=\\s*\\{))(?![\\w$])"
+        },
+        {
+          "comment": "`break outer`, `continue outer`: the label of an enclosing statement.",
+          "match": "(?<![\\w$])(?<![^.]\\.)(break|continue)[ \\t]+([A-Za-z_$][\\w$]*)",
+          "captures": {
+            "1": { "name": "keyword.control.loop.rook" },
+            "2": { "name": "entity.name.label.rook" }
+          }
         },
         {
           "name": "keyword.control.loop.rook",
@@ -241,9 +150,9 @@
           "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|type|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
         },
         {
-          "comment": "`extends`, and `data` only before `class`: `data class Point`.",
+          "comment": "`extends`, and `data` and `abstract` only before `class`: `abstract data class Point`.",
           "name": "storage.modifier.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)(?:extends(?![\\w$])|data(?=\\s+class(?![\\w$])))"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:extends(?![\\w$])|data(?=\\s+class(?![\\w$]))|abstract(?=\\s+(?:data\\s+)?class(?![\\w$])))"
         },
         {
           "name": "keyword.operator.new.rook",
@@ -321,6 +230,21 @@
           "match": "(?<![\\w$])(?<![^.]\\.)[A-Z][\\w$]*"
         }
       ]
+    },
+
+    "regexp": {
+      "comment": "`/ab+c/gi` where a value cannot end: after an operator, a bracket that opens, `return`, `case`, `if` or `in`, as the lexer decides; after a value `/` divides.",
+      "match": "(?:^|(?<=[=(,:\\[!&|?{};+\\-*%~^])|(?<=\\breturn|\\bcase|\\bif|\\bin))\\s*(/(?![/*])(?:[^/\\\\\\[\\n]|\\\\.|\\[(?:[^\\]\\\\\\n]|\\\\.)*\\])+/[A-Za-z]*)",
+      "captures": { "1": { "name": "string.regexp.rook" } }
+    },
+
+    "label": {
+      "comment": "`outer: for`: a label at the start of a line, before for, switch or select (or alone in its line).",
+      "match": "^\\s*(?!(?:case|default)(?![\\w$]))([A-Za-z_$][\\w$]*)\\s*(:)(?=\\s*(?:(?:for|switch|select)(?![\\w$])|$))",
+      "captures": {
+        "1": { "name": "entity.name.label.rook" },
+        "2": { "name": "punctuation.separator.label.rook" }
+      }
     },
 
     "numbers": {

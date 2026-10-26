@@ -4,6 +4,7 @@ import onigUrl from 'vscode-oniguruma/release/onig.wasm?url';
 import * as textmate from 'vscode-textmate';
 import mainGrammar from '../../../editors/vscode/syntaxes/rook.tmLanguage.json?raw';
 import cssGrammar from '../../../editors/vscode/syntaxes/rook-css.tmLanguage.json?raw';
+import declarationsGrammar from '../../../editors/vscode/syntaxes/rook-declarations.tmLanguage.json?raw';
 import markupGrammar from '../../../editors/vscode/syntaxes/rook-markup.tmLanguage.json?raw';
 
 // Highlighting in the editor of the playground: the grammar of the VS Code extension, run by the
@@ -11,9 +12,10 @@ import markupGrammar from '../../../editors/vscode/syntaxes/rook-markup.tmLangua
 // scopes become the classes of site/src/highlight.rk, so the playground has the colors of the
 // examples (theme.ts).
 
-/** The grammar of a scope; the main one includes those of markup and styles, as in VS Code. */
+/** The grammar of a scope; the main one includes those of declarations, markup and styles, as in VS Code. */
 const GRAMMARS: Record<string, string> = {
   'source.rook': mainGrammar,
+  'source.rook.declarations': declarationsGrammar,
   'source.rook.markup': markupGrammar,
   'source.rook.css': cssGrammar,
 };

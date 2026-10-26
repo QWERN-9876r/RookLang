@@ -9,6 +9,7 @@ export type Expression =
   | NumberLiteral
   | BigIntLiteral
   | StringLiteral
+  | RegExpLiteral
   | TemplateLiteral
   | BooleanLiteral
   | NullLiteral
@@ -154,6 +155,14 @@ export interface StringLiteral extends NodeBase {
   value: string;
   /** Source text including quotes. */
   raw: string;
+}
+
+/** `/ab+c/gi`, which JS writes the same way. */
+export interface RegExpLiteral extends NodeBase {
+  kind: 'RegExpLiteral';
+  /** As it is written, between the slashes. */
+  pattern: string;
+  flags: string;
 }
 
 /** `` `Hello, ${name}!` ``: `quasis` always has one element more than `expressions`. */

@@ -19,9 +19,7 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
 
   protected abstract ifStatement(node: ast.IfStatement): string;
 
-  protected abstract switchStatement(node: ast.SwitchStatement, discriminant: ast.Expression): void;
-
-  protected abstract taglessSwitch(node: ast.SwitchStatement): void;
+  protected abstract switchStatement(node: ast.SwitchStatement): void;
 
   protected abstract tryStatement(node: ast.TryStatement): string;
 
@@ -221,19 +219,18 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
         break;
 
       case 'SwitchStatement':
-        if (node.discriminant === null) this.taglessSwitch(node);
-        else this.switchStatement(node, node.discriminant);
+        this.switchStatement(node);
         break;
 
       case 'BreakStatement': {
-        const label = this.fn.breakTargets.at(-1);
+        const label = node.label ? this.label(node.label) : this.fn.breakTargets.at(-1);
 
         this.line(label ? `break ${label};` : 'break;');
         break;
       }
 
       case 'ContinueStatement':
-        this.line('continue;');
+        this.line(node.label ? `continue ${this.label(node.label)};` : 'continue;');
         break;
 
       case 'ThrowStatement':

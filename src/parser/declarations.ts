@@ -1,10 +1,10 @@
 import type * as ast from '../ast.ts';
-import { ControlFlowParser } from './control-flow.ts';
-import { describe, FUNCTION_BODY } from './syntax.ts';
+import { JumpParser } from './jumps.ts';
+import { describe, FUNCTION_BODY, VISIBILITIES } from './syntax.ts';
 
 // Imports and exports, functions and components with their parameters and results.
 
-export abstract class DeclarationParser extends ControlFlowParser {
+export abstract class DeclarationParser extends JumpParser {
   protected override parseImport(): ast.ImportDeclaration {
     const start = this.next().start;
 
@@ -144,12 +144,14 @@ export abstract class DeclarationParser extends ControlFlowParser {
 
   /**
    * `(a, b number, c string)`. Names without a type take the type of the next typed name, as in
-   * Go; only arrow functions may leave types out entirely.
+   * Go; only arrow functions may leave types out entirely. The parameters of a constructor can be
+   * properties: `(private name string)`.
    */
   protected parseParams(
     typesOptional: boolean,
     allowDefaults = false,
     allowRest = false,
+    allowProperties = false,
   ): ast.Parameter[] {
     this.expect('(');
 
@@ -162,11 +164,20 @@ export abstract class DeclarationParser extends ControlFlowParser {
         break;
       }
 
+      const paramStart = this.peek().start;
+      const property = this.parsePropertyModifiers(allowProperties);
       const name = this.parseIdentifier('parameter name');
       const type = this.canStartType() ? this.parseType() : null;
       const defaultValue = allowDefaults && this.accept('=') ? this.parseExpression() : null;
 
-      params.push({ kind: 'Parameter', name, type, defaultValue, ...this.span(name.start) });
+      params.push({
+        kind: 'Parameter',
+        name,
+        type,
+        defaultValue,
+        ...(property ? { property } : {}),
+        ...this.span(paramStart),
+      });
       if (type === null) {
         untyped++;
       } else {
@@ -185,6 +196,42 @@ export abstract class DeclarationParser extends ControlFlowParser {
     }
 
     return params;
+  }
+
+  /** `private`, `readonly` or both before a parameter that is a property of its class. */
+  private parsePropertyModifiers(allowed: boolean): ast.Parameter['property'] | null {
+    let visibility: ast.Visibility | null = null;
+    let readonly = false;
+    const start = this.peek().start;
+
+    // Elsewhere `readonly number` is a parameter named readonly, and `private x number` an error.
+    while (
+      this.check('Identifier') &&
+      (VISIBILITIES.has(this.peek().text) || this.peek().text === 'readonly') &&
+      this.peek(1).kind === 'Identifier' &&
+      (allowed || this.peek(2).kind === 'Identifier')
+    ) {
+      const modifier = this.next();
+
+      if (modifier.text === 'readonly') {
+        if (readonly) this.error('duplicate "readonly" modifier', modifier.start, modifier.end);
+        readonly = true;
+      } else {
+        if (visibility) this.error('duplicate visibility modifier', modifier.start, modifier.end);
+        visibility = modifier.text as ast.Visibility;
+      }
+    }
+
+    if (visibility === null && !readonly) return null;
+    if (!allowed) {
+      this.error(
+        'only the parameters of a constructor can be properties, e.g. constructor(private name string)',
+        start,
+        this.span(start).end,
+      );
+    }
+
+    return { visibility: visibility ?? 'public', ...(readonly ? { readonly: true } : {}) };
   }
 
   /** `...attrs`: the attributes that a component passes on to one of its elements. */

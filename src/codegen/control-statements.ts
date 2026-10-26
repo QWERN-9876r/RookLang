@@ -3,7 +3,7 @@ import { isChan } from '../checker/channel.ts';
 import { asyncIterated, isMap } from '../checker/iterables.ts';
 import { isTopic, typedArrayOf } from '../checker/types.ts';
 import { declaredIn } from '../names.ts';
-import { containsBreak } from '../walk.ts';
+import { containsBreak } from '../breaks.ts';
 import { declarationsOf, endsWithJump, type BindingKind } from './analysis.ts';
 import { SimpleStatementEmitter } from './simple-statements.ts';
 import { ARROW, BINARY, POSTFIX } from './syntax.ts';
@@ -15,6 +15,11 @@ const FIXED: ReadonlySet<BindingKind> = new Set(['const', 'import', 'loop']);
 
 export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
   protected override ifStatement(node: ast.IfStatement): string {
+    const { init } = node;
+
+    if (init)
+      return this.withInit(init, () => this.line(this.ifStatement({ ...node, init: null })));
+
     let text = `if (${this.expression(node.condition, 0)}) ${this.blockStatement(node.consequent)}`;
 
     if (node.alternate?.kind === 'IfStatement') {
@@ -27,6 +32,24 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
     }
 
     return text;
+  }
+
+  /**
+   * `if const v = f(); v > 0 { }` → `{ const v = f(); if (v > 0) { } }`: a block keeps the
+   * variables of the initializer to the statement, which `emit` writes.
+   */
+  private withInit(init: ast.VariableDeclaration, emit: () => void): string {
+    return this.block(() =>
+      this.withScope(declarationsOf([init]), () => {
+        this.statement(init);
+        this.withHoisting(true, emit);
+      }),
+    );
+  }
+
+  /** `outer: for (...)`: the label goes on the loop itself, after what is hoisted before it. */
+  private labeled(node: ast.LabeledStatement, text: string): string {
+    return node.label ? `${this.label(node.label)}: ${text}` : text;
   }
 
   protected loopBody(body: ast.BlockStatement): string {
@@ -48,12 +71,14 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       ]);
 
       if (node.init === null && node.update === null) {
-        this.line(`while (${condition || 'true'}) ${this.loopBody(node.body)}`);
+        this.line(this.labeled(node, `while (${condition || 'true'}) ${this.loopBody(node.body)}`));
 
         return;
       }
 
-      this.line(`for (${init}; ${condition}; ${update}) ${this.loopBody(node.body)}`);
+      this.line(
+        this.labeled(node, `for (${init}; ${condition}; ${update}) ${this.loopBody(node.body)}`),
+      );
     });
   }
 
@@ -96,7 +121,10 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       // An async iterable, such as a stream of Node, gives its values as their Promises do.
       if (iterable && asyncIterated(iterable) !== null) {
         this.line(
-          `for await (const ${value} of ${this.expression(node.iterable, POSTFIX)}) ${this.loopBody(node.body)}`,
+          this.labeled(
+            node,
+            `for await (const ${value} of ${this.expression(node.iterable, POSTFIX)}) ${this.loopBody(node.body)}`,
+          ),
         );
 
         return;
@@ -105,7 +133,10 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       // A channel gives its values as they come, until it is closed, and so does a topic.
       if (iterable && (isChan(iterable) || isTopic(iterable))) {
         this.line(
-          `for await (const ${value} of $$Channel.range(${this.receivedFrom(node.iterable)})) ${this.loopBody(node.body)}`,
+          this.labeled(
+            node,
+            `for await (const ${value} of $$Channel.range(${this.receivedFrom(node.iterable)})) ${this.loopBody(node.body)}`,
+          ),
         );
 
         return;
@@ -153,7 +184,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
         head = `const ${this.pair(node.key, node.value)} of ${this.expression(node.iterable, POSTFIX)}.entries()`;
       }
 
-      this.line(`for (${head}) ${this.loopBody(node.body)}`);
+      this.line(this.labeled(node, `for (${head}) ${this.loopBody(node.body)}`));
     });
   }
 
@@ -189,14 +220,22 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       }),
     );
 
-    this.line(`for (let ${key} = 0${init}; ${key} < ${items}.length; ${key}++) ${body}`);
+    this.line(
+      this.labeled(node, `for (let ${key} = 0${init}; ${key} < ${items}.length; ${key}++) ${body}`),
+    );
+  }
+
+  protected override switchStatement(node: ast.SwitchStatement): void {
+    const { init, discriminant } = node;
+
+    if (init) {
+      this.line(this.withInit(init, () => this.switchStatement({ ...node, init: null })));
+    } else if (discriminant === null) this.taglessSwitch(node);
+    else this.valueSwitch(node, discriminant);
   }
 
   /** Each `case` ends with an implicit `break`; a case with declarations gets its own block. */
-  protected override switchStatement(
-    node: ast.SwitchStatement,
-    discriminant: ast.Expression,
-  ): void {
+  private valueSwitch(node: ast.SwitchStatement, discriminant: ast.Expression): void {
     const head = `switch (${this.expression(discriminant, 0)})`;
     const body = this.withBreakTarget(null, () =>
       this.block(() => {
@@ -229,7 +268,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       }),
     );
 
-    this.line(`${head} ${body}`);
+    this.line(this.labeled(node, `${head} ${body}`));
   }
 
   /**
@@ -286,19 +325,21 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       this.line(`switch ($$case) ${body}`);
     });
 
-    this.line(select);
+    this.line(this.labeled(node, select));
   }
 
   /**
    * `switch { case cond: ... }` becomes an if/else chain. A `break` inside it must leave the
    * switch, not an enclosing loop, so then the chain gets a label to break to.
    */
-  protected override taglessSwitch(node: ast.SwitchStatement): void {
+  private taglessSwitch(node: ast.SwitchStatement): void {
     const cases = node.cases.filter((switchCase) => switchCase.tests.length > 0);
     const fallback = node.cases.find((switchCase) => switchCase.tests.length === 0);
-    const label = node.cases.some((switchCase) => containsBreak(switchCase.body))
-      ? `$$switch${++this.labels}`
-      : null;
+    const label = node.label
+      ? this.label(node.label)
+      : node.cases.some((switchCase) => containsBreak(switchCase.body))
+        ? `$$switch${++this.labels}`
+        : null;
 
     const text = this.withBreakTarget(label, () => {
       const caseBlock = (body: ast.Statement[]) => this.block(() => this.blockStatements(body));

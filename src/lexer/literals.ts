@@ -10,9 +10,75 @@ import {
 } from './tables.ts';
 import type { StringKind } from './token.ts';
 
-// Numbers, strings, template strings and escapes.
+// Numbers, strings, template strings, regular expressions and escapes.
+
+/** The flags of a regular expression, each at most once. */
+const FLAGS = /^(?!.*(.).*\1)[dgimsuvy]*$/;
 
 export abstract class LiteralLexer extends LexerBase {
+  /**
+   * `/ab+c/gi`: the pattern goes up to a `/` that is not escaped or inside `[...]`, on one line,
+   * as in JS. JS checks the pattern when it loads the module, so an invalid one is an error here.
+   */
+  protected scanRegExp(start: number): void {
+    const t = this.text;
+    let pos = start + 1;
+    let inClass = false;
+
+    while (pos < t.length && t[pos] !== '\n' && (inClass || t[pos] !== '/')) {
+      if (t[pos] === '\\' && t[pos + 1] !== '\n') pos++;
+      else if (t[pos] === '[') inClass = true;
+      else if (t[pos] === ']') inClass = false;
+      pos++;
+    }
+
+    const pattern = t.slice(start + 1, pos);
+
+    if (t[pos] !== '/') {
+      this.error('unterminated regular expression: end it with "/"', start, pos);
+      this.tokens.push({
+        kind: 'RegExp',
+        text: t.slice(start, pos),
+        value: pattern,
+        start,
+        end: pos,
+      });
+      this.pos = pos;
+
+      return;
+    }
+
+    IDENTIFIER.lastIndex = pos + 1;
+
+    const flags = IDENTIFIER.exec(t)?.[0] ?? '';
+    const end = pos + 1 + flags.length;
+
+    this.tokens.push({ kind: 'RegExp', text: t.slice(start, end), value: pattern, start, end });
+    this.pos = end;
+    if (!FLAGS.test(flags) || (flags.includes('u') && flags.includes('v'))) {
+      this.error(
+        `invalid flags "${flags}" of a regular expression: each of d, g, i, m, s, u, v and y goes once, and not u with v`,
+        pos + 1,
+        end,
+      );
+
+      return;
+    }
+
+    try {
+      new RegExp(pattern, flags);
+    } catch (error) {
+      // "Invalid regular expression: /(/: Unterminated group" → "unterminated group".
+      const reason = (error as Error).message.replace(/^.*: /, '');
+
+      this.error(
+        `invalid regular expression: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}`,
+        start,
+        end,
+      );
+    }
+  }
+
   protected scanNumber(start: number): void {
     const t = this.text;
     let pos = start;

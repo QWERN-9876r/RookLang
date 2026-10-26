@@ -31,6 +31,7 @@ import {
 
 export abstract class ControlFlowChecker extends StatementChecker {
   protected override checkIf(node: ast.IfStatement): void {
+    if (this.checkWithInit(node.init, () => this.checkIf({ ...node, init: null }))) return;
     this.checkCondition(node.condition);
 
     const before = this.flow;
@@ -82,7 +83,23 @@ export abstract class ControlFlowChecker extends StatementChecker {
     this.checkStatement(node);
   }
 
+  /**
+   * `if const v = f(); v > 0 { }`: the variables of the initializer are in a scope of their own,
+   * around every branch. Returns whether `check` checked the statement inside it.
+   */
+  private checkWithInit(init: ast.VariableDeclaration | null, check: () => void): boolean {
+    if (init === null) return false;
+    this.withScope(() => {
+      this.checkStatement(init);
+      check();
+    });
+
+    return true;
+  }
+
   protected override checkSwitch(node: ast.SwitchStatement): void {
+    if (this.checkWithInit(node.init, () => this.checkSwitch({ ...node, init: null }))) return;
+
     const discriminant = node.discriminant ? this.checkValue(node.discriminant) : null;
 
     this.dropNarrowing(assignedNames(node));

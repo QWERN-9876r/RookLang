@@ -14,5 +14,13 @@ export comp Classes() {
             класса.
         </p>
         <Example name="classes" />
+        <p>
+            Геттеры и сеттеры пишутся как в JS, через <code>get</code> и <code>set</code>, а читают
+            и присваивают их как поля. Поле <code>readonly</code> присваивается только в
+            конструкторе, а параметр конструктора с <code>private</code>, <code>public</code> или
+            {" "}<code>readonly</code> — ещё и поле. У класса <code>abstract</code> нет своих
+            экземпляров; у его абстрактных методов нет тела, их реализует каждый подкласс.
+        </p>
+        <Example name="class-members" />
     </>
 }

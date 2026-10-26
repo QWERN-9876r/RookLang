@@ -26,6 +26,9 @@ const JS_KEYWORDS = [
 
 const LITERALS = ["true", "false", "null", "undefined"]
 
+// Modifiers of class members and constructor parameters, before a name: private readonly id string
+const MODIFIERS = ["private", "protected", "static", "readonly"]
+
 // What follows public when it is a modifier: public state x, public func f(), public name string
 const PUBLIC_NEXT = ["Identifier", "const", "let", "func", "async"]
 
@@ -102,7 +105,7 @@ func tokenClass(tokens any, i number, language string) string {
     switch kind {
     case "Number", "BigInt":
         return "num"
-    case "String", "Template", "TemplateHead", "TemplateMiddle", "TemplateTail", "JsxString":
+    case "String", "RegExp", "Template", "TemplateHead", "TemplateMiddle", "TemplateTail", "JsxString":
         return "str"
     case "JsxText":
         return ""
@@ -116,7 +119,7 @@ func tokenClass(tokens any, i number, language string) string {
         }
         return "attr"
     case "Identifier":
-        if language != "js" && isMadeType(tokens, i) {
+        if language != "js" && isMadeType(tokens, i) || isAccessor(tokens, i) {
             return "kw"
         }
         return identifierClass(text, tokens[i + 1].kind, language)
@@ -150,9 +153,12 @@ func identifierClass(text string, next string, language string) string {
             (text == "effect" || text == "style" || text == "select") && next == "{" {
             return "kw"
         }
-        // data is a keyword only before class: data class Point
+        // data is a keyword only before class, data class Point, and so is abstract, also before
+        // a member: abstract area() number; the other modifiers before a member or a parameter
         if text == "dec" && next == "Identifier" || text == "public" && PUBLIC_NEXT.includes(next) ||
-            text == "data" && next == "class" {
+            text == "data" && next == "class" ||
+            text == "abstract" && (next == "class" || next == "Identifier") ||
+            MODIFIERS.includes(text) && next == "Identifier" {
             return "kw"
         }
         // value as Type, and delete before what it removes
@@ -178,6 +184,14 @@ func isMadeType(tokens any, i number) bool {
         return next.start == tokens[i].end
     }
     return next.kind == "Identifier" && next.text != "as" || MADE_TYPE_NEXT.includes(next.kind)
+}
+
+// get and set before the name of a method are a getter and a setter: get area() number; get() is a
+// method named get
+func isAccessor(tokens any, i number) bool {
+    const text = tokens[i].text
+    return (text == "get" || text == "set") && tokens[i + 1].kind == "Identifier" &&
+        tokens[i + 2].kind == "("
 }
 
 // @html-tag is the tokens @, html, - and tag, written without spaces.

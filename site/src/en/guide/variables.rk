@@ -54,5 +54,10 @@ export comp Variables() {
             types, such as <code>count as string</code>, are a compile error.
         </p>
         <Example name="maps" />
+        <p>
+            Regular expressions are written as in JS, <code>/ab+c/gi</code>, and the compiler
+            checks the pattern and the flags: <code>/(/</code> is a compile error.
+        </p>
+        <Example name="regexp" />
     </>
 }

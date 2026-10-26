@@ -114,7 +114,7 @@ export abstract class IteratorChecker extends GoForChecker {
       );
     }
 
-    this.checkYields(node.body, false);
+    if (node.body) this.checkYields(node.body, false);
   }
 
   /**

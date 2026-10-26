@@ -100,6 +100,10 @@ export abstract class ExpressionChecker extends FunctionChecker {
       case 'StringLiteral':
         return expectsLiteral(expected) ? literal(node.value) : STRING;
 
+      // A RegExp of lib.es5.d.ts; the playground, which has no lib files, does not know its members.
+      case 'RegExpLiteral':
+        return this.options.library?.type('RegExp') ?? ANY;
+
       case 'TemplateLiteral':
         for (const expression of node.expressions) this.checkValue(expression);
 

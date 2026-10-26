@@ -100,6 +100,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const { condition } = node;
 
     if (
+      node.init ||
       node.alternate ||
       node.consequent.body.length !== 1 ||
       only?.kind !== 'ReturnStatement' ||

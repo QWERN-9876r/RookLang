@@ -54,5 +54,10 @@ export comp Variables() {
             ошибка компиляции.
         </p>
         <Example name="maps" />
+        <p>
+            Регулярные выражения пишутся как в JS, <code>/ab+c/gi</code>, а компилятор проверяет
+            шаблон и флаги: <code>/(/</code> — ошибка компиляции.
+        </p>
+        <Example name="regexp" />
     </>
 }

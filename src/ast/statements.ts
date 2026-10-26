@@ -122,6 +122,8 @@ export interface ReturnStatement extends NodeBase {
 
 export interface IfStatement extends NodeBase {
   kind: 'IfStatement';
+  /** `if const v, err = f(); err != null { }`: its variables are seen in every branch, as in Go. */
+  init: VariableDeclaration | null;
   condition: Expression;
   consequent: BlockStatement;
   /** `else { ... }` or `else if ...`. */
@@ -137,6 +139,8 @@ export interface IfStatement extends NodeBase {
  */
 export interface ForStatement extends NodeBase {
   kind: 'ForStatement';
+  /** `outer: for { ... }`, for `break outer` and `continue outer` in a nested loop. */
+  label?: Identifier;
   init: SimpleStatement | null;
   condition: Expression | null;
   update: SimpleStatement | null;
@@ -149,6 +153,7 @@ export interface ForStatement extends NodeBase {
  */
 export interface ForInStatement extends NodeBase {
   kind: 'ForInStatement';
+  label?: Identifier;
   key: Identifier | null;
   value: Identifier;
   iterable: Expression;
@@ -159,6 +164,9 @@ export interface ForInStatement extends NodeBase {
 /** `switch cmd { ... }`, or `switch { ... }` without a discriminant as an if/else chain. */
 export interface SwitchStatement extends NodeBase {
   kind: 'SwitchStatement';
+  label?: Identifier;
+  /** `switch const kind = node.kind; kind { }`, as the initializer of `if`. */
+  init: VariableDeclaration | null;
   discriminant: Expression | null;
   cases: SwitchCase[];
 }
@@ -177,6 +185,7 @@ export interface SwitchCase extends NodeBase {
  */
 export interface SelectStatement extends NodeBase {
   kind: 'SelectStatement';
+  label?: Identifier;
   cases: SelectCase[];
 }
 
@@ -189,13 +198,20 @@ export interface SelectCase extends NodeBase {
   body: Statement[];
 }
 
+/** `break`, or `break outer`: the label of an enclosing loop, switch or select. */
 export interface BreakStatement extends NodeBase {
   kind: 'BreakStatement';
+  label?: Identifier;
 }
 
+/** `continue`, or `continue outer`: the label of an enclosing loop. */
 export interface ContinueStatement extends NodeBase {
   kind: 'ContinueStatement';
+  label?: Identifier;
 }
+
+/** The statements that can have a label. */
+export type LabeledStatement = ForStatement | ForInStatement | SwitchStatement | SelectStatement;
 
 export interface ThrowStatement extends NodeBase {
   kind: 'ThrowStatement';

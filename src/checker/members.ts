@@ -70,6 +70,16 @@ export abstract class MemberChecker extends DecoratorMemberChecker {
 
     if (node.kind === 'MemberExpression') {
       const member = this.findMember(object, node.property.name, node.property);
+      const { name } = node.property;
+
+      if (member !== 'any' && member?.accessor === 'set') {
+        this.error(`cannot read "${name}": it has a setter and no getter`, node.property);
+      } else if (member !== 'any' && member?.abstract && node.object.kind === 'SuperExpression') {
+        this.error(
+          `super.${name} is abstract in ${member.owner?.name ?? 'the base class'}: it has no code to run`,
+          node.property,
+        );
+      }
 
       return [member === 'any' ? ANY : (member?.type ?? UNKNOWN), shortCircuits];
     }

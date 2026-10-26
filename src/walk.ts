@@ -33,7 +33,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       visit(node.name);
       each(node.params);
       each(node.results);
-      visit(node.body);
+      optional(node.body);
       break;
 
     case 'Parameter':
@@ -154,6 +154,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       break;
 
     case 'IfStatement':
+      optional(node.init);
       visit(node.condition);
       visit(node.consequent);
       optional(node.alternate);
@@ -174,6 +175,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       break;
 
     case 'SwitchStatement':
+      optional(node.init);
       optional(node.discriminant);
       each(node.cases);
       break;
@@ -356,6 +358,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
     case 'NumberLiteral':
     case 'BigIntLiteral':
     case 'StringLiteral':
+    case 'RegExpLiteral':
     case 'TemplateElement':
     case 'BooleanLiteral':
     case 'NullLiteral':
@@ -363,37 +366,4 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
     case 'SuperExpression':
       break;
   }
-}
-
-/** Whether a `break` in these statements leaves the enclosing loop or switch. */
-export function containsBreak(statements: readonly ast.Statement[]): boolean {
-  let found = false;
-  const visit = (node: ast.Node): void => {
-    switch (node.kind) {
-      case 'BreakStatement':
-        found = true;
-
-        return;
-
-      // A `break` inside these belongs to them.
-      case 'ForStatement':
-      case 'ForInStatement':
-      case 'SwitchStatement':
-      case 'SelectStatement':
-      case 'FuncDeclaration':
-      case 'FuncExpression':
-      case 'ArrowFunction':
-      case 'ClassDeclaration':
-      case 'MountStatement':
-      case 'EffectStatement':
-        return;
-
-      default:
-        forEachChild(node, visit);
-    }
-  };
-
-  statements.forEach(visit);
-
-  return found;
 }

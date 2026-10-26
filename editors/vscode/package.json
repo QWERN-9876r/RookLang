@@ -64,6 +64,10 @@
         "path": "./syntaxes/rook-markup.tmLanguage.json"
       },
       {
+        "scopeName": "source.rook.declarations",
+        "path": "./syntaxes/rook-declarations.tmLanguage.json"
+      },
+      {
         "scopeName": "source.rook.css",
         "path": "./syntaxes/rook-css.tmLanguage.json"
       }

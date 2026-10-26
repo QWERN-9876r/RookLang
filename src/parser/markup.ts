@@ -179,7 +179,7 @@ export abstract class MarkupParser extends LiteralParser {
     const body: ast.SimpleStatement[] = [];
 
     this.withContext(
-      { noObjectLiteral: false, inFunction: true, inLoop: false, inBreakable: false },
+      { noObjectLiteral: false, inFunction: true, inLoop: false, inBreakable: false, labels: [] },
       () => {
         do {
           if (this.check('}')) break;

@@ -1,0 +1,7 @@
+// Регулярное выражение пишется как в JS; компилятор проверяет шаблон и флаги
+const date = /^(\d{4})-(\d{2})-(\d{2})$/
+const text = "гуава, папайя и личи"
+
+console.log(date.test("2026-10-26"), date.test("26.10.2026"))
+console.log(text.replace(/а/g, "о"))
+console.log(text.split(/,\s*|\s+и\s+/))

@@ -138,6 +138,9 @@ export abstract class ExpressionEmitter extends Emitter {
       case 'StringLiteral':
         return [node.raw, PRIMARY];
 
+      case 'RegExpLiteral':
+        return [`/${node.pattern}/${node.flags}`, PRIMARY];
+
       case 'TemplateLiteral':
         return [this.template(node), PRIMARY];
 
