@@ -3,9 +3,9 @@
 **English** · [Русский](README.ru.md)
 
 Support for Rook, a language with the semantics of JavaScript, Go-style syntax and static
-types, in `.rk` files: highlighting, errors as you type and completion.
+types, in `.rk` files: highlighting, errors as you type, completion and imports.
 
-## Errors and completion
+## Errors, completion and imports
 
 The extension starts a language server with the Rook compiler. While you type, it underlines
 the errors and warnings that `rook build` would print, and it completes:
@@ -16,10 +16,19 @@ the errors and warnings that `rook build` would print, and it completes:
   interfaces, objects, strings, arrays and the DOM;
 - types where a type is written: `let user Us|`;
 - tags and components in markup, `<Ca|`, and the properties of a component or the attributes and
-  events of an element, `<input on|`.
+  events of an element, `<input on|`;
+- names that other `.rk` files of the package export: functions, classes, constants, types and
+  components. The path of the file is shown next to the name, and choosing it adds the import:
+  into `import { ... }` of that file if the module has one, else on a new line after the last
+  import.
+
+A name that is not defined (`"formatDate" is not defined`, `unknown type "User"`, `unknown component
+<Card>`, `unknown decorator @visible`) gets a quick fix (`Cmd+.`) that imports it from each file of
+the package that exports it.
 
 The types of the standard library and the DOM come from TypeScript's lib files, which the extension
-carries. Imports of other `.rk` files and of packages with types are checked as in `rook build`.
+carries. The package of a file is the directory of its nearest `package.json`, without `node_modules`,
+`dist`, `build`, `out`, `coverage` and folders whose names start with a dot. Imports of other `.rk` files and of packages with types are checked as in `rook build`.
 Markup and components are errors unless the nearest `package.json` turns them on with
 `"rook": { "markup": true }`, as for `rook build`.
 

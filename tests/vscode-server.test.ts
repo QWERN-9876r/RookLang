@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CompletionItemKind, DiagnosticSeverity } from 'vscode-languageserver/node';
+import { CodeActionKind, CompletionItemKind, DiagnosticSeverity } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { toCompletionItems, toDiagnostics } from '../editors/vscode/src/convert.mts';
+import {
+  toCompletionItems,
+  toDiagnostics,
+  toImportActions,
+} from '../editors/vscode/src/convert.mts';
 import { compile, complete } from '../src/index.ts';
 
 // The language server of the VS Code extension: what it sends for the results of the compiler.
@@ -46,5 +50,60 @@ describe('language server', () => {
         newText: 'total',
       },
     });
+  });
+
+  it('sends the import of a name of another module with its item', () => {
+    const text = 'import { a } from "./a.rk"\nfo';
+    const [item] = toCompletionItems(document(text), {
+      start: 27,
+      end: 29,
+      items: [
+        {
+          name: 'format',
+          kind: 'function',
+          import: { specifier: './lib.rk', edit: { start: 18, end: 26, text: ', format' } },
+        },
+      ],
+    });
+
+    expect(item).toMatchObject({
+      label: 'format',
+      labelDetails: { description: './lib.rk' },
+      detail: 'import from "./lib.rk"',
+      additionalTextEdits: [
+        {
+          range: { start: { line: 0, character: 18 }, end: { line: 0, character: 26 } },
+          newText: ', format',
+        },
+      ],
+    });
+  });
+
+  it('sends quick fixes that import a name, preferred when there is one', () => {
+    const text = 'format()';
+    const [diagnostic] = toDiagnostics(document(text), compile(text));
+    const fix = {
+      title: 'Add import { format } from "./lib.rk"',
+      edit: { start: 0, end: 0, text: 'import' },
+    };
+    const [action] = toImportActions(document(text), diagnostic!, [fix]);
+
+    expect(action).toEqual({
+      title: fix.title,
+      kind: CodeActionKind.QuickFix,
+      diagnostics: [diagnostic],
+      isPreferred: true,
+      edit: {
+        changes: {
+          'file:///app.rk': [
+            {
+              range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+              newText: 'import',
+            },
+          ],
+        },
+      },
+    });
+    expect(toImportActions(document(text), diagnostic!, [fix, fix])[0]?.isPreferred).toBe(false);
   });
 });

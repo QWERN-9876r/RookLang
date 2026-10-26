@@ -27,9 +27,12 @@ code --extensionDevelopmentPath="$PWD/editors/vscode"
 ```
 
 The sources of the extension are in `src/`: `extension.mts` starts the server, `server.mts` answers
-VS Code, and completion itself is in the compiler (`src/completion.ts` and the last layer of the
-checker, `src/checker/completion.ts`). They are tested in `tests/completion.test.ts` and
-`tests/vscode-server.test.ts`.
+VS Code and `convert.mts` turns what the compiler gives into the types of the protocol. Completion
+itself is in the compiler (`src/completion.ts` and the last layer of the checker,
+`src/checker/completion.ts`), and so are the imports it adds and the quick fixes of names that are
+not defined (`src/auto-import.ts`, with the exports of the modules of the package from
+`src/project-modules.ts`). They are tested in `tests/completion.test.ts`,
+`tests/auto-import.test.ts` and `tests/vscode-server.test.ts`.
 
 The grammar is checked by the tests in `tests/vscode-grammar.test.ts` with the same engine that VS
 Code uses (`vscode-textmate`). The scopes under the cursor are shown by the command

@@ -1,5 +1,10 @@
 import type * as ast from './ast.ts';
-import { check, type Completion, type CompletionResult } from './checker/checker.ts';
+import {
+  check,
+  type Completion,
+  type CompletionContext,
+  type CompletionResult,
+} from './checker/checker.ts';
 import { prepareCheck, type CoreCompileOptions } from './compile.ts';
 import { tokenize } from './lexer/lexer.ts';
 import { KEYWORDS, type Token } from './lexer/token.ts';
@@ -15,7 +20,7 @@ import { forEachChild } from './walk.ts';
 // closed: those of the line, then all those still open, as in a component whose `}` is not written
 // yet, then also with an empty body after them, as in `func f(a str|`.
 
-export type { Completion, CompletionContext } from './checker/checker.ts';
+export type { Completion, CompletionContext, TextEdit } from './checker/checker.ts';
 
 const CURSOR = '$$cursor';
 
@@ -23,6 +28,8 @@ export interface CompletionList {
   /** Offsets of what the chosen item replaces: the part of the name before the cursor. */
   start: number;
   end: number;
+  /** What the cursor is in; none where nothing is suggested or the check did not reach it. */
+  context?: CompletionContext;
   items: Completion[];
 }
 
@@ -86,7 +93,12 @@ export function completeModule(
     const result = completeIn(program, options);
 
     if (result) {
-      return { start, end: offset, items: withKeywords(result, statementKeywords(program)) };
+      return {
+        start,
+        end: offset,
+        context: result.context,
+        items: withKeywords(result, statementKeywords(program)),
+      };
     }
 
     // The cursor is where a name is declared, `let ti|`: nothing to suggest.

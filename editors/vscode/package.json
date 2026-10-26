@@ -1,7 +1,7 @@
 {
   "name": "rooklang",
   "displayName": "Rook Language",
-  "description": "Rook support: highlighting, errors as you type and completion",
+  "description": "Rook support: highlighting, errors as you type, completion and auto-imports",
   "version": "0.1.0",
   "publisher": "Qwern9876r",
   "preview": true,

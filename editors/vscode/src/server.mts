@@ -1,16 +1,17 @@
 import { fileURLToPath } from 'node:url';
 import {
+  CodeActionKind,
   createConnection,
   ProposedFeatures,
   TextDocuments,
   TextDocumentSyncKind,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { compile, complete } from '../../../src/index.ts';
-import { toCompletionItems, toDiagnostics } from './convert.mts';
+import { compile, complete, importFixes } from '../../../src/index.ts';
+import { toCompletionItems, toDiagnostics, toImportActions } from './convert.mts';
 
-// The language server of Rook: errors and warnings of the compiler for the open files, and
-// completion. It runs in a process of its own, since the first check of a file loads the types of
+// The language server of Rook: errors and warnings of the compiler for the open files,
+// completion, and imports of the names of other modules, by completion or by a quick fix. It runs in a process of its own, since the first check of a file loads the types of
 // the DOM from TypeScript, which takes a while.
 
 const connection = createConnection(ProposedFeatures.all);
@@ -23,6 +24,7 @@ connection.onInitialize(() => ({
   capabilities: {
     textDocumentSync: TextDocumentSyncKind.Incremental,
     completionProvider: { triggerCharacters: ['.', '<'] },
+    codeActionProvider: { codeActionKinds: [CodeActionKind.QuickFix] },
   },
 }));
 
@@ -86,6 +88,29 @@ connection.onCompletion(({ textDocument, position }) => {
     return toCompletionItems(document, list);
   } catch (error) {
     connection.console.error(`cannot complete in ${document.uri}: ${String(error)}`);
+
+    return [];
+  }
+});
+
+connection.onCodeAction(({ textDocument, context }) => {
+  const document = documents.get(textDocument.uri);
+  const path = document && filename(document.uri);
+
+  if (!document || !path) return [];
+
+  try {
+    return context.diagnostics.flatMap((diagnostic) =>
+      diagnostic.source === 'rook' && typeof diagnostic.message === 'string'
+        ? toImportActions(
+            document,
+            diagnostic,
+            importFixes(document.getText(), path, diagnostic.message),
+          )
+        : [],
+    );
+  } catch (error) {
+    connection.console.error(`cannot fix ${document.uri}: ${String(error)}`);
 
     return [];
   }

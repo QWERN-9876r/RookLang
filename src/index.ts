@@ -1,3 +1,4 @@
+import { importCompletions } from './auto-import.ts';
 import {
   compileModule,
   workerUrl,
@@ -11,8 +12,9 @@ import { readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { importDeclarations, libraryFor } from './typescript/importer.ts';
 
+export { importFixes, type ImportFix } from './auto-import.ts';
 export type { CompileResult } from './compile.ts';
-export type { Completion, CompletionList } from './completion.ts';
+export type { Completion, CompletionList, TextEdit } from './completion.ts';
 export type { Diagnostic } from './diagnostics.ts';
 export { formatDiagnostic } from './diagnostics.ts';
 export { SourceFile } from './source.ts';
@@ -60,17 +62,23 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
 
 /**
  * What can be written at `offset` in a module, for editors: names, members, types, tags and
- * attributes. The imports are read from disk, like those of `compile`.
+ * attributes, and after them the names that other modules of the package export, with the imports
+ * they need. The imports are read from disk, like those of `compile`.
  */
 export function complete(
   source: string,
   offset: number,
   options: { filename?: string; markup?: boolean } = {},
 ): CompletionList {
-  return completeModule(source, offset, {
-    ...filesOf(options.filename, true, options.markup),
-    markup: options.markup ?? markupFor(options.filename),
+  const { filename } = options;
+  const list = completeModule(source, offset, {
+    ...filesOf(filename, true, options.markup),
+    markup: options.markup ?? markupFor(filename),
   });
+
+  if (filename === undefined) return list;
+
+  return { ...list, items: [...list.items, ...importCompletions(source, filename, list)] };
 }
 
 /** Reading what a module imports: other modules, declarations, CSS modules and the library. */

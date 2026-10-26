@@ -11,6 +11,7 @@ export type {
   ImportResult,
   Library,
   ModuleExports,
+  TextEdit,
 } from './context.ts';
 
 // The type checker of a module; its layers are listed in base.ts.

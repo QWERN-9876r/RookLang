@@ -99,6 +99,15 @@ export interface Completion {
     | 'attribute';
   /** The type, as Rook writes it. */
   detail?: string;
+  /** A name exported by another module of the package: choosing it imports it (auto-import.ts). */
+  import?: { specifier: string; edit: TextEdit };
+}
+
+/** A change of the text of a module: what is between the offsets becomes `text`. */
+export interface TextEdit {
+  start: number;
+  end: number;
+  text: string;
 }
 
 export type BindingKind =

@@ -27,9 +27,11 @@ code --extensionDevelopmentPath="$PWD/editors/vscode"
 ```
 
 Исходники расширения лежат в `src/`: `extension.mts` запускает сервер, `server.mts` отвечает VS
-Code, а само автодополнение — в компиляторе (`src/completion.ts` и последний слой проверки типов,
-`src/checker/completion.ts`). Их проверяют `tests/completion.test.ts` и
-`tests/vscode-server.test.ts`.
+Code, а `convert.mts` переводит то, что даёт компилятор, в типы протокола. Само автодополнение — в
+компиляторе (`src/completion.ts` и последний слой проверки типов, `src/checker/completion.ts`), там же
+импорты, которые оно добавляет, и быстрые исправления неизвестных имён (`src/auto-import.ts`;
+экспорты модулей пакета даёт `src/project-modules.ts`). Их проверяют `tests/completion.test.ts`,
+`tests/auto-import.test.ts` и `tests/vscode-server.test.ts`.
 
 Грамматика проверяется тестами в `tests/vscode-grammar.test.ts` тем же движком, что использует VS
 Code (`vscode-textmate`). Посмотреть области под курсором можно командой «Developer: Inspect Editor
