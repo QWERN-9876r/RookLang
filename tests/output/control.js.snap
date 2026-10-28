@@ -1,0 +1,38 @@
+// control.js
+
+const fruits = ["guava", "papaya", "lychee"];
+
+for (let i = 0; i < fruits.length; i++) {
+  const fruit = fruits[i];
+  console.log(i + 1, fruit);
+}
+
+const prices = new Map();
+prices.set("guava", 3).set("lychee", 7);
+for (const [name, price] of prices.entries()) {
+  console.log(name, price);
+}
+
+let left = 3;
+while (left > 0) {
+  left--;
+}
+for (let i = 0; i < 2; i++) {
+  console.log("step", i);
+}
+
+function grade(score) {
+  if (score >= 90) {
+    return "excellent";
+  } else if (score >= 60) {
+    return "pass";
+  } else {
+    return "fail";
+  }
+}
+
+console.log(grade(95), grade(70), grade(10));
+
+// control.d.ts
+
+export {};

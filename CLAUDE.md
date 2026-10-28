@@ -23,6 +23,7 @@ markup and components in `docs/components.md`.
 ```sh
 npm run check                         # tsc, eslint, prettier --check, vitest: run before saying "done"
 npx vitest run tests/html-tag.test.ts # one test file
+npx vitest run -u tests/output.test.ts # write tests/output/ again after a change of the generated code
 npm run rook -- build app.rk      # compile (app.js next to the source); `run` compiles and runs
 node src/cli.ts ast file.rk        # print the AST
 npm run site:dev / site:build / site  # the docs site: Vite dev server / build / build and serve
@@ -107,7 +108,8 @@ Go through the whole list; tests must cover each layer that changed.
 2. Checker: types, error messages.
 3. Code generator; the runtime in `src/runtime/` if needed.
 4. Tests in `tests/` by area. DOM behaviour is tested with the small fake DOM in
-   `tests/fake-dom.ts` (`mountWithDom`, `runWithDom`): extend it rather than adding jsdom.
+   `tests/fake-dom.ts` (`mountWithDom`, `runWithDom`): extend it rather than adding jsdom. If the
+   output of an example changed, write `tests/output/` again and read its diff.
 5. `docs/spec.md` (and `docs/components.md` for markup and components), in both languages.
 6. A guide section and an example on the site, in both languages.
 7. Highlighting: the VS Code grammar in `editors/vscode/syntaxes/` with a case in

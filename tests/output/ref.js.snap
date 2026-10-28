@@ -1,0 +1,79 @@
+// ref.js
+
+import { $$element, $$list, $$mount } from "rooklang/runtime";
+
+// <Chat>
+let $$chat1, $$mountNode2;
+{
+  let messages = ["Hi! Write something"];
+  let draft = "";
+  const log = $$element("ul", { className: "log" });
+  const input = $$element("input", { placeholder: "Message" });
+
+  const $$effect5 = () => {
+    if (messages.length > 0) {
+      log.scrollTop = log.scrollHeight;
+    }
+  };
+
+  $$mount(() => $$mountNode2, () => {
+    input.focus();
+  });
+
+  function send() {
+    if (draft.trim() !== "") {
+      messages.push(draft.trim());
+      $$updateMessages3();
+      draft = "";
+      $$updateDraft4();
+    }
+
+    input.focus();
+  }
+
+  const $$section6 = $$element("section", { className: "chat" });
+  const [$$for7, $$updateFor7] = $$list(() => messages, (message) => {
+    const $$block8 = document.createDocumentFragment();
+    const $$li9 = $$element("li");
+    const $$text10 = document.createTextNode(message);
+    $$li9.append($$text10);
+    $$block8.append($$li9);
+    return [$$block8, () => {
+      $$text10.data = message;
+    }];
+  });
+  log.append($$for7);
+  const $$form11 = $$element("form");
+  $$form11.addEventListener("submit", (event) => {
+    event.preventDefault();
+    send();
+  });
+  input.value = draft;
+  input.addEventListener("input", () => {
+    draft = input.value;
+  });
+  const $$button12 = $$element("button");
+  $$button12.append("Send");
+  $$form11.append(input, $$button12);
+  $$section6.append(log, $$form11);
+
+  function $$updateMessages3() {
+    if (!$$chat1) return;
+    $$updateFor7();
+    $$effect5();
+  }
+
+  function $$updateDraft4() {
+    if (!$$chat1) return;
+    if (input.value !== draft) input.value = draft;
+  }
+
+  $$chat1 = $$section6;
+  $$mountNode2 = $$chat1?.nodeType === 11 ? $$chat1.firstChild : $$chat1;
+  $$effect5();
+}
+document.body.append($$chat1);
+
+// ref.d.ts
+
+export {};

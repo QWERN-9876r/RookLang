@@ -1,0 +1,65 @@
+// tree.js
+
+import { $$branches, $$element, $$list } from "rooklang/runtime";
+
+function $$Tree(item, depth = 0) {
+  let $$tree4;
+  let open = depth === 0;
+  const $$li5 = $$element("li");
+  const $$button6 = $$element("button");
+  $$button6.addEventListener("click", () => {
+    open = !open;
+    $$updateOpen3();
+  });
+  const $$text7 = document.createTextNode(item.children.length === 0 ? "·" : open ? "−" : "+");
+  $$button6.append($$text7);
+  const $$text8 = document.createTextNode(item.name);
+  const [$$if9, $$updateIf9] = $$branches(() => open && item.children.length > 0 ? 0 : -1, [() => {
+    const $$block10 = document.createDocumentFragment();
+    const $$ul11 = $$element("ul");
+    const [$$for12, $$updateFor12] = $$list(() => item.children, (child) => {
+      const $$block13 = document.createDocumentFragment();
+      const $$0 = depth + 1;
+      const [$$tree14, $$setTree14] = $$Tree(child, $$0);
+      $$block13.append($$tree14);
+      return [$$block13, () => {
+        $$setTree14(child, depth + 1);
+      }];
+    });
+    $$ul11.append($$for12);
+    $$block10.append($$ul11);
+    return [$$block10, () => {
+      $$updateFor12();
+    }];
+  }]);
+  $$li5.append($$button6, " ", $$text8, $$if9);
+
+  function $$updateOpen3() {
+    $$text7.data = item.children.length === 0 ? "·" : open ? "−" : "+";
+    $$updateIf9();
+  }
+
+  $$tree4 = $$li5;
+  return [$$tree4, ($$item, $$depth = 0) => {
+    item = $$item;
+    depth = $$depth;
+    $$text7.data = item.children.length === 0 ? "·" : open ? "−" : "+";
+    $$text8.data = item.name;
+    $$updateIf9();
+  }];
+}
+
+const project = { name: "Rook", children: [{ name: "src", children: [{ name: "lexer", children: [{ name: "lexer.ts", children: [] }] }, { name: "parser", children: [{ name: "parser.ts", children: [] }] }, { name: "index.ts", children: [] }] }, { name: "README.md", children: [] }] };
+
+const $$ul15 = $$element("ul", { className: "tree" });
+const [$$tree16] = $$Tree(project);
+$$ul15.append($$tree16);
+document.body.append($$ul15);
+
+// tree.d.ts
+
+interface Item {
+    name: string;
+    children: Item[];
+}
+export {};

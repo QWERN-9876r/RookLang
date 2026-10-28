@@ -1,0 +1,58 @@
+// channels.js
+
+import { $$Channel, $$goWorker } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./channels.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./channels.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+async function square(id, jobs, results) {
+  for await (const n of $$Channel.range(jobs)) {
+    await $$Channel.send(results, `goroutine ${id}: ${n}² = ${n * n}`);
+  }
+}
+
+const jobs = $$Channel.make(10, 0);
+const results = $$Channel.make(0, "");
+
+$$go("square", [1, jobs, results]);
+$$go("square", [2, jobs, results]);
+
+for (let n = 1; n <= 6; n++) {
+  await $$Channel.send(jobs, n);
+}
+$$Channel.close(jobs);
+
+for (let i = 0; i < 6; i++) {
+  console.log(await $$Channel.receive(results, false, ""));
+}
+$$Channel.close(results);
+
+const [n, ok] = await $$Channel.receive(jobs, true, 0);
+console.log("after close:", n, ok);
+
+// channels.worker.js
+
+import { $$Channel, $$serve } from "rooklang/runtime";
+
+async function square(id, jobs, results) {
+  for await (const n of $$Channel.range(jobs)) {
+    await $$Channel.send(results, `goroutine ${id}: ${n}² = ${n * n}`);
+  }
+}
+
+const $$goroutines = { square };
+$$serve($$goroutines);
+
+// channels.d.ts
+
+export {};

@@ -1,0 +1,23 @@
+// counter.js
+
+import { $$element } from "rooklang/runtime";
+
+// <Counter>
+let $$counter1;
+{
+  const start = 0;
+  let count = start;
+  const $$button3 = $$element("button");
+  $$button3.addEventListener("click", () => {
+    count++;
+    $$text4.data = count;
+  });
+  const $$text4 = document.createTextNode(count);
+  $$button3.append("Clicked ", $$text4, " times");
+  $$counter1 = $$button3;
+}
+document.body.append($$counter1);
+
+// counter.d.ts
+
+export {};

@@ -1,0 +1,145 @@
+// html-tag.js
+
+import { $$element, $$owned } from "rooklang/runtime";
+
+const STYLE = `
+    span { padding: 2px 10px; border-radius: 999px; background: var(--accent-soft) }
+    .ripe { font-weight: bold }
+`;
+
+function $$FruitBadge(name, count = 1, ripe) {
+  let $$fruitBadge4;
+  const $$fragment5 = document.createDocumentFragment();
+  const $$style6 = $$element("style");
+  $$style6.append(STYLE);
+  const $$span7 = $$element("span", { className: ripe ? "ripe" : "" });
+  const $$text8 = document.createTextNode(name);
+  const $$text9 = document.createTextNode(count);
+  $$span7.append($$text8, ": ", $$text9);
+  $$fragment5.append($$style6, $$span7);
+  $$fruitBadge4 = $$fragment5;
+  return [$$fruitBadge4, ($$name, $$count = 1, $$ripe) => {
+    name = $$name;
+    count = $$count;
+    ripe = $$ripe;
+    $$text8.data = name;
+    $$text9.data = count;
+    $$span7.className = ripe ? "ripe" : "";
+  }];
+}
+
+const badge = document.createElement("fruit-badge");
+badge.setAttribute("name", "Guava");
+badge.setAttribute("count", "3");
+badge.setAttribute("ripe", "");
+document.body.append(badge);
+
+// <Basket>
+let $$basket10;
+{
+  let kiwis = 1;
+  const $$p12 = $$element("p");
+  const $$element13 = $$element("fruit-badge");
+  $$element13.name = "Kiwi";
+  $$element13.count = kiwis;
+  const $$button14 = $$element("button");
+  $$button14.addEventListener("click", () => {
+    kiwis++;
+    $$element13.count = kiwis;
+  });
+  $$button14.append("One more kiwi");
+  $$p12.append($$element13, " ", $$button14);
+  $$basket10 = $$p12;
+}
+document.body.append($$basket10);
+
+class $$FruitBadgeElement extends HTMLElement {
+  static observedAttributes = ["name", "count", "ripe"];
+  #values = {};
+  #update = null;
+  #remove = null;
+
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    for (const name of ["name", "count", "ripe"]) {
+      if (!Object.hasOwn(this, name)) continue;
+      const value = this[name];
+      delete this[name];
+      this[name] = value;
+    }
+  }
+
+  connectedCallback() {
+    if (this.#remove) return;
+    const [[node, update], remove] = $$owned(() => $$FruitBadge(...this.#args()));
+    this.#update = update ?? null;
+    this.#remove = remove;
+    this.shadowRoot.append(node);
+  }
+
+  disconnectedCallback() {
+    queueMicrotask(() => {
+      if (this.isConnected || !this.#remove) return;
+      this.#remove();
+      this.#update = this.#remove = null;
+      this.shadowRoot.replaceChildren();
+    });
+  }
+
+  attributeChangedCallback(name, old, value) {
+    switch (name) {
+      case "name":
+        this.name = value ?? undefined;
+        break;
+      case "count":
+        this.count = value === null ? undefined : Number(value);
+        break;
+      case "ripe":
+        this.ripe = value === null ? undefined : true;
+        break;
+    }
+  }
+
+  get name() {
+    return this.#values.name;
+  }
+
+  set name(value) {
+    this.#values.name = value;
+    this.#update?.(...this.#args());
+  }
+
+  get count() {
+    return this.#values.count;
+  }
+
+  set count(value) {
+    this.#values.count = value;
+    this.#update?.(...this.#args());
+  }
+
+  get ripe() {
+    return this.#values.ripe;
+  }
+
+  set ripe(value) {
+    this.#values.ripe = value;
+    this.#update?.(...this.#args());
+  }
+
+  #args() {
+    const values = this.#values;
+    return [
+      values.name ?? "",
+      values.count,
+      values.ripe ?? false,
+    ];
+  }
+}
+
+customElements.define("fruit-badge", $$FruitBadgeElement);
+
+// html-tag.d.ts
+
+export {};

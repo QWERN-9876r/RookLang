@@ -1,0 +1,25 @@
+// markup.js
+
+import { $$element } from "rooklang/runtime";
+
+const name = "Rook";
+const link = $$element("a", { href: "#markup" });
+link.append("Hello, ", name, "!");
+
+let clicks = 0;
+const counter = $$element("b");
+counter.append("0");
+const button = $$element("button");
+button.addEventListener("click", () => {
+  clicks++;
+  counter.textContent = String(clicks);
+});
+button.append("Click");
+
+const $$p1 = $$element("p");
+$$p1.append(button, " Clicks: ", counter);
+document.body.append(link, $$p1);
+
+// markup.d.ts
+
+export {};

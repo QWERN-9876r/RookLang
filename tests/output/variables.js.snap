@@ -1,0 +1,15 @@
+// variables.js
+
+let count = 0;
+let title = "Guava";
+const prices = [120, 90, 250];
+
+let a = 1, b = 2;
+[a, b] = [b, a];
+
+count += prices.length;
+console.log(count, title, a, b);
+
+// variables.d.ts
+
+export {};

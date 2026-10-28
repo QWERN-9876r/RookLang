@@ -1,0 +1,35 @@
+// labels.js
+
+function parse(text) {
+  const n = parseInt(text);
+  if (isNaN(n)) {
+    return [0, new Error(`not a number: ${text}`)];
+  }
+  return [n, null];
+}
+
+for (const text of ["12", "guava"]) {
+  {
+    const [n, err] = parse(text);
+    if (err != null) {
+      console.log(err.message);
+    } else {
+      console.log(n * 2);
+    }
+  }
+}
+
+const grid = [[1, 2, 3], [4, -1, 6], [7, 8, 9]];
+outer: for (const row of grid) {
+  for (const v of row) {
+    if (v < 0) {
+      console.log("a negative number: stop");
+      break outer;
+    }
+    console.log(v);
+  }
+}
+
+// labels.d.ts
+
+export {};

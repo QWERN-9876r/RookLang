@@ -1,0 +1,18 @@
+// maps.js
+
+const prices = { guava: 3, lychee: 7 };
+prices["papaya"] = 4;
+delete prices.lychee;
+
+const format = (name) => `${name}: €${prices[name]}`;
+
+for (const name of Object.keys(prices)) {
+  console.log(format(name));
+}
+
+const saved = JSON.parse(`{ "guava": 5 }`);
+console.log("saved:", saved["guava"]);
+
+// maps.d.ts
+
+export {};

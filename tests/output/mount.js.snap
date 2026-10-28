@@ -1,0 +1,37 @@
+// mount.js
+
+import { $$element, $$mount } from "rooklang/runtime";
+
+console.log("creating the list");
+const $$ul1 = $$element("ul");
+// <Fruit>
+let $$fruit2, $$mountNode3;
+{
+  const name = "Guava";
+  const item = $$element("li");
+  item.append(name);
+  $$mount(() => $$mountNode3, () => {
+    console.log("mount:", name, "on the page:", item.isConnected);
+  });
+  $$fruit2 = item;
+  $$mountNode3 = $$fruit2?.nodeType === 11 ? $$fruit2.firstChild : $$fruit2;
+}
+// <Fruit>
+let $$fruit4, $$mountNode5;
+{
+  const name = "Lychee";
+  const item = $$element("li");
+  item.append(name);
+  $$mount(() => $$mountNode5, () => {
+    console.log("mount:", name, "on the page:", item.isConnected);
+  });
+  $$fruit4 = item;
+  $$mountNode5 = $$fruit4?.nodeType === 11 ? $$fruit4.firstChild : $$fruit4;
+}
+$$ul1.append($$fruit2, $$fruit4);
+document.body.append($$ul1);
+console.log("the list is inserted");
+
+// mount.d.ts
+
+export {};

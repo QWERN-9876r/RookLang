@@ -1,0 +1,82 @@
+// data-classes.js
+
+import { $$dataClass, $$goWorker } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./data-classes.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./data-classes.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+class Order {
+  items = [];
+
+  constructor(items) {
+    this.items = items;
+  }
+
+  total() {
+    return this.items.reduce((sum, price) => sum + price, 0);
+  }
+}
+$$dataClass(Order, "Order:e07a3667");
+
+function biggest(orders) {
+  let best = orders[0];
+  for (const order of orders) {
+    if (order.total() > best.total()) {
+      best = order;
+    }
+  }
+  return best;
+}
+
+const orders = [new Order([3, 4]), new Order([10, 2, 1]), new Order([7])];
+const best = await $$go("biggest", [orders]);
+console.log(best instanceof Order, best.total());
+
+// data-classes.worker.js
+
+import { $$dataClass, $$serve } from "rooklang/runtime";
+
+class Order {
+  items = [];
+
+  constructor(items) {
+    this.items = items;
+  }
+
+  total() {
+    return this.items.reduce((sum, price) => sum + price, 0);
+  }
+}
+$$dataClass(Order, "Order:e07a3667");
+
+function biggest(orders) {
+  let best = orders[0];
+  for (const order of orders) {
+    if (order.total() > best.total()) {
+      best = order;
+    }
+  }
+  return best;
+}
+
+const $$goroutines = { biggest };
+$$serve($$goroutines);
+
+// data-classes.d.ts
+
+declare class Order {
+    items: number[];
+    constructor(items: number[]);
+    total(): number;
+}
+export {};

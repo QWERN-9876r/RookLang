@@ -1,0 +1,35 @@
+// components.js
+
+import { $$element } from "rooklang/runtime";
+
+// <Card>
+const $$children1 = document.createDocumentFragment();
+$$children1.append("A sweet tropical fruit.");
+let $$card2;
+{
+  const title = "Guava";
+  const kind = "info";
+  const children = $$children1;
+  $$card2 = $$element("section", { className: `card ${kind}` });
+  const $$h43 = $$element("h4");
+  $$h43.append(title);
+  $$card2.append($$h43, children);
+}
+// <Card>
+const $$children4 = document.createDocumentFragment();
+$$children4.append("The stone is not edible.");
+let $$card5;
+{
+  const title = "Careful";
+  const kind = "warning";
+  const children = $$children4;
+  $$card5 = $$element("section", { className: `card ${kind}` });
+  const $$h46 = $$element("h4");
+  $$h46.append(title);
+  $$card5.append($$h46, children);
+}
+document.body.append($$card2, $$card5);
+
+// components.d.ts
+
+export {};

@@ -1,0 +1,264 @@
+// orders.js
+
+import {
+  $$branches,
+  $$content,
+  $$decodeJson,
+  $$element,
+  $$list,
+  $$style,
+  $$type,
+} from "rooklang/runtime";
+
+const $$styles = [];
+
+const $$typeOrder = $$type("Order", () => ({
+  id: "number",
+  customer: $$typeCustomer,
+  items: { array: $$typeItem },
+  status: { literal: ["new", "paid", "sent"] },
+  note: { nullable: "string" },
+}));
+const $$typeCustomer = $$type("Customer", () => ({
+  name: "string",
+  email: "string",
+}));
+const $$typeItem = $$type("Item", () => ({
+  name: "string",
+  qty: "number",
+  price: "number",
+}));
+
+$$style($$styles, "rook-orders-1l85dq6", `.orders.rook-orders-1l85dq6 {
+  display: grid;
+  gap: 12px;
+  max-width: 480px;
+}
+.samples.rook-orders-1l85dq6 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.samples.rook-orders-1l85dq6 button.rook-orders-1l85dq6 {
+  padding: 4px 10px;
+  border: 1px solid #ffffff2e;
+  border-radius: 999px;
+  background: #ffffff0a;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+textarea.rook-orders-1l85dq6 {
+  height: 230px;
+  padding: 10px 12px;
+  border: 1px solid #ffffff2e;
+  border-radius: 10px;
+  background: #ffffff0a;
+  color: inherit;
+  font: 0.8em/1.5 ui-monospace, monospace;
+  resize: vertical;
+}
+.problem.rook-orders-1l85dq6 {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid #ff7a7a;
+  border-radius: 6px;
+  background: #ff7a7a1a;
+  color: #ffb3b3;
+  font: 0.85em/1.5 ui-monospace, monospace;
+}`);
+$$style($$styles, "rook-receipt-1nonkdw", `.receipt.rook-receipt-1nonkdw {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-left: 3px solid #6fcf8f;
+  border-radius: 6px;
+  background: #6fcf8f14;
+}
+.head.rook-receipt-1nonkdw, .line.rook-receipt-1nonkdw {
+  display: flex;
+  justify-content: space-between;
+}
+.status.rook-receipt-1nonkdw {
+  color: #6fcf8f;
+}
+.who.rook-receipt-1nonkdw {
+  margin: 0 0 4px;
+  color: #ffffff80;
+  font-size: 0.85em;
+}
+.total.rook-receipt-1nonkdw {
+  padding-top: 6px;
+  border-top: 1px solid #ffffff1a;
+  font-weight: 600;
+}`);
+
+const VALID = `{
+  "id": 1042,
+  "customer": { "name": "Ann", "email": "ann@example.com" },
+  "items": [
+    { "name": "Mango", "qty": 2, "price": 2.4 },
+    { "name": "Lychee", "qty": 1, "price": 7.5 }
+  ],
+  "status": "paid"
+}`;
+
+const SAMPLES = [{ title: "Valid", json: VALID }, { title: "Price as text", json: VALID.replace(`"price": 7.5`, `"price": "7.50"`) }, { title: "Unknown status", json: VALID.replace(`"paid"`, `"lost"`) }, { title: "No email", json: VALID.replace(`, "email": "ann@example.com"`, "") }, { title: "Cut off", json: VALID.slice(0, 140) }];
+
+function check(json) {
+  const [order, err] = $$decodeJson(json, $$typeOrder);
+  if (err != null) {
+    return { order: null, problem: err.message };
+  }
+  return { order, problem: "" };
+}
+
+// <Orders>
+let $$orders1;
+{
+  let json = VALID;
+  let checked = check(json);
+  let order = checked.order;
+
+  const $$div3 = $$element("div", { className: "orders rook-orders-1l85dq6" });
+  const $$div4 = $$element("div", { className: "samples rook-orders-1l85dq6" });
+  for (const sample of SAMPLES) {
+    const $$button5 = $$element("button", { className: "rook-orders-1l85dq6" });
+    $$button5.addEventListener("click", () => {
+      json = sample.json;
+      $$updateJson2();
+    });
+    $$button5.append(sample.title);
+    $$div4.append($$button5);
+  }
+  const $$textarea6 = $$element("textarea", { className: "rook-orders-1l85dq6" }, { spellcheck: false });
+  $$textarea6.value = json;
+  $$textarea6.addEventListener("input", () => {
+    json = $$textarea6.value;
+    $$updateJson2();
+  });
+  const [$$if7, $$updateIf7] = $$branches(() => order != null ? 0 : 1, [() => {
+    const $$block8 = document.createDocumentFragment();
+    // <Receipt>
+    const $$0 = order;
+    let $$receipt9;
+    let $$setOrder10;
+    {
+      let order = $$0;
+      let total = order.items.reduce((sum, item) => sum + item.qty * item.price, 0);
+
+      const $$div12 = $$element("div", { className: "receipt rook-receipt-1nonkdw" });
+      const $$div13 = $$element("div", { className: "head rook-receipt-1nonkdw" });
+      const $$b14 = $$element("b", { className: "rook-receipt-1nonkdw" });
+      const $$text15 = document.createTextNode(order.id);
+      $$b14.append("Order #", $$text15);
+      const $$span16 = $$element("span", { className: "status rook-receipt-1nonkdw" });
+      const $$text17 = document.createTextNode(order.status);
+      $$span16.append($$text17);
+      $$div13.append($$b14, $$span16);
+      const $$p18 = $$element("p", { className: "who rook-receipt-1nonkdw" });
+      const $$text19 = document.createTextNode(order.customer.name);
+      const $$text20 = document.createTextNode(order.customer.email);
+      $$p18.append($$text19, " · ", $$text20);
+      const [$$for21, $$updateFor21] = $$list(() => order.items, (item) => {
+        const $$block22 = document.createDocumentFragment();
+        const $$div23 = $$element("div", { className: "line rook-receipt-1nonkdw" });
+        const $$span24 = $$element("span", { className: "rook-receipt-1nonkdw" });
+        const $$text25 = document.createTextNode(item.qty);
+        const $$text26 = document.createTextNode(item.name);
+        $$span24.append($$text25, " × ", $$text26);
+        const $$span27 = $$element("span", { className: "rook-receipt-1nonkdw" });
+        const $$text28 = document.createTextNode((item.qty * item.price).toFixed(2));
+        $$span27.append("€", $$text28);
+        $$div23.append($$span24, $$span27);
+        $$block22.append($$div23);
+        return [$$block22, () => {
+          $$text25.data = item.qty;
+          $$text26.data = item.name;
+          $$text28.data = (item.qty * item.price).toFixed(2);
+        }];
+      });
+      const $$div29 = $$element("div", { className: "line total rook-receipt-1nonkdw" });
+      const $$span30 = $$element("span", { className: "rook-receipt-1nonkdw" });
+      $$span30.append("Total");
+      const $$span31 = $$element("span", { className: "rook-receipt-1nonkdw" });
+      const $$text32 = document.createTextNode(total.toFixed(2));
+      $$span31.append("€", $$text32);
+      $$div29.append($$span30, $$span31);
+      const [$$if33, $$updateIf33] = $$branches(() => order.note != null ? 0 : -1, [() => {
+        const $$block34 = document.createDocumentFragment();
+        const $$p35 = $$element("p", { className: "who rook-receipt-1nonkdw" });
+        const [$$content36, $$updateContent36] = $$content(() => order.note);
+        $$p35.append($$content36);
+        $$block34.append($$p35);
+        return [$$block34, () => {
+          $$updateContent36();
+        }];
+      }]);
+      $$div12.append($$div13, $$p18, $$for21, $$div29, $$if33);
+
+      $$setOrder10 = ($$order) => {
+        order = $$order;
+        total = order.items.reduce((sum, item) => sum + item.qty * item.price, 0);
+        $$text15.data = order.id;
+        $$text17.data = order.status;
+        $$text19.data = order.customer.name;
+        $$text20.data = order.customer.email;
+        $$updateFor21();
+        $$text32.data = total.toFixed(2);
+        $$updateIf33();
+      };
+
+      $$receipt9 = $$div12;
+    }
+    $$block8.append($$receipt9);
+    return [$$block8, () => {
+      $$setOrder10(order);
+    }];
+  }, () => {
+    const $$block37 = document.createDocumentFragment();
+    const $$p38 = $$element("p", { className: "problem rook-orders-1l85dq6" });
+    const $$text39 = document.createTextNode(checked.problem);
+    $$p38.append($$text39);
+    $$block37.append($$p38);
+    return [$$block37, () => {
+      $$text39.data = checked.problem;
+    }];
+  }]);
+  $$div3.append($$div4, $$textarea6, $$if7);
+
+  function $$updateJson2() {
+    checked = check(json);
+    order = checked.order;
+    if ($$textarea6.value !== json) $$textarea6.value = json;
+    $$updateIf7();
+  }
+
+  $$orders1 = $$div3;
+}
+document.body.append($$orders1);
+
+// orders.d.ts
+
+interface Customer {
+    name: string;
+    email: string;
+}
+interface Item {
+    name: string;
+    qty: number;
+    price: number;
+}
+interface Order {
+    id: number;
+    customer: Customer;
+    items: Item[];
+    status: "new" | "paid" | "sent";
+    note?: string | null;
+}
+interface Checked {
+    order?: Order | null;
+    problem: string;
+}
+export {};

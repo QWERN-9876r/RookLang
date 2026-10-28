@@ -1,0 +1,20 @@
+// modules.js
+
+import { readFileSync } from "node:fs";
+
+export function loadConfig(path) {
+  try {
+    return [JSON.parse(readFileSync(path, "utf8")), null];
+  } catch {
+    return [{ name: "", port: 0 }, new Error(`could not read ${path}`)];
+  }
+}
+
+// modules.d.ts
+
+import { readFileSync } from "node:fs";
+export interface Config {
+    name: string;
+    port: number;
+}
+export declare function loadConfig(path: string): [Config, null] | [null, Error];

@@ -1,0 +1,17 @@
+// null-safety.js
+
+const todos = [{ title: "Buy guavas", done: false }];
+
+const todo = todos.find((t) => t.title === "Buy guavas");
+
+if (todo != null) {
+  console.log(todo.done);
+}
+
+// null-safety.d.ts
+
+interface Todo {
+    title: string;
+    done: boolean;
+}
+export {};

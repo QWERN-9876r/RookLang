@@ -1,0 +1,22 @@
+// typed-arrays.js
+
+const samples = new Float64Array(8);
+for (let i = 0; i < samples.length; i++) {
+  samples[i] = Math.sin(i / 2);
+}
+
+let weights = new Float32Array([0.25, 0.5, 0.25]);
+let total = 0;
+for (let i = 0, $$items = weights; i < $$items.length; i++) {
+  const w = $$items[i];
+  total += w * samples[i];
+}
+console.log("weighted:", total.toFixed(3));
+
+const counts = new BigInt64Array(3);
+counts[0] = 2n ** 62n;
+console.log("counts:", counts.join(", "));
+
+// typed-arrays.d.ts
+
+export {};

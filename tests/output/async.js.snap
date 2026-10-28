@@ -1,0 +1,49 @@
+// async.js
+
+import { $$element } from "rooklang/runtime";
+
+async function sleep(ms) {
+  const done = new Promise((resolve) => setTimeout(() => resolve(ms), ms));
+  await done;
+}
+
+async function loadUser(id) {
+  await sleep(300);
+  if (id <= 0) {
+    return ["", new Error(`no user with id ${id}`)];
+  }
+  return [`user #${id}`, null];
+}
+
+const [name, err] = await loadUser(7);
+console.log(name, err);
+
+const [, notFound] = await loadUser(0);
+console.log("error:", notFound?.message);
+
+// <Profile>
+let $$profile1;
+{
+  let text = "nobody yet";
+  const $$button3 = $$element("button");
+  $$button3.addEventListener("click", async () => {
+    text = "loading…";
+    $$updateText2();
+    const [user, failed] = await loadUser(42);
+    text = failed == null ? user : failed.message;
+    $$updateText2();
+  });
+  const $$text4 = document.createTextNode(text);
+  $$button3.append($$text4);
+
+  function $$updateText2() {
+    $$text4.data = text;
+  }
+
+  $$profile1 = $$button3;
+}
+document.body.append($$profile1);
+
+// async.d.ts
+
+export {};

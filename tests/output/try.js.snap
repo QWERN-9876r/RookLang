@@ -1,0 +1,23 @@
+// try.js
+
+import { $$catch, $$catchAsync } from "rooklang/runtime";
+
+for (const text of ["8080", "{", "[80, 443]"]) {
+  const [port, err] = $$catch(() => JSON.parse(text));
+  if (err != null) {
+    console.log("not JSON:", text);
+    continue;
+  }
+  console.log("parsed:", port);
+}
+
+async function connect(host) {
+  throw new Error(`${host} does not answer`);
+}
+
+const [socket, err] = await $$catchAsync(async () => await connect("db.local"));
+console.log(socket, err?.message);
+
+// try.d.ts
+
+export {};

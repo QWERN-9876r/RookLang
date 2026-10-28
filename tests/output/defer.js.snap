@@ -1,0 +1,29 @@
+// defer.js
+
+function report(title) {
+  console.log("start:", title);
+  try {
+    console.log("working…");
+  } finally {
+    console.log("end:", title);
+  }
+}
+
+report("report");
+
+function parseJson(text) {
+  try {
+    return [JSON.parse(text), null];
+  } catch (e) {
+    return [null, new Error(e.message)];
+  }
+}
+
+const [, err] = parseJson("{ not json }");
+if (err != null) {
+  console.log("could not parse:", err.message);
+}
+
+// defer.d.ts
+
+export {};

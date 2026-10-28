@@ -1,0 +1,111 @@
+// decorator-wrappers.js
+
+import { $$content, $$element } from "rooklang/runtime";
+
+// <Product>
+let $$product1;
+{
+  const name = "Guava";
+  const price = 3;
+  let $$folded$title = name;
+  let $$folded$open = true;
+
+  let $$quantity$count = 0;
+
+  function $$quantity$add() {
+    $$quantity$count++;
+    $$updateQuantity$count4();
+  }
+
+  const $$quantityBadge$content = $$element("p");
+  const $$button5 = $$element("button");
+  $$button5.addEventListener("click", () => {
+    $$quantity$add();
+  });
+  $$button5.append("Take one");
+  $$quantityBadge$content.append("Price: ", price, " ", $$button5);
+  const $$folded$content = $$element("div");
+  const $$p6 = $$element("p");
+  const $$text7 = document.createTextNode($$quantity$count);
+  $$p6.append("Taken: ", $$text7);
+  $$folded$content.append($$quantityBadge$content, $$p6);
+  const $$section8 = $$element("section", { className: "card" });
+  const $$h39 = $$element("h3");
+  $$h39.addEventListener("click", () => {
+    $$folded$open = !$$folded$open;
+    $$updateFolded$open3();
+  });
+  const $$text10 = document.createTextNode($$folded$open ? "▾" : "▸");
+  const $$text11 = document.createTextNode($$folded$title);
+  $$h39.append($$text10, " ", $$text11);
+  const [$$content12, $$updateContent12] = $$content(() => $$folded$open ? $$folded$content : null);
+  $$section8.append($$h39, $$content12);
+
+  function $$updateFolded$open3() {
+    $$text10.data = $$folded$open ? "▾" : "▸";
+    $$updateContent12();
+  }
+
+  function $$updateQuantity$count4() {
+    if (!$$product1) return;
+    $$text7.data = $$quantity$count;
+  }
+
+  $$product1 = $$section8;
+}
+// <Product>
+let $$product13;
+{
+  const name = "Papaya";
+  const price = 2;
+  let $$folded$title = name;
+  let $$folded$open = true;
+
+  let $$quantity$count = 0;
+
+  function $$quantity$add() {
+    $$quantity$count++;
+    $$updateQuantity$count16();
+  }
+
+  const $$quantityBadge$content = $$element("p");
+  const $$button17 = $$element("button");
+  $$button17.addEventListener("click", () => {
+    $$quantity$add();
+  });
+  $$button17.append("Take one");
+  $$quantityBadge$content.append("Price: ", price, " ", $$button17);
+  const $$folded$content = $$element("div");
+  const $$p18 = $$element("p");
+  const $$text19 = document.createTextNode($$quantity$count);
+  $$p18.append("Taken: ", $$text19);
+  $$folded$content.append($$quantityBadge$content, $$p18);
+  const $$section20 = $$element("section", { className: "card" });
+  const $$h321 = $$element("h3");
+  $$h321.addEventListener("click", () => {
+    $$folded$open = !$$folded$open;
+    $$updateFolded$open15();
+  });
+  const $$text22 = document.createTextNode($$folded$open ? "▾" : "▸");
+  const $$text23 = document.createTextNode($$folded$title);
+  $$h321.append($$text22, " ", $$text23);
+  const [$$content24, $$updateContent24] = $$content(() => $$folded$open ? $$folded$content : null);
+  $$section20.append($$h321, $$content24);
+
+  function $$updateFolded$open15() {
+    $$text22.data = $$folded$open ? "▾" : "▸";
+    $$updateContent24();
+  }
+
+  function $$updateQuantity$count16() {
+    if (!$$product13) return;
+    $$text19.data = $$quantity$count;
+  }
+
+  $$product13 = $$section20;
+}
+document.body.append($$product1, $$product13);
+
+// decorator-wrappers.d.ts
+
+export {};

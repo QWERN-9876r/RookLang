@@ -1,0 +1,36 @@
+// bind.js
+
+import { $$element } from "rooklang/runtime";
+
+// <Greeting>
+let $$greeting1;
+{
+  let name = "";
+  let loud = false;
+  const $$div4 = $$element("div");
+  const $$input5 = $$element("input", { placeholder: "Your name" });
+  $$input5.value = name;
+  $$input5.addEventListener("input", () => {
+    name = $$input5.value;
+    $$text9.data = name === "" ? "stranger" : name;
+  });
+  const $$label6 = $$element("label");
+  const $$input7 = $$element("input", { type: "checkbox" });
+  $$input7.checked = loud;
+  $$input7.addEventListener("change", () => {
+    loud = $$input7.checked;
+    $$text10.data = loud ? "!!!" : ".";
+  });
+  $$label6.append($$input7, " loud");
+  const $$p8 = $$element("p");
+  const $$text9 = document.createTextNode(name === "" ? "stranger" : name);
+  const $$text10 = document.createTextNode(loud ? "!!!" : ".");
+  $$p8.append("Hello, ", $$text9, $$text10);
+  $$div4.append($$input5, $$label6, $$p8);
+  $$greeting1 = $$div4;
+}
+document.body.append($$greeting1);
+
+// bind.d.ts
+
+export {};

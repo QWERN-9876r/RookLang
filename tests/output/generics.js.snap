@@ -1,0 +1,40 @@
+// generics.js
+
+function last(xs) {
+  return xs.length > 0 ? xs[xs.length - 1] : null;
+}
+
+const fruit = last(["guava", "lychee"]);
+const count = last([1, 2, 3]);
+
+function names(items) {
+  return items.map((x) => x.name).join(", ");
+}
+
+class Stack {
+  items = [];
+
+  push(item) {
+    this.items.push(item);
+  }
+
+  pop() {
+    return this.items.pop() ?? null;
+  }
+}
+
+let stack = new Stack();
+stack.push("papaya");
+console.log(fruit, count, names([{ name: "Ann", age: 30 }]), stack.pop());
+
+// generics.d.ts
+
+interface Named {
+    name: string;
+}
+declare class Stack<T> {
+    private items;
+    push(item: T): void;
+    pop(): T | null;
+}
+export {};

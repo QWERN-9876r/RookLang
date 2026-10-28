@@ -1,0 +1,113 @@
+// examples-hello.js
+
+class Stats {
+  values = [];
+
+  add(v) {
+    this.values.push(v);
+  }
+
+  minMax() {
+    let lo = this.values[0], hi = this.values[0];
+    for (const v of this.values) {
+      if (v < lo) {
+        lo = v;
+      } else if (v > hi) {
+        hi = v;
+      }
+    }
+    return [lo, hi];
+  }
+
+  total() {
+    let sum = 0;
+    for (const v of this.values) {
+      sum += v;
+    }
+    return sum;
+  }
+}
+
+function divide(a, b) {
+  if (b === 0) {
+    return [0, new Error("division by zero")];
+  }
+  return [a / b, null];
+}
+
+function quadrant(p) {
+  if (p.x >= 0 && p.y >= 0) {
+    return "I";
+  } else if (p.x < 0 && p.y >= 0) {
+    return "II";
+  } else if (p.x < 0) {
+    return "III";
+  } else {
+    return "IV";
+  }
+}
+
+function findNegative(points) {
+  for (const p of points) {
+    if (p.x < 0 && p.y < 0) {
+      return p;
+    }
+  }
+  return null;
+}
+
+function section(title, body) {
+  console.log(`[${title}]`);
+  try {
+    body();
+  } finally {
+    console.log(`[/${title}]`);
+  }
+}
+
+section("divide", () => {
+  for (const d of [4, 0]) {
+    const [q, err] = divide(10, d);
+    if (err != null) {
+      console.log(`10 / ${d}: ${err.message}`);
+      continue;
+    }
+    console.log(`10 / ${d} = ${q}`);
+  }
+});
+
+section("stats", () => {
+  const stats = new Stats();
+  for (const v of [3, 1, 4, 1, 5, 9, 2, 6]) {
+    stats.add(v);
+  }
+  const [lo, hi] = stats.minMax();
+  console.log(`min = ${lo}, max = ${hi}, total = ${stats.total()}`);
+});
+
+section("points", () => {
+  const points = [{ x: 1, y: 2 }, { x: -3, y: 4 }, { x: -1, y: -1 }];
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    console.log(`point ${i}: quadrant ${quadrant(p)}`);
+  }
+
+  const neg = findNegative(points);
+  if (neg != null) {
+    console.log(`first negative: (${neg.x}, ${neg.y})`);
+  }
+});
+
+// examples-hello.d.ts
+
+interface Point {
+    x: number;
+    y: number;
+}
+declare class Stats {
+    private values;
+    add(v: number): void;
+    minMax(): [number, number];
+    total(): number;
+}
+export {};

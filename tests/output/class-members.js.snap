@@ -1,0 +1,51 @@
+// class-members.js
+
+class Shape {
+  constructor(name) {
+    this.name = name;
+  }
+
+  describe() {
+    return `${this.name}: ${this.area().toFixed(2)}`;
+  }
+}
+
+class Circle extends Shape {
+  constructor(r) {
+    super("circle");
+    this.r = r;
+  }
+
+  area() {
+    return Math.PI * this.r ** 2;
+  }
+
+  get diameter() {
+    return this.r * 2;
+  }
+
+  set diameter(value) {
+    this.r = value / 2;
+  }
+}
+
+const circle = new Circle(1);
+circle.diameter = 4;
+console.log(circle.describe(), circle.diameter);
+
+// class-members.d.ts
+
+declare abstract class Shape {
+    readonly name: string;
+    constructor(name: string);
+    abstract area(): number;
+    describe(): string;
+}
+declare class Circle extends Shape {
+    private r;
+    constructor(r: number);
+    area(): number;
+    get diameter(): number;
+    set diameter(value: number);
+}
+export {};

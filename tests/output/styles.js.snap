@@ -1,0 +1,57 @@
+// styles.js
+
+import { $$element, $$style } from "rooklang/runtime";
+
+const $$styles = [];
+
+$$style($$styles, "rook-ripeness-yyw973", `.ripeness.rook-ripeness-yyw973 {
+  display: grid;
+  gap: 8px;
+  max-width: 260px;
+}
+.track.rook-ripeness-yyw973 {
+  height: 10px;
+  border-radius: 999px;
+  background: #f0e3cb;
+}
+.fill.rook-ripeness-yyw973 {
+  width: var(--rook-ripeness-yyw973-0);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--rook-ripeness-yyw973-1);
+  transition: width 0.3s;
+}`);
+
+// <Ripeness>
+let $$ripeness1;
+{
+  let percent = 30;
+
+  const $$div3 = $$element("div", { className: "ripeness rook-ripeness-yyw973" });
+  const $$div4 = $$element("div", { className: "track rook-ripeness-yyw973" });
+  const $$div5 = $$element("div", { className: "fill rook-ripeness-yyw973" });
+  $$div4.append($$div5);
+  const $$button6 = $$element("button", { className: "rook-ripeness-yyw973" });
+  $$button6.addEventListener("click", () => {
+    percent = percent >= 100 ? 0 : percent + 35;
+    $$updatePercent2();
+  });
+  const $$text7 = document.createTextNode(percent < 70 ? "green" : "ripe");
+  $$button6.append("Ripen: ", $$text7);
+  $$div3.append($$div4, $$button6);
+
+  function $$updatePercent2() {
+    $$text7.data = percent < 70 ? "green" : "ripe";
+    $$ripeness1.style.setProperty("--rook-ripeness-yyw973-0", `${percent}%`);
+    $$ripeness1.style.setProperty("--rook-ripeness-yyw973-1", percent < 70 ? "#8fcf6f" : "#ffad42");
+  }
+
+  $$ripeness1 = $$div3;
+  $$ripeness1.style.setProperty("--rook-ripeness-yyw973-0", `${percent}%`);
+  $$ripeness1.style.setProperty("--rook-ripeness-yyw973-1", percent < 70 ? "#8fcf6f" : "#ffad42");
+}
+document.body.append($$ripeness1);
+
+// styles.d.ts
+
+export {};

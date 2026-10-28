@@ -1,0 +1,88 @@
+// select.js
+
+import { $$Channel } from "rooklang/runtime";
+
+async function search(query, ms, out) {
+  await $$Channel.receive($$Channel.after(ms), false, 0);
+  await $$Channel.send(out, `results for "${query}" in ${ms} ms`);
+  $$Channel.close(out);
+}
+
+const fast = $$Channel.make(1, "");
+const slow = $$Channel.make(1, "");
+search("guava", 100, fast);
+search("papaya", 2000, slow);
+
+{
+  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: fast, zero: "" }, { channel: slow, zero: "" }], false);
+  switch ($$case) {
+    case 0: {
+      const text = $$received;
+      console.log(text);
+      break;
+    }
+    case 1: {
+      const text = $$received;
+      console.log(text);
+      break;
+    }
+  }
+}
+
+{
+  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: slow, zero: "" }, { channel: $$Channel.after(500), zero: 0 }], false);
+  switch ($$case) {
+    case 0: {
+      const text = $$received;
+      console.log(text);
+      break;
+    }
+    case 1: {
+      console.log("timeout: 500 ms");
+      break;
+    }
+  }
+}
+
+{
+  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: slow, zero: "" }], true);
+  switch ($$case) {
+    case 0: {
+      const text = $$received;
+      console.log(text);
+      break;
+    }
+    default: {
+      console.log("slow is not ready yet");
+      break;
+    }
+  }
+}
+
+let lime = $$Channel.make(1, "");
+let kiwi = $$Channel.make(1, "");
+search("lime", 80, lime);
+search("kiwi", 40, kiwi);
+while (lime != null || kiwi != null) {
+  {
+    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: lime, zero: "" }, { channel: kiwi, zero: "" }], false);
+    switch ($$case) {
+      case 0: {
+        const text = $$received;
+        console.log(text);
+        lime = null;
+        break;
+      }
+      case 1: {
+        const text = $$received;
+        console.log(text);
+        kiwi = null;
+        break;
+      }
+    }
+  }
+}
+
+// select.d.ts
+
+export {};

@@ -1,0 +1,47 @@
+// classes.js
+
+class Circle {
+  radius = 0;
+
+  constructor(radius) {
+    this.radius = radius;
+  }
+
+  area() {
+    return Math.PI * this.radius ** 2;
+  }
+}
+
+class Square {
+  side = 0;
+
+  constructor(side) {
+    this.side = side;
+  }
+
+  area() {
+    return this.side * this.side;
+  }
+}
+
+const shapes = [new Circle(1), new Square(2), { area: () => 10 }];
+for (const shape of shapes) {
+  console.log(shape.area().toFixed(2));
+}
+
+// classes.d.ts
+
+interface Shape {
+    area(): number;
+}
+declare class Circle {
+    private radius;
+    constructor(radius: number);
+    area(): number;
+}
+declare class Square {
+    private side;
+    constructor(side: number);
+    area(): number;
+}
+export {};

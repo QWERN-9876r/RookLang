@@ -1,0 +1,54 @@
+// mount-cleanup.js
+
+import { $$branches, $$element, $$mount } from "rooklang/runtime";
+
+// <App>
+let $$app1;
+{
+  let shown = true;
+  const $$div3 = $$element("div");
+  const $$button4 = $$element("button");
+  $$button4.addEventListener("click", () => {
+    shown = !shown;
+    $$updateShown2();
+  });
+  const $$text5 = document.createTextNode(shown ? "Hide the clock" : "Show the clock");
+  $$button4.append($$text5);
+  const [$$if6, $$updateIf6] = $$branches(() => shown ? 0 : -1, [() => {
+    const $$block7 = document.createDocumentFragment();
+    // <Clock>
+    let $$clock8, $$mountNode9;
+    {
+      let time = new Date().toLocaleTimeString();
+
+      $$mount(() => $$mountNode9, () => {
+        const timer = setInterval(() => {
+          time = new Date().toLocaleTimeString();
+          $$text12.data = time;
+        }, 1000);
+        return () => clearInterval(timer);
+      });
+
+      const $$p11 = $$element("p", { className: "card" });
+      const $$text12 = document.createTextNode(time);
+      $$p11.append("It is ", $$text12);
+      $$clock8 = $$p11;
+      $$mountNode9 = $$clock8?.nodeType === 11 ? $$clock8.firstChild : $$clock8;
+    }
+    $$block7.append($$clock8);
+    return [$$block7];
+  }]);
+  $$div3.append($$button4, $$if6);
+
+  function $$updateShown2() {
+    $$text5.data = shown ? "Hide the clock" : "Show the clock";
+    $$updateIf6();
+  }
+
+  $$app1 = $$div3;
+}
+document.body.append($$app1);
+
+// mount-cleanup.d.ts
+
+export {};

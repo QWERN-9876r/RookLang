@@ -1,0 +1,44 @@
+// bytes.js
+
+import { $$goWorker, $$transfer } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./bytes.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./bytes.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+const bytes = new TextEncoder().encode("rook ♜");
+console.log(bytes.length, "bytes:", bytes.join(" "));
+
+console.log(new TextDecoder().decode(bytes));
+
+let header = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
+console.log(new TextDecoder().decode(header.subarray(1)));
+
+function checksum(data) {
+  return data.reduce((sum, b) => (sum + b) % 256, 0);
+}
+console.log("checksum:", await $$go("checksum", [$$transfer(bytes)]), "left here:", bytes.length);
+
+// bytes.worker.js
+
+import { $$serve } from "rooklang/runtime";
+
+function checksum(data) {
+  return data.reduce((sum, b) => (sum + b) % 256, 0);
+}
+
+const $$goroutines = { checksum };
+$$serve($$goroutines);
+
+// bytes.d.ts
+
+export {};

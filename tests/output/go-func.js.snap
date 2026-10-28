@@ -1,0 +1,68 @@
+// go-func.js
+
+import { $$Channel, $$goWorker, $$transfer } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./go-func.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./go-func.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+async function sumInParts(numbers, parts) {
+  const size = Math.ceil(numbers.length / parts);
+  const sums = $$Channel.make(parts, 0);
+  for (let i = 0; i < parts; i++) {
+    $$go("$$goroutine0", [numbers, size, sums, i * size]);
+  }
+
+  let total = 0;
+  for (let i = 0; i < parts; i++) {
+    total += await $$Channel.receive(sums, false, 0);
+  }
+  $$Channel.close(sums);
+  return total;
+}
+
+const numbers = [];
+for (let i = 1; i <= 100_000; i++) {
+  numbers.push(i);
+}
+console.log("sum:", await sumInParts(numbers, 4));
+
+function average(values) {
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+const values = new Float64Array(1_000_000).fill(2);
+const pending = $$go("average", [$$transfer(values)]);
+console.log("left here:", values.length);
+console.log("average:", await pending);
+
+// go-func.worker.js
+
+import { $$Channel, $$serve } from "rooklang/runtime";
+
+function average(values) {
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+async function $$goroutine0(numbers, size, sums, from) {
+  let sum = 0;
+  for (const n of numbers.slice(from, from + size)) {
+    sum += n;
+  }
+  await $$Channel.send(sums, sum);
+}
+
+const $$goroutines = { $$goroutine0, average };
+$$serve($$goroutines);
+
+// go-func.d.ts
+
+export {};

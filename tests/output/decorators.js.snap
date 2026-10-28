@@ -1,0 +1,120 @@
+// decorators.js
+
+import { $$element, $$mount } from "rooklang/runtime";
+
+const FRAMES = ["◐", "◓", "◑", "◒"];
+
+// <Stopwatch>
+let $$stopwatch1, $$mountNode2;
+{
+  const label = "Tea";
+  const $$ticker$interval = 1000;
+  let $$ticker$ticks = 0;
+  let $$ticker$running = true;
+
+  function $$ticker$toggle() {
+    $$ticker$running = !$$ticker$running;
+    $$updateTicker$running4();
+  }
+
+  $$mount(() => $$mountNode2, () => {
+    const timer = setInterval(() => {
+      if ($$ticker$running) {
+        $$ticker$ticks++;
+        $$text6.data = $$ticker$ticks;
+      }
+    }, $$ticker$interval);
+    return () => clearInterval(timer);
+  });
+
+  const $$p5 = $$element("p", { className: "card" });
+  const $$text6 = document.createTextNode($$ticker$ticks);
+  const $$button7 = $$element("button");
+  $$button7.addEventListener("click", () => {
+    $$ticker$toggle();
+  });
+  const $$text8 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
+  $$button7.append($$text8);
+  $$p5.append(label, ": ", $$text6, " s", " ", $$button7);
+
+  function $$updateTicker$running4() {
+    if (!$$stopwatch1) return;
+    $$text8.data = $$ticker$running ? "Pause" : "Go on";
+  }
+
+  $$stopwatch1 = $$p5;
+  $$mountNode2 = $$stopwatch1?.nodeType === 11 ? $$stopwatch1.firstChild : $$stopwatch1;
+}
+// <Stopwatch>
+let $$stopwatch9, $$mountNode10;
+{
+  const label = "Eggs";
+  const $$ticker$interval = 1000;
+  let $$ticker$ticks = 0;
+  let $$ticker$running = true;
+
+  function $$ticker$toggle() {
+    $$ticker$running = !$$ticker$running;
+    $$updateTicker$running12();
+  }
+
+  $$mount(() => $$mountNode10, () => {
+    const timer = setInterval(() => {
+      if ($$ticker$running) {
+        $$ticker$ticks++;
+        $$text14.data = $$ticker$ticks;
+      }
+    }, $$ticker$interval);
+    return () => clearInterval(timer);
+  });
+
+  const $$p13 = $$element("p", { className: "card" });
+  const $$text14 = document.createTextNode($$ticker$ticks);
+  const $$button15 = $$element("button");
+  $$button15.addEventListener("click", () => {
+    $$ticker$toggle();
+  });
+  const $$text16 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
+  $$button15.append($$text16);
+  $$p13.append(label, ": ", $$text14, " s", " ", $$button15);
+
+  function $$updateTicker$running12() {
+    if (!$$stopwatch9) return;
+    $$text16.data = $$ticker$running ? "Pause" : "Go on";
+  }
+
+  $$stopwatch9 = $$p13;
+  $$mountNode10 = $$stopwatch9?.nodeType === 11 ? $$stopwatch9.firstChild : $$stopwatch9;
+}
+// <Spinner>
+let $$spinner17, $$mountNode18;
+{
+  const $$ticker$interval = 150;
+  let $$ticker$ticks = 0;
+  let $$ticker$running = true;
+
+  function $$ticker$toggle() {
+    $$ticker$running = !$$ticker$running;
+  }
+
+  $$mount(() => $$mountNode18, () => {
+    const timer = setInterval(() => {
+      if ($$ticker$running) {
+        $$ticker$ticks++;
+        $$text22.data = FRAMES[$$ticker$ticks % FRAMES.length];
+      }
+    }, $$ticker$interval);
+    return () => clearInterval(timer);
+  });
+
+  const $$p21 = $$element("p", { className: "card" });
+  const $$text22 = document.createTextNode(FRAMES[$$ticker$ticks % FRAMES.length]);
+  $$p21.append($$text22);
+  $$spinner17 = $$p21;
+  $$mountNode18 = $$spinner17?.nodeType === 11 ? $$spinner17.firstChild : $$spinner17;
+}
+document.body.append($$stopwatch1, $$stopwatch9, $$spinner17);
+
+// decorators.d.ts
+
+export {};

@@ -1,0 +1,29 @@
+// unions.js
+
+function label(filter) {
+  switch (filter) {
+    case "active":
+      return "active";
+    case "done":
+      return "done";
+    default:
+      return "everything";
+  }
+}
+
+function show(value) {
+  if (typeof value === "string") {
+    return value.toUpperCase();
+  }
+  if (typeof value === "number") {
+    return value.toFixed(2);
+  }
+  return value.join(", ");
+}
+
+console.log(label("done"), show("guava"), show(3), show(["lychee", "papaya"]));
+
+// unions.d.ts
+
+type Filter = "all" | "active" | "done";
+export {};

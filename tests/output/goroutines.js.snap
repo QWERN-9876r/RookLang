@@ -1,0 +1,82 @@
+// goroutines.js
+
+import { $$goWorker } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./goroutines.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./goroutines.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+function isPrime(n) {
+  if (n < 2) {
+    return false;
+  }
+
+  for (let d = 2; d * d <= n; d++) {
+    if (n % d === 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function countPrimes(from, to) {
+  let count = 0;
+  for (let n = from; n < to; n++) {
+    if (isPrime(n)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+const PART = 1_000_000;
+
+let started = Date.now();
+console.log("one thread:", countPrimes(0, 10 * PART), `${Date.now() - started} ms`);
+
+started = Date.now();
+const parts = await Promise.all(Array(10).fill(0).map((_, i) => $$go("countPrimes", [i * PART, (i + 1) * PART])));
+console.log("ten goroutines:", parts.reduce((a, b) => a + b, 0), `${Date.now() - started} ms`);
+
+// goroutines.worker.js
+
+import { $$serve } from "rooklang/runtime";
+
+function isPrime(n) {
+  if (n < 2) {
+    return false;
+  }
+
+  for (let d = 2; d * d <= n; d++) {
+    if (n % d === 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function countPrimes(from, to) {
+  let count = 0;
+  for (let n = from; n < to; n++) {
+    if (isPrime(n)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+const $$goroutines = { countPrimes };
+$$serve($$goroutines);
+
+// goroutines.d.ts
+
+export {};

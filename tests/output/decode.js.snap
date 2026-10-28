@@ -1,0 +1,31 @@
+// decode.js
+
+import { $$decodeJson, $$type } from "rooklang/runtime";
+
+const $$typeOrder = $$type("Order", () => ({
+  id: "number",
+  items: { array: "string" },
+  status: { literal: ["new", "paid"] },
+  note: { nullable: "string" },
+}));
+
+const bodies = [`{"id": 1, "items": ["tea", "cake"], "status": "paid"}`, `{"id": 2, "items": ["tea", 3], "status": "new"}`, `{"id": 3, "items": [], "status": "sent"}`, `{"items": [], "status": "new"}`, `{"id": 5, "items": [`];
+
+for (const body of bodies) {
+  const [order, err] = $$decodeJson(body, $$typeOrder);
+  if (err != null) {
+    console.log(err.message);
+    continue;
+  }
+  console.log("order", order.id, "of", order.items.length, "items");
+}
+
+// decode.d.ts
+
+interface Order {
+    id: number;
+    items: string[];
+    status: "new" | "paid";
+    note?: string | null;
+}
+export {};

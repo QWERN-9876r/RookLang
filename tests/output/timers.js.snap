@@ -1,0 +1,104 @@
+// timers.js
+
+import { $$Channel, $$cancel, $$goWorker } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./timers.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./timers.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+function countPrimes(limit) {
+  let count = 0;
+  for (let n = 2; n < limit; n++) {
+    let prime = true;
+    for (let d = 2; d * d <= n; d++) {
+      if (n % d === 0) {
+        prime = false;
+        break;
+      }
+    }
+    if (prime) {
+      count++;
+    }
+  }
+  return count;
+}
+
+const ticks = $$Channel.tick(100);
+const done = $$Channel.make(1, 0);
+const task = $$go("$$goroutine0", []);
+const timeout = $$Channel.after(450);
+
+let waiting = true;
+while (waiting) {
+  {
+    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: ticks, zero: 0 }, { channel: timeout, zero: 0 }], false);
+    switch ($$case) {
+      case 0: {
+        const n = $$received;
+        console.log("primes:", n);
+        waiting = false;
+        break;
+      }
+      case 1: {
+        console.log("still counting");
+        break;
+      }
+      case 2: {
+        $$cancel(task);
+        console.log("too slow: cancelled");
+        waiting = false;
+        break;
+      }
+    }
+  }
+}
+$$Channel.close(ticks);
+
+try {
+  await task;
+} catch (e) {
+  console.log(e.message);
+}
+
+// timers.worker.js
+
+import { $$Channel, $$serve } from "rooklang/runtime";
+
+function countPrimes(limit) {
+  let count = 0;
+  for (let n = 2; n < limit; n++) {
+    let prime = true;
+    for (let d = 2; d * d <= n; d++) {
+      if (n % d === 0) {
+        prime = false;
+        break;
+      }
+    }
+    if (prime) {
+      count++;
+    }
+  }
+  return count;
+}
+
+const done = $$Channel.make(1, 0);
+async function $$goroutine0() {
+  await $$Channel.send(done, countPrimes(100_000_000));
+  $$Channel.close(done);
+}
+
+const $$goroutines = { $$goroutine0 };
+$$serve($$goroutines);
+
+// timers.d.ts
+
+export {};

@@ -1,0 +1,22 @@
+// functions.js
+
+function divmod(a, b) {
+  return [Math.floor(a / b), a % b];
+}
+
+const [q, r] = divmod(17, 5);
+console.log(`17 = 5 × ${q} + ${r}`);
+
+const square = (x) => {
+  return x * x;
+};
+const doubled = [1, 2, 3].map((x) => x * 2);
+
+const factorial = (n) => {
+  return n <= 1 ? 1 : n * factorial(n - 1);
+};
+console.log(square(4), doubled, factorial(5));
+
+// functions.d.ts
+
+export {};

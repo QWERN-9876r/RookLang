@@ -1,0 +1,305 @@
+// primes.js
+
+import { $$Channel, $$cancel, $$element, $$goWorker, $$style } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./primes.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./primes.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+const $$styles = [];
+
+$$style($$styles, "rook-primes-1luw6cz", `.job.rook-primes-1luw6cz {
+  display: grid;
+  gap: 16px;
+  max-width: 460px;
+}
+.stats.rook-primes-1luw6cz {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.stat.rook-primes-1luw6cz {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #ffffff0d;
+}
+.stat.rook-primes-1luw6cz b.rook-primes-1luw6cz {
+  font-size: 1.3em;
+  font-variant-numeric: tabular-nums;
+}
+.stat.rook-primes-1luw6cz span.rook-primes-1luw6cz {
+  color: #ffffff80;
+  font-size: 0.8em;
+}
+.track.rook-primes-1luw6cz {
+  height: 8px;
+  border-radius: 999px;
+  background: #ffffff14;
+  overflow: hidden;
+}
+.fill.rook-primes-1luw6cz {
+  width: var(--rook-primes-1luw6cz-0);
+  height: 100%;
+  background: #f5a524;
+  transition: width 0.2s;
+}
+.buttons.rook-primes-1luw6cz {
+  display: flex;
+  gap: 8px;
+}
+button.rook-primes-1luw6cz {
+  padding: 8px 16px;
+  border: 1px solid #ffffff2e;
+  border-radius: 8px;
+  background: #ffffff0a;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled.rook-primes-1luw6cz {
+  opacity: 0.4;
+  cursor: default;
+}
+.start.rook-primes-1luw6cz {
+  border-color: #f5a524;
+  background: #f5a524;
+  color: #000;
+}
+.report.rook-primes-1luw6cz {
+  margin: 0;
+  color: #ffffffb3;
+}
+.free.rook-primes-1luw6cz {
+  justify-self: start;
+  border-style: dashed;
+  color: #ffffffb3;
+}`);
+
+const LIMIT = 50_000_000;
+const STEP = LIMIT / 100;
+
+function isPrime(n) {
+  if (n % 2 === 0) {
+    return n === 2;
+  }
+  for (let d = 3; d * d <= n; d += 2) {
+    if (n % d === 0) {
+      return false;
+    }
+  }
+  return n > 1;
+}
+
+async function countPrimes(updates) {
+  let found = 0;
+  for (let n = 2; n <= LIMIT; n++) {
+    if (isPrime(n)) {
+      found++;
+    }
+    if (n % STEP === 0) {
+      await $$Channel.send(updates, { checked: n, found });
+    }
+  }
+  $$Channel.close(updates);
+}
+
+// <Primes>
+let $$primes1;
+{
+  let running = false;
+  let checked = 0;
+  let found = 0;
+  let seconds = 0;
+  let clicks = 0;
+  let report = "Count the primes up to 50 million";
+  let percent = Math.round(checked / LIMIT * 100);
+  let stop = $$Channel.make(0, false);
+
+  async function run() {
+    running = true;
+    $$updateRunning2();
+    checked = 0;
+    $$updateChecked3();
+    found = 0;
+    $$updateFound4();
+    report = "Counting on another processor…";
+    $$updateReport7();
+    stop = $$Channel.make(0, false);
+    const updates = $$Channel.make(0, null);
+    const job = $$go("countPrimes", [updates]);
+    const start = performance.now();
+    while (true) {
+      {
+        const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: updates }, { channel: stop, zero: false }], false);
+        switch ($$case) {
+          case 0: {
+            const p = $$received;
+            seconds = (performance.now() - start) / 1000;
+            $$updateSeconds5();
+            if (p == null) {
+              report = `Done: ${found.toLocaleString()} primes`;
+              $$updateReport7();
+              running = false;
+              $$updateRunning2();
+              return;
+            }
+            checked = p.checked;
+            $$updateChecked3();
+            found = p.found;
+            $$updateFound4();
+            break;
+          }
+          case 1: {
+            $$cancel(job);
+            report = `Cancelled at ${percent}%`;
+            $$updateReport7();
+            running = false;
+            $$updateRunning2();
+            return;
+          }
+        }
+      }
+      $$updateSeconds5();
+      $$updateChecked3();
+      $$updateFound4();
+      $$updateReport7();
+      $$updateRunning2();
+    }
+  }
+
+  const $$div8 = $$element("div", { className: "job rook-primes-1luw6cz" });
+  const $$div9 = $$element("div", { className: "stats rook-primes-1luw6cz" });
+  const $$div10 = $$element("div", { className: "stat rook-primes-1luw6cz" });
+  const $$b11 = $$element("b", { className: "rook-primes-1luw6cz" });
+  const $$text12 = document.createTextNode(found.toLocaleString());
+  $$b11.append($$text12);
+  const $$span13 = $$element("span", { className: "rook-primes-1luw6cz" });
+  $$span13.append("primes found");
+  $$div10.append($$b11, $$span13);
+  const $$div14 = $$element("div", { className: "stat rook-primes-1luw6cz" });
+  const $$b15 = $$element("b", { className: "rook-primes-1luw6cz" });
+  const $$text16 = document.createTextNode(percent);
+  $$b15.append($$text16, "%");
+  const $$span17 = $$element("span", { className: "rook-primes-1luw6cz" });
+  $$span17.append("checked");
+  $$div14.append($$b15, $$span17);
+  const $$div18 = $$element("div", { className: "stat rook-primes-1luw6cz" });
+  const $$b19 = $$element("b", { className: "rook-primes-1luw6cz" });
+  const $$text20 = document.createTextNode(seconds.toFixed(1));
+  $$b19.append($$text20, " s");
+  const $$span21 = $$element("span", { className: "rook-primes-1luw6cz" });
+  $$span21.append("on the clock");
+  $$div18.append($$b19, $$span21);
+  $$div9.append($$div10, $$div14, $$div18);
+  const $$div22 = $$element("div", { className: "track rook-primes-1luw6cz" });
+  const $$div23 = $$element("div", { className: "fill rook-primes-1luw6cz" });
+  $$div22.append($$div23);
+  const $$div24 = $$element("div", { className: "buttons rook-primes-1luw6cz" });
+  const $$button25 = $$element("button", { className: "start rook-primes-1luw6cz", disabled: running });
+  $$button25.addEventListener("click", () => {
+    run();
+  });
+  $$button25.append("Start");
+  const $$button26 = $$element("button", { disabled: !running, className: "rook-primes-1luw6cz" });
+  $$button26.addEventListener("click", () => {
+    $$Channel.close(stop);
+  });
+  $$button26.append("Cancel");
+  $$div24.append($$button25, $$button26);
+  const $$p27 = $$element("p", { className: "report rook-primes-1luw6cz" });
+  const $$text28 = document.createTextNode(report);
+  $$p27.append($$text28);
+  const $$button29 = $$element("button", { className: "free rook-primes-1luw6cz" });
+  $$button29.addEventListener("click", () => {
+    clicks++;
+    $$text30.data = clicks;
+  });
+  const $$text30 = document.createTextNode(clicks);
+  $$button29.append("The page is free, click me: ", $$text30);
+  $$div8.append($$div9, $$div22, $$div24, $$p27, $$button29);
+
+  function $$updateRunning2() {
+    if (!$$primes1) return;
+    $$button25.disabled = running;
+    $$button26.disabled = !running;
+  }
+
+  function $$updateChecked3() {
+    percent = Math.round(checked / LIMIT * 100);
+    if (!$$primes1) return;
+    $$text16.data = percent;
+    $$primes1.style.setProperty("--rook-primes-1luw6cz-0", `${percent}%`);
+  }
+
+  function $$updateFound4() {
+    if (!$$primes1) return;
+    $$text12.data = found.toLocaleString();
+  }
+
+  function $$updateSeconds5() {
+    if (!$$primes1) return;
+    $$text20.data = seconds.toFixed(1);
+  }
+
+  function $$updateReport7() {
+    if (!$$primes1) return;
+    $$text28.data = report;
+  }
+
+  $$primes1 = $$div8;
+  $$primes1.style.setProperty("--rook-primes-1luw6cz-0", `${percent}%`);
+}
+document.body.append($$primes1);
+
+// primes.worker.js
+
+import { $$Channel, $$serve } from "rooklang/runtime";
+
+const LIMIT = 50_000_000;
+const STEP = LIMIT / 100;
+
+function isPrime(n) {
+  if (n % 2 === 0) {
+    return n === 2;
+  }
+  for (let d = 3; d * d <= n; d += 2) {
+    if (n % d === 0) {
+      return false;
+    }
+  }
+  return n > 1;
+}
+
+async function countPrimes(updates) {
+  let found = 0;
+  for (let n = 2; n <= LIMIT; n++) {
+    if (isPrime(n)) {
+      found++;
+    }
+    if (n % STEP === 0) {
+      await $$Channel.send(updates, { checked: n, found });
+    }
+  }
+  $$Channel.close(updates);
+}
+
+const $$goroutines = { countPrimes };
+$$serve($$goroutines);
+
+// primes.d.ts
+
+interface Progress {
+    checked: number;
+    found: number;
+}
+export {};

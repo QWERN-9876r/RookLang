@@ -1,0 +1,48 @@
+// errors.js
+
+import { $$wrap } from "rooklang/runtime";
+
+function parseAge(text) {
+  const age = Number(text);
+  if (isNaN(age) || age < 0) {
+    return [0, new Error(`"${text}" is not an age`)];
+  }
+  return [age, null];
+}
+
+class Person {
+  name = "";
+  age = 0;
+
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+}
+
+function parsePerson(line) {
+  const parts = line.split(" ");
+  const [age, err] = parseAge(parts[1]);
+  if (err != null) {
+    return [null, $$wrap(`"${line}"`, err)];
+  }
+  return [new Person(parts[0], age), null];
+}
+
+for (const line of ["Ann 42", "Bob forty-two"]) {
+  const [person, err] = parsePerson(line);
+  if (err != null) {
+    console.log("error:", err.message);
+    continue;
+  }
+  console.log(person.name, "is", person.age);
+}
+
+// errors.d.ts
+
+declare class Person {
+    name: string;
+    age: number;
+    constructor(name: string, age: number);
+}
+export {};

@@ -1,0 +1,38 @@
+// iterators.js
+
+function fibonacci() {
+  return function* () {
+    let a = 0, b = 1;
+    while (true) {
+      yield a;
+      [a, b] = [b, a + b];
+    }
+  };
+}
+
+for (const n of fibonacci()()) {
+  if (n > 50) {
+    break;
+  }
+  console.log(n);
+}
+
+function numbered(words) {
+  return function* () {
+    for (let i = 0, $$items = words; i < $$items.length; i++) {
+      const word = $$items[i];
+      yield [i + 1, word];
+    }
+  };
+}
+
+for (const [place, fruit] of numbered(["guava", "papaya", "lychee"])()) {
+  console.log(place, fruit);
+}
+
+const evens = fibonacci()().filter((n) => n % 2 === 0).take(5).toArray();
+console.log("even:", evens.join(", "));
+
+// iterators.d.ts
+
+export {};

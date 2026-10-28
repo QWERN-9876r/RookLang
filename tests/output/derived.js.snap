@@ -1,0 +1,46 @@
+// derived.js
+
+import { $$element } from "rooklang/runtime";
+
+// <Basket>
+let $$basket1;
+{
+  let prices = [3, 2];
+  let total = prices.reduce((sum, price) => sum + price, 0);
+  let note = total > 10 ? "That is a lot of guavas" : "There is room for more";
+
+  const $$effect3 = () => {
+    console.log("total:", total);
+  };
+
+  const $$div4 = $$element("div");
+  const $$button5 = $$element("button");
+  $$button5.addEventListener("click", () => {
+    prices.push(3);
+    $$updatePrices2();
+  });
+  $$button5.append("Add a guava");
+  const $$p6 = $$element("p");
+  const $$text7 = document.createTextNode(prices.length);
+  const $$text8 = document.createTextNode(total);
+  const $$text9 = document.createTextNode(note);
+  $$p6.append($$text7, " fruits for ", $$text8, ". ", $$text9);
+  $$div4.append($$button5, $$p6);
+
+  function $$updatePrices2() {
+    total = prices.reduce((sum, price) => sum + price, 0);
+    note = total > 10 ? "That is a lot of guavas" : "There is room for more";
+    $$text7.data = prices.length;
+    $$text8.data = total;
+    $$text9.data = note;
+    $$effect3();
+  }
+
+  $$basket1 = $$div4;
+  $$effect3();
+}
+document.body.append($$basket1);
+
+// derived.d.ts
+
+export {};

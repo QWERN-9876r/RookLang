@@ -1,0 +1,239 @@
+// filters.js
+
+import { $$Channel, $$element, $$goFor, $$goWorker, $$list, $$mount } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./filters.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./filters.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+const WIDTH = 1600;
+const HEIGHT = 900;
+
+function box(size) {
+  return Array.from({ length: size * size }, () => 1 / (size * size));
+}
+
+function diagonal(size) {
+  const weights = box(size).map((_) => 0);
+  for (let i = 0; i < size; i++) {
+    weights[i * (size + 1)] = 1 / size;
+  }
+  return weights;
+}
+
+const FILTERS = [{ name: "Blur", size: 13, weights: box(13) }, { name: "Motion", size: 15, weights: diagonal(15) }, { name: "Sharpen", size: 3, weights: [0, -1, 0, -1, 5, -1, 0, -1, 0] }, { name: "Edges", size: 3, weights: [-1, -1, -1, -1, 8, -1, -1, -1, -1] }, { name: "Emboss", size: 3, weights: [-2, -1, 0, -1, 1, 1, 0, 1, 2] }];
+
+function picture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const context = canvas.getContext("2d");
+  if (context == null) {
+    return new Uint8ClampedArray(WIDTH * HEIGHT * 4);
+  }
+  const sky = context.createLinearGradient(0, 0, WIDTH, HEIGHT);
+  sky.addColorStop(0, "#1d2b64");
+  sky.addColorStop(1, "#f8a35b");
+  context.fillStyle = sky;
+  context.fillRect(0, 0, WIDTH, HEIGHT);
+  for (let i = 0; i < 40; i++) {
+    context.fillStyle = `hsl(${i * 37} 80% 60% / 0.7)`;
+    context.beginPath();
+    context.arc(i * 211 % WIDTH, i * 137 % HEIGHT, 30 + i % 5 * 25, 0, Math.PI * 2);
+    context.fill();
+  }
+  context.fillStyle = "#fff";
+  context.font = "bold 300px sans-serif";
+  context.fillText("Rook", 380, 560);
+  return context.getImageData(0, 0, WIDTH, HEIGHT).data;
+}
+
+function filteredAt(src, i, filter) {
+  const channel = i % 4;
+  if (channel === 3) {
+    return 255;
+  }
+  const x = Math.floor(i / 4) % WIDTH;
+  const y = Math.floor(i / 4 / WIDTH);
+  const half = (filter.size - 1) / 2;
+  let sum = 0;
+  for (let dy = 0; dy < filter.size; dy++) {
+    const yy = Math.min(Math.max(y + dy - half, 0), HEIGHT - 1);
+    for (let dx = 0; dx < filter.size; dx++) {
+      const xx = Math.min(Math.max(x + dx - half, 0), WIDTH - 1);
+      sum += src[(yy * WIDTH + xx) * 4 + channel] * filter.weights[dy * filter.size + dx];
+    }
+  }
+  return sum;
+}
+
+function applyOnOne(src, filter) {
+  const out = new Uint8ClampedArray(src.length);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = filteredAt(src, i, filter);
+  }
+  return out;
+}
+
+async function applyOnAll(src, filter) {
+  const out = new Uint8ClampedArray(src.length);
+  await $$goFor($$go, "$$goroutine0", out, src, filter);
+  return out;
+}
+
+// <Filters>
+let $$filters1, $$mountNode2;
+{
+  const source = picture();
+  let filter = FILTERS[0];
+  let report = "Choose a filter and where to apply it";
+  let busy = false;
+  let turn = 0;
+  const canvas = $$element("canvas");
+  canvas.style.cssText = "width: 100%";
+
+  function draw(pixels) {
+    const image = new ImageData(WIDTH, HEIGHT);
+    image.data.set(pixels);
+    canvas.getContext("2d")?.putImageData(image, 0, 0);
+  }
+
+  async function apply(all) {
+    busy = true;
+    $$updateBusy5();
+    report = "Working…";
+    $$updateReport4();
+    await $$Channel.receive($$Channel.after(50), false, 0);
+    const start = performance.now();
+    const out = all ? await applyOnAll(source, filter) : applyOnOne(source, filter);
+    const ms = Math.round(performance.now() - start);
+    draw(out);
+    const where = all ? `on ${navigator.hardwareConcurrency} processors` : "on one thread";
+    report = `${filter.name}: ${ms} ms ${where}`;
+    $$updateReport4();
+    busy = false;
+    $$updateBusy5();
+  }
+
+  $$mount(() => $$mountNode2, () => {
+    draw(source);
+    const timer = setInterval(() => {
+      turn = (turn + 1) % 8;
+      $$text18.data = "◐◓◑◒◐◓◑◒"[turn];
+    }, 100);
+    return () => clearInterval(timer);
+  });
+
+  const $$div7 = $$element("div");
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const $$p8 = $$element("p");
+  const [$$for9, $$updateFor9] = $$list(() => FILTERS, (each) => {
+    const $$block10 = document.createDocumentFragment();
+    const $$label11 = $$element("label");
+    const $$input12 = $$element("input", { type: "radio", name: "filter", checked: each === filter });
+    $$input12.addEventListener("change", () => {
+      filter = each;
+      $$updateFor9();
+    });
+    $$label11.append($$input12, " ", each.name, "  ");
+    $$block10.append($$label11);
+    return [$$block10, () => {
+      $$input12.checked = each === filter;
+    }];
+  });
+  $$p8.append($$for9);
+  const $$p13 = $$element("p");
+  const $$button14 = $$element("button", { disabled: busy });
+  $$button14.addEventListener("click", () => {
+    apply(false);
+  });
+  $$button14.append("One thread");
+  const $$button15 = $$element("button", { disabled: busy });
+  $$button15.addEventListener("click", () => {
+    apply(true);
+  });
+  $$button15.append("Every processor");
+  const $$button16 = $$element("button", { disabled: busy });
+  $$button16.addEventListener("click", () => {
+    draw(source);
+  });
+  $$button16.append("Original");
+  $$p13.append($$button14, " ", $$button15, " ", $$button16);
+  const $$p17 = $$element("p");
+  const $$text18 = document.createTextNode("◐◓◑◒◐◓◑◒"[turn]);
+  const $$text19 = document.createTextNode(report);
+  $$p17.append($$text18, " ", $$text19);
+  $$div7.append(canvas, $$p8, $$p13, $$p17);
+
+  function $$updateReport4() {
+    if (!$$filters1) return;
+    $$text19.data = report;
+  }
+
+  function $$updateBusy5() {
+    if (!$$filters1) return;
+    $$button14.disabled = busy;
+    $$button15.disabled = busy;
+    $$button16.disabled = busy;
+  }
+
+  $$filters1 = $$div7;
+  $$mountNode2 = $$filters1?.nodeType === 11 ? $$filters1.firstChild : $$filters1;
+}
+document.body.append($$filters1);
+
+// filters.worker.js
+
+import { $$serve, $$transfer } from "rooklang/runtime";
+
+const WIDTH = 1600;
+const HEIGHT = 900;
+
+function filteredAt(src, i, filter) {
+  const channel = i % 4;
+  if (channel === 3) {
+    return 255;
+  }
+  const x = Math.floor(i / 4) % WIDTH;
+  const y = Math.floor(i / 4 / WIDTH);
+  const half = (filter.size - 1) / 2;
+  let sum = 0;
+  for (let dy = 0; dy < filter.size; dy++) {
+    const yy = Math.min(Math.max(y + dy - half, 0), HEIGHT - 1);
+    for (let dx = 0; dx < filter.size; dx++) {
+      const xx = Math.min(Math.max(x + dx - half, 0), WIDTH - 1);
+      sum += src[(yy * WIDTH + xx) * 4 + channel] * filter.weights[dy * filter.size + dx];
+    }
+  }
+  return sum;
+}
+
+async function $$goroutine0(out, $$from, src, filter) {
+  for (let $$i = 0; $$i < out.length; $$i++) {
+    const i = $$from + $$i;
+    out[$$i] = filteredAt(src, i, filter);
+  }
+  return $$transfer(out);
+}
+
+const $$goroutines = { $$goroutine0 };
+$$serve($$goroutines);
+
+// filters.d.ts
+
+interface Filter {
+    name: string;
+    size: number;
+    weights: number[];
+}
+export {};

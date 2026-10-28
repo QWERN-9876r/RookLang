@@ -1,0 +1,17 @@
+// types.js
+
+const users = [{ id: 1, name: "Ann", email: null }, { id: 2, name: "Bob", email: "bob@example.com" }];
+
+for (const user of users) {
+  console.log(user.name, user.email ?? "no email");
+}
+
+// types.d.ts
+
+type ID = number;
+interface User {
+    id: number;
+    name: string;
+    email?: string | null;
+}
+export {};

@@ -1,0 +1,271 @@
+// search.js
+
+import {
+  $$Channel,
+  $$branches,
+  $$decodeJson,
+  $$element,
+  $$list,
+  $$mount,
+  $$style,
+  $$type,
+} from "rooklang/runtime";
+
+const $$styles = [];
+
+const $$typeFruit = $$type("Fruit", () => ({
+  name: "string",
+  price: "number",
+}));
+
+$$style($$styles, "rook-search-1f2083n", `.search.rook-search-1f2083n {
+  display: grid;
+  gap: 14px;
+  max-width: 420px;
+}
+.field.rook-search-1f2083n {
+  padding: 10px 14px;
+  border: 1px solid #ffffff2e;
+  border-radius: 10px;
+  background: #ffffff0a;
+  color: inherit;
+  font: inherit;
+}
+.field:focus.rook-search-1f2083n {
+  outline: none;
+  border-color: #f5a524;
+}
+.fruits.rook-search-1f2083n {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transition: opacity 0.2s;
+}
+.fruits.rook-search-1f2083n li.rook-search-1f2083n {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #ffffff0d;
+}
+.waiting.rook-search-1f2083n {
+  opacity: 0.4;
+}
+.price.rook-search-1f2083n {
+  color: #f5a524;
+  font-variant-numeric: tabular-nums;
+}
+.empty.rook-search-1f2083n {
+  margin: 0;
+  color: #ffffff80;
+}
+.caption.rook-search-1f2083n {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid #ffffff1a;
+  color: #ffffff80;
+  font-size: 0.75em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.log.rook-search-1f2083n {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85em;
+}
+.log.rook-search-1f2083n li.rook-search-1f2083n {
+  display: grid;
+  grid-template-columns: 1fr auto 70px;
+  gap: 12px;
+}
+.log.rook-search-1f2083n .ms.rook-search-1f2083n {
+  text-align: right;
+  color: #ffffff80;
+}
+.log.rook-search-1f2083n [data-status="asking"].rook-search-1f2083n {
+  color: #ffffff99;
+}
+.log.rook-search-1f2083n [data-status="shown"].rook-search-1f2083n {
+  color: #6fcf8f;
+}
+.log.rook-search-1f2083n [data-status="aborted"].rook-search-1f2083n {
+  color: #ffffff59;
+  text-decoration: line-through;
+}
+.log.rook-search-1f2083n [data-status="bad answer"].rook-search-1f2083n {
+  color: #ff7a7a;
+}`);
+
+const FRUITS = [{ name: "Guava", price: 3.2 }, { name: "Kiwi", price: 0.6 }, { name: "Lychee", price: 7.5 }, { name: "Mango", price: 2.4 }, { name: "Papaya", price: 4.1 }, { name: "Passion fruit", price: 0.9 }, { name: "Pineapple", price: 3.8 }, { name: "Pomelo", price: 5.3 }];
+
+async function request(query, signal) {
+  {
+    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: $$Channel.after(200 + Math.random() * 1000), zero: 0 }, { channel: $$Channel.done(signal) }], false);
+    switch ($$case) {
+      case 0: {
+        break;
+      }
+      case 1: {
+        return ["", new Error("aborted")];
+      }
+    }
+  }
+  const q = query.toLowerCase();
+  const found = FRUITS.filter((f) => f.name.toLowerCase().includes(q));
+  return [JSON.stringify(found), null];
+}
+
+// <Search>
+let $$search1, $$mountNode2;
+{
+  let fruits = [];
+  let log = [];
+  let asking = log.length > 0 && log[0].status === "asking";
+  let current = null;
+  let requests = 0;
+
+  async function search(query) {
+    current?.abort();
+    const controller = new AbortController();
+    current = controller;
+    const signal = controller.signal;
+
+    {
+      const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: $$Channel.after(300), zero: 0 }, { channel: $$Channel.done(signal) }], false);
+      switch ($$case) {
+        case 0: {
+          break;
+        }
+        case 1: {
+          return;
+        }
+      }
+    }
+
+    requests += 1;
+    const id = requests;
+    const start = performance.now();
+    const line = { id, query, status: "asking", ms: 0 };
+    log = [line, ...log].slice(0, 5);
+    $$updateLog4();
+
+    function end(status) {
+      const ms = Math.round(performance.now() - start);
+      log = log.map((r) => r.id === id ? { id, query, status, ms } : r);
+      $$updateLog4();
+    }
+
+    const [body, failed] = await request(query, signal);
+    if (failed != null) {
+      end("aborted");
+      return;
+    }
+    const [found, err] = $$decodeJson(body, { array: $$typeFruit });
+    if (err != null) {
+      console.log(err.message);
+      end("bad answer");
+      return;
+    }
+    end("shown");
+    fruits = found;
+    $$updateFruits3();
+  }
+
+  $$mount(() => $$mountNode2, () => {
+    search("");
+    return () => current?.abort();
+  });
+
+  const $$div5 = $$element("div", { className: "search rook-search-1f2083n" });
+  const $$input6 = $$element("input", { className: "field rook-search-1f2083n", placeholder: "Search fruit: type p, then a" });
+  $$input6.addEventListener("input", (event) => {
+    search(event.currentTarget.value);
+  });
+  const $$ul7 = $$element("ul", { className: `${asking ? "fruits waiting" : "fruits"} rook-search-1f2083n` });
+  const [$$for8, $$updateFor8] = $$list(() => fruits, (fruit) => {
+    const $$block9 = document.createDocumentFragment();
+    const $$li10 = $$element("li", { className: "rook-search-1f2083n" });
+    const $$text11 = document.createTextNode(fruit.name);
+    const $$span12 = $$element("span", { className: "price rook-search-1f2083n" });
+    const $$text13 = document.createTextNode(fruit.price.toFixed(2));
+    $$span12.append("€", $$text13);
+    $$li10.append($$text11, $$span12);
+    $$block9.append($$li10);
+    return [$$block9, () => {
+      $$text11.data = fruit.name;
+      $$text13.data = fruit.price.toFixed(2);
+    }];
+  });
+  $$ul7.append($$for8);
+  const [$$if14, $$updateIf14] = $$branches(() => fruits.length === 0 && !asking ? 0 : -1, [() => {
+    const $$block15 = document.createDocumentFragment();
+    const $$p16 = $$element("p", { className: "empty rook-search-1f2083n" });
+    $$p16.append("Nothing found");
+    $$block15.append($$p16);
+    return [$$block15];
+  }]);
+  const $$p17 = $$element("p", { className: "caption rook-search-1f2083n" });
+  $$p17.append("Requests, newest first");
+  const $$ol18 = $$element("ol", { className: "log rook-search-1f2083n" });
+  const [$$for19, $$updateFor19] = $$list(() => log, (r) => {
+    const $$block20 = document.createDocumentFragment();
+    const $$li21 = $$element("li", { className: "rook-search-1f2083n" }, { "data-status": r.status });
+    const $$span22 = $$element("span", { className: "rook-search-1f2083n" });
+    const $$text23 = document.createTextNode(r.query === "" ? "all" : `“${r.query}”`);
+    $$span22.append($$text23);
+    const $$span24 = $$element("span", { className: "rook-search-1f2083n" });
+    const $$text25 = document.createTextNode(r.status);
+    $$span24.append($$text25);
+    const $$span26 = $$element("span", { className: "ms rook-search-1f2083n" });
+    const $$text27 = document.createTextNode(r.status === "asking" ? "…" : `${r.ms} ms`);
+    $$span26.append($$text27);
+    $$li21.append($$span22, $$span24, $$span26);
+    $$block20.append($$li21);
+    return [$$block20, () => {
+      $$li21.setAttribute("data-status", r.status);
+      $$text23.data = r.query === "" ? "all" : `“${r.query}”`;
+      $$text25.data = r.status;
+      $$text27.data = r.status === "asking" ? "…" : `${r.ms} ms`;
+    }];
+  });
+  $$ol18.append($$for19);
+  $$div5.append($$input6, $$ul7, $$if14, $$p17, $$ol18);
+
+  function $$updateFruits3() {
+    if (!$$search1) return;
+    $$updateFor8();
+    $$updateIf14();
+  }
+
+  function $$updateLog4() {
+    asking = log.length > 0 && log[0].status === "asking";
+    if (!$$search1) return;
+    $$ul7.className = `${asking ? "fruits waiting" : "fruits"} rook-search-1f2083n`;
+    $$updateIf14();
+    $$updateFor19();
+  }
+
+  $$search1 = $$div5;
+  $$mountNode2 = $$search1?.nodeType === 11 ? $$search1.firstChild : $$search1;
+}
+document.body.append($$search1);
+
+// search.d.ts
+
+interface Fruit {
+    name: string;
+    price: number;
+}
+type Status = "asking" | "shown" | "aborted" | "bad answer";
+interface Request {
+    id: number;
+    query: string;
+    status: Status;
+    ms: number;
+}
+export {};

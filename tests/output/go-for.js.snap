@@ -1,0 +1,64 @@
+// go-for.js
+
+import { $$goFor, $$goWorker } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./go-for.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./go-for.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+const pixels = new Uint8ClampedArray(1_000_000);
+for (let i = 0; i < pixels.length; i++) {
+  pixels[i] = i % 256;
+}
+
+const contrast = 1.5;
+await $$goFor($$go, "$$goroutine0", pixels);
+console.log("contrast:", pixels[100], pixels[200]);
+
+async function smooth(values) {
+  const out = values.map((_) => 0);
+  await $$goFor($$go, "$$goroutine1", out, values);
+  return out;
+}
+
+console.log("smooth:", await smooth([3, 6, 9, 12, 15]));
+
+// go-for.worker.js
+
+import { $$serve, $$transfer } from "rooklang/runtime";
+
+const contrast = 1.5;
+async function $$goroutine0(pixels, $$from) {
+  for (let $$i = 0; $$i < pixels.length; $$i++) {
+    const i = $$from + $$i;
+    const v = pixels[$$i];
+    pixels[$$i] = (v - 128) * contrast + 128;
+  }
+  return $$transfer(pixels);
+}
+
+async function $$goroutine1(out, $$from, values) {
+  for (let $$i = 0; $$i < out.length; $$i++) {
+    const i = $$from + $$i;
+    const left = values[Math.max(i - 1, 0)];
+    const right = values[Math.min(i + 1, values.length - 1)];
+    out[$$i] = (left + values[i] + right) / 3;
+  }
+  return out;
+}
+
+const $$goroutines = { $$goroutine0, $$goroutine1 };
+$$serve($$goroutines);
+
+// go-for.d.ts
+
+export {};

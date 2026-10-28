@@ -1,0 +1,69 @@
+// topics.js
+
+import { $$Channel, $$Topic, $$element, $$mount } from "rooklang/runtime";
+
+// <Cart>
+let $$cart1, $$mountNode2;
+{
+  let items = [];
+  const cart = $$Topic.make("guide-cart", null);
+
+  function apply(e) {
+    if (e.kind === "add") {
+      items.push(e.title);
+      $$updateItems3();
+    } else {
+      items = [];
+      $$updateItems3();
+    }
+  }
+
+  function change(e) {
+    apply(e);
+    $$Topic.publish(cart, e);
+  }
+
+  async function follow() {
+    for await (const e of $$Channel.range($$Topic.listen(cart))) {
+      apply(e);
+    }
+  }
+
+  $$mount(() => $$mountNode2, () => {
+    follow();
+    return () => $$Topic.close(cart);
+  });
+
+  const $$div4 = $$element("div", { className: "card" });
+  const $$button5 = $$element("button");
+  $$button5.addEventListener("click", () => {
+    change({ kind: "add", title: `Book ${items.length + 1}` });
+  });
+  $$button5.append("Add a book");
+  const $$button6 = $$element("button");
+  $$button6.addEventListener("click", () => {
+    change({ kind: "clear", title: "" });
+  });
+  $$button6.append("Clear");
+  const $$p7 = $$element("p");
+  const $$text8 = document.createTextNode(items.length === 0 ? "nothing" : items.join(", "));
+  $$p7.append("In the cart: ", $$text8);
+  $$div4.append($$button5, $$button6, $$p7);
+
+  function $$updateItems3() {
+    if (!$$cart1) return;
+    $$text8.data = items.length === 0 ? "nothing" : items.join(", ");
+  }
+
+  $$cart1 = $$div4;
+  $$mountNode2 = $$cart1?.nodeType === 11 ? $$cart1.firstChild : $$cart1;
+}
+document.body.append($$cart1);
+
+// topics.d.ts
+
+interface CartEvent {
+    kind: "add" | "clear";
+    title: string;
+}
+export {};

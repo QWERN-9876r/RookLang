@@ -1,0 +1,65 @@
+// examples-primes.js
+
+import { $$goFor, $$goWorker } from "rooklang/runtime";
+
+async function $$startWorker() {
+  if (typeof Worker === "function") {
+    return new Worker(new URL("./examples-primes.worker.js", import.meta.url), { type: "module" });
+  }
+  const threads = "node:worker_threads";
+  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);
+  const url = new URL(/* @vite-ignore */ "./examples-primes.worker.js", import.meta.url);
+  const code = `import ${JSON.stringify(url.href)};`;
+  return new NodeWorker(new URL(`data:text/javascript,${encodeURIComponent(code)}`));
+}
+
+const $$go = (name, args) => $$goWorker($$startWorker, name, args);
+
+function isPrime(n) {
+  for (let d = 2; d * d <= n; d++) {
+    if (n % d === 0) {
+      return false;
+    }
+  }
+  return n > 1;
+}
+
+const primes = new Uint8Array(50_000_000);
+
+let started = Date.now();
+await $$goFor($$go, "$$goroutine0", primes);
+console.log(`go for:     ${Date.now() - started} ms`);
+
+started = Date.now();
+for (let i = 0; i < primes.length; i++) {
+  primes[i] = isPrime(i) ? 1 : 0;
+}
+console.log(`one thread: ${Date.now() - started} ms`);
+
+// examples-primes.worker.js
+
+import { $$serve, $$transfer } from "rooklang/runtime";
+
+function isPrime(n) {
+  for (let d = 2; d * d <= n; d++) {
+    if (n % d === 0) {
+      return false;
+    }
+  }
+  return n > 1;
+}
+
+async function $$goroutine0(primes, $$from) {
+  for (let $$i = 0; $$i < primes.length; $$i++) {
+    const i = $$from + $$i;
+    primes[$$i] = isPrime(i) ? 1 : 0;
+  }
+  return $$transfer(primes);
+}
+
+const $$goroutines = { $$goroutine0 };
+$$serve($$goroutines);
+
+// examples-primes.d.ts
+
+export {};

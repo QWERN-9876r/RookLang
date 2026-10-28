@@ -1,0 +1,26 @@
+// markup-flow.js
+
+import { $$element } from "rooklang/runtime";
+
+const fruits = ["guava", "papaya", "lychee", "passion fruit"];
+
+const $$ul1 = $$element("ul");
+for (let i = 0; i < fruits.length; i++) {
+  const fruit = fruits[i];
+  if (fruit.length > 5) {
+    const $$li2 = $$element("li");
+    $$li2.append(i + 1, ". ", fruit);
+    $$ul1.append($$li2);
+  } else {
+    const $$li3 = $$element("li");
+    const $$s4 = $$element("s");
+    $$s4.append(fruit);
+    $$li3.append($$s4, ": a short name");
+    $$ul1.append($$li3);
+  }
+}
+document.body.append($$ul1);
+
+// markup-flow.d.ts
+
+export {};

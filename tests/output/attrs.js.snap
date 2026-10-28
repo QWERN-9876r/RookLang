@@ -1,0 +1,64 @@
+// attrs.js
+
+import { $$element } from "rooklang/runtime";
+
+// <Form>
+let $$form1;
+{
+  let saved = 0;
+  const $$p3 = $$element("p");
+  // <Button>
+  const $$children4 = document.createDocumentFragment();
+  $$children4.append("Save");
+  const $$attrs5 = ($$target) => {
+    $$target.addEventListener("click", () => {
+      saved++;
+      $$updateSaved2();
+    });
+    $$target.title = "Save the draft";
+  };
+  let $$button6;
+  {
+    const kind = "primary";
+    const children = $$children4;
+    const attrs = $$attrs5;
+    $$button6 = $$element("button", { className: kind, type: "button" });
+    attrs?.($$button6);
+    $$button6.append(children);
+  }
+  // <Button>
+  const $$children7 = document.createDocumentFragment();
+  $$children7.append("Reset");
+  let $$attrsElement8;
+  const $$attrs8 = ($$target) => {
+    $$attrsElement8 = $$target;
+    $$attrsElement8.disabled = saved === 0;
+    $$attrsElement8.addEventListener("click", () => {
+      saved = 0;
+      $$updateSaved2();
+    });
+  };
+  let $$button9;
+  {
+    const kind = "ghost";
+    const children = $$children7;
+    const attrs = $$attrs8;
+    $$button9 = $$element("button", { className: kind, type: "button" });
+    attrs?.($$button9);
+    $$button9.append(children);
+  }
+  const $$text10 = document.createTextNode(saved);
+  $$p3.append($$button6, $$button9, " ", "Saved ", $$text10, " times");
+
+  function $$updateSaved2() {
+    $$attrsElement8.disabled = saved === 0;
+    $$text10.data = saved;
+  }
+
+  $$form1 = $$p3;
+}
+document.body.append($$form1);
+
+// attrs.d.ts
+
+export {};
