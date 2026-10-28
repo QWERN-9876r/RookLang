@@ -6,7 +6,7 @@ import { chanOf } from './channel.ts';
 import { CHANNEL_OBJECT, TOPIC_OBJECT } from './channel-objects.ts';
 import { PROMISE } from './promise.ts';
 import { BUFFERS } from './transfer.ts';
-import { UNTYPED_GLOBALS } from './untyped-globals.ts';
+import { UNTYPED_CLASSES, UNTYPED_GLOBALS } from './untyped-globals.ts';
 import {
   ANY,
   arrayOf,
@@ -338,7 +338,10 @@ export const GLOBAL_VALUES: ReadonlyMap<string, Type> = new Map<string, Type>([
   ['cancel', func([ANY], [])],
   ['Channel', CHANNEL_OBJECT],
   ['Topic', TOPIC_OBJECT],
-  ...[...UNTYPED_GLOBALS, ...BUFFERS].map((name): [string, Type] => [name, ANY]),
+  ...[...UNTYPED_GLOBALS, ...UNTYPED_CLASSES, ...BUFFERS].map((name): [string, Type] => [
+    name,
+    ANY,
+  ]),
 ]);
 
 /** Built-in types that a library from TypeScript's lib files replaces: untyped ones and the DOM. */
@@ -350,6 +353,7 @@ export const LIBRARY_TYPES: ReadonlySet<string> = new Set([
   'Promise',
   'URL',
   'Event',
+  ...UNTYPED_CLASSES,
   ...BUFFERS,
   ...[...DOM_TYPES.keys()].filter((name) => name !== 'Content'),
   ...SVG_TYPES.keys(),
@@ -369,7 +373,9 @@ export const GLOBAL_TYPES: ReadonlyMap<string, Type> = new Map<string, Type>([
   ['any', ANY],
   ['error', ERROR],
   ['Error', ERROR_CLASS.instance],
-  ...['Date', 'RegExp', 'Map', 'Set', 'URL', ...BUFFERS].map((name): [string, Type] => [name, ANY]),
+  ...['Date', 'RegExp', 'Map', 'Set', 'URL', ...UNTYPED_CLASSES, ...BUFFERS].map(
+    (name): [string, Type] => [name, ANY],
+  ),
   ['Promise', PROMISE],
   ...DOM_TYPES,
   ...SVG_TYPES,

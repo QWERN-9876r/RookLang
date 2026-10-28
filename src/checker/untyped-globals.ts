@@ -33,7 +33,6 @@ export const UNTYPED_GLOBALS: readonly string[] = [
   'Response',
   'Request',
   'Headers',
-  'AbortController',
   'fetch',
   'structuredClone',
   'queueMicrotask',
@@ -46,3 +45,7 @@ export const UNTYPED_GLOBALS: readonly string[] = [
   'crypto',
   'performance',
 ];
+
+// Classes that are names of types too, `any` in both: `new AbortController()` and
+// `signal AbortSignal`. TypeScript's lib files replace them as they replace the DOM.
+export const UNTYPED_CLASSES: readonly string[] = ['AbortController', 'AbortSignal', 'ImageData'];

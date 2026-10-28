@@ -2,6 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { compile as compileInBrowser } from '../src/browser.ts';
 import { compile } from '../src/index.ts';
 import { moduleProject } from './project.ts';
 
@@ -65,6 +66,20 @@ close(stop)`),
       'cannot use AbortSignal as number',
       'done() takes an AbortSignal, such as request.signal, not number',
     ]);
+  });
+
+  // The playground has no lib files: AbortController, AbortSignal and ImageData are any there, as
+  // values and as types.
+  it('takes AbortSignal and the classes around it as untyped in the browser', () => {
+    const { diagnostics } = compileInBrowser(`async func wait(signal AbortSignal) {
+    <-done(signal)
+}
+
+const controller AbortController = new AbortController()
+wait(controller.signal)
+const image ImageData = new ImageData(2, 2)`);
+
+    expect(diagnostics).toEqual([]);
   });
 
   it('warns of a signal that is never closed, since it keeps the program running', () => {
