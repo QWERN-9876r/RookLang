@@ -27,7 +27,9 @@ code --extensionDevelopmentPath="$PWD/editors/vscode"
 ```
 
 The sources of the extension are in `src/`: `extension.mts` starts the server, `server.mts` answers
-VS Code and `convert.mts` turns what the compiler gives into the types of the protocol. Completion
+VS Code, `compiler.mts` picks the compiler of a file (the `rooklang` installed next to it in a
+trusted workspace, else the bundled one; tested in `tests/vscode-compiler.test.ts`) and
+`convert.mts` turns what the compiler gives into the types of the protocol. Completion
 itself is in the compiler (`src/completion.ts` and the last layer of the checker,
 `src/checker/completion.ts`), and so are the imports it adds and the quick fixes of names that are
 not defined (`src/auto-import.ts`, with the exports of the modules of the package from

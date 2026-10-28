@@ -34,6 +34,12 @@
   "activationEvents": [
     "onLanguage:rook"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In an untrusted workspace the extension checks files with its own copy of the compiler, not with the rooklang installed in the workspace, since loading it runs its code."
+    }
+  },
   "main": "./dist/extension.js",
   "contributes": {
     "languages": [

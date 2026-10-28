@@ -27,7 +27,9 @@ code --extensionDevelopmentPath="$PWD/editors/vscode"
 ```
 
 Исходники расширения лежат в `src/`: `extension.mts` запускает сервер, `server.mts` отвечает VS
-Code, а `convert.mts` переводит то, что даёт компилятор, в типы протокола. Само автодополнение — в
+Code, `compiler.mts` выбирает компилятор файла (`rooklang`, установленный рядом с ним в доверенной
+папке, иначе встроенный; тесты в `tests/vscode-compiler.test.ts`), а `convert.mts` переводит то,
+что даёт компилятор, в типы протокола. Само автодополнение — в
 компиляторе (`src/completion.ts` и последний слой проверки типов, `src/checker/completion.ts`), там же
 импорты, которые оно добавляет, и быстрые исправления неизвестных имён (`src/auto-import.ts`;
 экспорты модулей пакета даёт `src/project-modules.ts`). Их проверяют `tests/completion.test.ts`,

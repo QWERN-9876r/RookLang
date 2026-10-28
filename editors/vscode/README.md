@@ -58,6 +58,23 @@ code --install-extension Qwern9876r.rooklang
 The extension carries its own copy of the compiler, so it needs nothing else. To build and run
 `.rk` files, install the compiler too: `npm install --save-dev rooklang`.
 
+## Which compiler checks the files
+
+If `rooklang` is installed in the project, the extension checks a file with that version: the one
+in the nearest `node_modules/rooklang` up from the file, as Node would find it. So the editor shows
+the errors of the same version that `rook build` runs, and a new version is used as soon as it is
+installed, without reloading the window. Without an installed `rooklang`, the extension uses its
+own copy.
+
+The status bar shows which compiler checked the file being edited: `Rook 0.3.4` for the installed
+one, `Rook (built-in)` for the copy of the extension; its tooltip says where it is. The output
+panel "Rook" says which version was loaded, or why it could not be, in which case the extension
+uses its own copy.
+
+Loading the installed compiler runs code of the project, so in a workspace that VS Code does not
+trust (Restricted Mode) the extension uses its own copy; it switches once you trust the
+workspace.
+
 ## Limitations
 
 As with `rook build`, a file with a syntax error shows only its syntax errors: the types are
