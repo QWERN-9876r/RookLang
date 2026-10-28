@@ -90,7 +90,11 @@ npm run format                        # prettier --write, eslint --fix for blank
 - The site is itself a Rook program (`site/src`, server `site/server.rk`), built by Vite
   with the plugin `src/vite.ts`. `tests/site.test.ts` compiles it, compiles every example with the
   browser compiler and checks that each example exists in both languages and is used by the guide
-  (`site/src/<lang>/guide/`, a file for each section).
+  (`site/src/<lang>/guide/`, a file for each section) or by the page of examples
+  (`site/src/<lang>/cases.rk`, laid out by `site/src/examples/`: the list of examples at the side,
+  the code of the one chosen beside its result). An example there is a whole program beside the
+  same program written in JS by hand, in `site/examples/js/<name>/` (`site/examples/ru/js/` for
+  Russian), which its tab "Without Rook" shows.
 - Titles and descriptions of pages are in their `index.html`; `site/seo.ts` makes from them the
   canonical address, hreflang, Open Graph, JSON-LD, `sitemap.xml` and `robots.txt`. A new page goes
   into `PAGES` of `vite.config.ts`.

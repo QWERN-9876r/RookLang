@@ -1,25 +1,29 @@
 // An example in the guide: its code, the JS generated from it and the result of running it. The
 // code is in site/examples/<name>.rk (site/examples/ru for Russian), so tests check that every
 // example compiles. It gets into the page at build time (virtual:examples in vite.config.ts), so
-// the example has its full height when the page is first drawn.
+// the example has its full height when the page is first drawn. An example whose program is also
+// written in JS by hand, in site/examples/js/<name>/, shows those files in a tab of their own.
 
 import { LinkButton } from "../ui/link-button.rk"
 import { CopyButton } from "../ui/copy-button.rk"
 import { TabItem, Tabs } from "../ui/tabs.rk"
 import styles from "./example.module.css"
-import { exampleCode, pageHref, text } from "./i18n.rk"
+import { exampleCode, handwrittenFiles, pageHref, text } from "./i18n.rk"
 import { CodeView } from "./code-view.rk"
 import { CompiledView } from "./compiled-view.rk"
+import { HandwrittenView } from "./handwritten-view.rk"
 import { ResultView } from "./result-view.rk"
 import { previewArea, runProgram } from "./sandbox.rk"
 
 export comp Example(name string) {
     const t = text()
     const code = exampleCode(name)
+    const byHand = handwrittenFiles(name)
     // An example that imports modules cannot run on the page.
     const tabs []TabItem = [
         { id: "code", label: "Rook" },
         { id: "js", label: "JavaScript" },
+        ...(byHand.length > 0 ? [{ id: "hand", label: t.withoutRook }] : []),
         ...(code.includes("import ") ? [] : [{ id: "result", label: t.run }]),
     ]
     state tab = "code"
@@ -52,6 +56,8 @@ export comp Example(name string) {
             <div><CodeView code={code} /></div>
         case "js":
             <div><CompiledView source={code} /></div>
+        case "hand":
+            <HandwrittenView files={byHand} />
         default:
             <div><ResultView preview={preview} lines={lines} /></div>
         }}

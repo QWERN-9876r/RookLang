@@ -1,0 +1,20 @@
+// The roadmap: where Rook stands and the road to 1.0, one column of text between the bar and the
+// footer. The text is the language's own, roadmap-text.rk of en/ and ru/; docs/roadmap.md says
+// the same in the repository.
+
+import "../../ui/theme.rk"
+import { Prose } from "../../ui/prose.rk"
+import { SiteFooter } from "../layout/footer.rk"
+import { SiteHeader } from "../layout/header.rk"
+import styles from "./page.module.css"
+
+/** Draws the page; the entry module of the language calls it after setLanguage(). */
+export func renderRoadmap(content Content) {
+    document.body.append(<>
+        <SiteHeader />
+        <main class={styles.main}>
+            <Prose>{content}</Prose>
+        </main>
+        <SiteFooter />
+    </>)
+}

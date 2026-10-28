@@ -6,7 +6,7 @@ import { headTags, LANGUAGES, pageOf, pagePath, SITE, sitemap } from '../site/se
 
 const site = (path: string) => new URL(`../site/${path}`, import.meta.url).pathname;
 
-const PAGES = ['', 'docs', 'playground'];
+const PAGES = ['', 'docs', 'examples', 'playground', 'roadmap'];
 
 const ALL = LANGUAGES.flatMap((language) => PAGES.map((page) => ({ language, page })));
 

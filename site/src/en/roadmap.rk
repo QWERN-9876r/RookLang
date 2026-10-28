@@ -1,0 +1,9 @@
+// The entry module of the English roadmap.
+
+import { renderRoadmap } from "../roadmap/page.rk"
+import { setLanguage } from "../i18n.rk"
+import { RoadmapText } from "./roadmap-text.rk"
+import { STRINGS } from "./strings.rk"
+
+setLanguage(STRINGS, {}, {}, "roadmap")
+renderRoadmap(<RoadmapText />)

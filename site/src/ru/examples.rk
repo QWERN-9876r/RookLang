@@ -1,0 +1,10 @@
+// The entry module of the Russian page of examples.
+
+import { EXAMPLES, HANDWRITTEN } from "virtual:examples/ru"
+import { renderExamples } from "../examples/page.rk"
+import { setLanguage } from "../i18n.rk"
+import { CASES } from "./cases.rk"
+import { STRINGS } from "./strings.rk"
+
+setLanguage(STRINGS, EXAMPLES, HANDWRITTEN, "examples")
+renderExamples(CASES)

@@ -1,0 +1,152 @@
+// У JSON снаружи, ответа API или файла, нет типов: decode проверяет
+// его по типу, когда программа работает, и либо даёт заказ, либо
+// говорит, где именно JSON не подходит
+
+interface Customer {
+    name string
+    email string
+}
+
+interface Item {
+    name string
+    qty number
+    price number
+}
+
+interface Order {
+    id number
+    customer Customer
+    items []Item
+    status "new" | "paid" | "sent"
+    note ?string                    // может отсутствовать
+}
+
+const VALID = `{
+  "id": 1042,
+  "customer": { "name": "Анна", "email": "anna@example.com" },
+  "items": [
+    { "name": "Манго", "qty": 2, "price": 240 },
+    { "name": "Личи", "qty": 1, "price": 750 }
+  ],
+  "status": "paid"
+}`
+
+// Что API может прислать вместо этого — попробуйте
+const SAMPLES = [
+    { title: "Верный", json: VALID },
+    { title: "Цена строкой", json: VALID.replace(`"price": 750`, `"price": "750"`) },
+    { title: "Неизвестный статус", json: VALID.replace(`"paid"`, `"lost"`) },
+    { title: "Без email", json: VALID.replace(`, "email": "anna@example.com"`, "") },
+    { title: "Обрезан", json: VALID.slice(0, 140) },
+]
+
+// decode даёт (Order, error); страница показывает одно из двух
+interface Checked {
+    order ?Order
+    problem string
+}
+
+func check(json string) Checked {
+    const order, err = decode<Order>(json)
+    if err != null {
+        return { order: null, problem: err.message }
+    }
+    return { order, problem: "" }   // err равен null, значит, order — это Order
+}
+
+// Получает Order, а не JSON: его поля на месте и у них свои типы
+comp Receipt(order Order) {
+    derived total = order.items.reduce((sum, item) => sum + item.qty * item.price, 0)
+
+    style {
+        .receipt {
+            display: grid;
+            gap: 6px;
+            padding: 12px 14px;
+            border-left: 3px solid #6fcf8f;
+            border-radius: 6px;
+            background: #6fcf8f14;
+        }
+        .head, .line { display: flex; justify-content: space-between; }
+        .status { color: #6fcf8f; }
+        .who { margin: 0 0 4px; color: #ffffff80; font-size: 0.85em; }
+        .total { padding-top: 6px; border-top: 1px solid #ffffff1a; font-weight: 600; }
+    }
+
+    return <div class="receipt">
+        <div class="head">
+            <b>Заказ №{order.id}</b>
+            <span class="status">{order.status}</span>
+        </div>
+        <p class="who">{order.customer.name} · {order.customer.email}</p>
+        {for item in order.items {
+            <div class="line">
+                <span>{item.qty} × {item.name}</span>
+                <span>{item.qty * item.price} ₽</span>
+            </div>
+        }}
+        <div class="line total">
+            <span>Итого</span>
+            <span>{total} ₽</span>
+        </div>
+        {if order.note != null {
+            <p class="who">{order.note}</p>
+        }}
+    </div>
+}
+
+comp Orders() {
+    state json = VALID
+    derived checked = check(json)
+    derived order = checked.order
+
+    style {
+        .orders { display: grid; gap: 12px; max-width: 480px; }
+        .samples { display: flex; flex-wrap: wrap; gap: 6px; }
+        .samples button {
+            padding: 4px 10px;
+            border: 1px solid #ffffff2e;
+            border-radius: 999px;
+            background: #ffffff0a;
+            color: inherit;
+            font: inherit;
+            font-size: 0.85em;
+            cursor: pointer;
+        }
+        textarea {
+            height: 230px;
+            padding: 10px 12px;
+            border: 1px solid #ffffff2e;
+            border-radius: 10px;
+            background: #ffffff0a;
+            color: inherit;
+            font: 0.8em/1.5 ui-monospace, monospace;
+            resize: vertical;
+        }
+        .problem {
+            margin: 0;
+            padding: 10px 12px;
+            border-left: 3px solid #ff7a7a;
+            border-radius: 6px;
+            background: #ff7a7a1a;
+            color: #ffb3b3;
+            font: 0.85em/1.5 ui-monospace, monospace;
+        }
+    }
+
+    return <div class="orders">
+        <div class="samples">
+            {for sample in SAMPLES {
+                <button onClick={json = sample.json}>{sample.title}</button>
+            }}
+        </div>
+        <textarea bind:value={json} spellcheck={false} />
+        {if order != null {
+            <Receipt order={order} />
+        } else {
+            <p class="problem">{checked.problem}</p>
+        }}
+    </div>
+}
+
+document.body.append(<Orders />)

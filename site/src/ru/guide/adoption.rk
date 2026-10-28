@@ -1,0 +1,110 @@
+// Раздел «Rook в существующем проекте» русского гайда; разделы перечислены в guide.rk.
+
+import { CodeBlock } from "../../../ui/code-block.rk"
+import { highlight } from "../../highlight.rk"
+import { pageHref, text } from "../../i18n.rk"
+
+const VITE_CONFIG = `import { defineConfig } from "vite"
+import { rook } from "rooklang/vite"
+
+export default defineConfig({ plugins: [rook()] })`
+
+const MATH = `export func divide(a, b number) (number, error) {
+    if b == 0 {
+        return 0, error("деление на ноль")
+    }
+    return a / b, null
+}`
+
+const MAIN = `import { divide } from "./math.rk"
+
+// Несколько результатов в JS — массив
+const [ratio, err] = divide(6, 3)`
+
+const COUNTER = `// Кнопка, которая считает нажатия, как custom element <click-counter>
+@html-tag("click-counter")
+comp ClickCounter(label string, start number = 0) {
+    state count = start
+    return <button onClick={count++}>{label}: {count}</button>
+}`
+
+const TOOLBAR = `import "./counter.rk" // определяет <click-counter>
+
+export function Toolbar() {
+    return <click-counter label="Нажатия" start={3} />
+}`
+
+const LEAVE = `npx rook build src   # .js, .d.ts и .js.map рядом с каждым .rk
+rm src/*.rk`
+
+export comp Adoption() {
+    const t = text()
+
+    return <>
+        <p>
+            Rook не нужен свой проект: он входит в существующий по одному модулю и так же может из
+            него уйти.
+        </p>
+        <p>
+            <b>Модуль в проекте на Vite.</b> После <code>npm install rooklang</code> и плагина в
+            конфиге Vite <code>.rk</code>-модуль импортируется из JS и TS как любой другой:
+        </p>
+        <CodeBlock code={VITE_CONFIG} label="vite.config.ts" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(VITE_CONFIG, "js")}
+        </CodeBlock>
+        <CodeBlock code={MATH} label="math.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(MATH, "rook")}
+        </CodeBlock>
+        <CodeBlock code={MAIN} label="main.ts" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(MAIN, "js")}
+        </CodeBlock>
+        <p>
+            Ошибки типов в <code>.rk</code>-модулях останавливают сборку. Под Vite TypeScript пока
+            не видит их типов: строка <code>{`declare module "*.rk"`}</code> в
+            {" "}<code>.d.ts</code> проекта позволяет импортировать их как <code>any</code>.
+            {" "}<code>rook build</code> без Vite пишет <code>.d.ts</code> рядом с каждым модулем,
+            здесь <code>{"divide(a: number, b: number): [number, null] | [null, Error]"}</code>.
+        </p>
+        <p>
+            <b>Компонент в приложении на React.</b> Компонент с <code>@html-tag</code> — это custom
+            element, поэтому React, Vue и Svelte используют его как любой тег
+            (<a href="#web-components">Веб-компоненты</a>). Разметка выключена, пока проект её не
+            включит строкой <code>{`"rook": { "markup": true }`}</code> в своём
+            {" "}<code>package.json</code>:
+        </p>
+        <CodeBlock code={COUNTER} label="counter.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(COUNTER, "rook")}
+        </CodeBlock>
+        <CodeBlock code={TOOLBAR} label="toolbar.jsx" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(TOOLBAR, "js")}
+        </CodeBlock>
+        <p>
+            React 19 ставит <code>{"start={3}"}</code> как свойство элемента, поэтому компонент
+            получает число; атрибут, как в обычном HTML, приводится по типу свойства.
+        </p>
+        <p>
+            <b>Уход с Rook.</b> Компилятор выдаёт читаемый JS с именами и структурой исходника,
+            поэтому проект может один раз собрать свои модули и дальше жить без Rook:
+        </p>
+        <CodeBlock code={LEAVE} label={t.terminal} copyLabel={t.copy} copiedLabel={t.copied}>
+            {LEAVE}
+        </CodeBlock>
+        <ul>
+            <li>
+                Импорты <code>./math.rk</code> в JS- и TS-файлах становятся <code>./math.js</code>;
+                импорты между собранными модулями уже такие.
+            </li>
+            <li>
+                Код с каналами, горутинами или разметкой импортирует
+                {" "}<code>rooklang/runtime</code> — обычный JS под лицензией MIT. Пакет остаётся
+                зависимостью, или его папка <code>src/runtime</code> копируется в проект, а алиас
+                бандлера направляет <code>rooklang/runtime</code> на копию.
+            </li>
+            <li>Комментариев исходника в выводе пока нет.</li>
+        </ul>
+        <p>
+            Чего не хватает для продакшн-проекта и когда это появится — в
+            {" "}<a href={pageHref("roadmap")}>дорожной карте</a>.
+        </p>
+    </>
+}

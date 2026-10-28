@@ -1,0 +1,97 @@
+// An example on the page of examples: its code on the left and its result on the right, and under
+// them a switch to show only one of them. The result runs as soon as the example is shown, in the
+// area that all the examples share, so the program of the example before stops (sandbox.rk).
+
+import { Button } from "../../ui/button.rk"
+import { CopyButton } from "../../ui/copy-button.rk"
+import { LinkButton } from "../../ui/link-button.rk"
+import { TabItem, Tabs } from "../../ui/tabs.rk"
+import { CodeView } from "../code-view.rk"
+import { CompiledView } from "../compiled-view.rk"
+import { HandwrittenView } from "../handwritten-view.rk"
+import { exampleCode, handwrittenFiles, pageHref, text } from "../i18n.rk"
+import { ResultView } from "../result-view.rk"
+import { runProgram } from "../sandbox.rk"
+import styles from "./case-view.module.css"
+
+/** A button of the switch: "code", "result" or "both", the panes it shows. */
+interface PaneSwitch {
+    id string
+    label string
+}
+
+export comp CaseView(name string, preview HTMLElement) {
+    const t = text()
+    const code = exampleCode(name)
+    const byHand = handwrittenFiles(name)
+    const tabs []TabItem = [
+        { id: "code", label: "Rook" },
+        { id: "js", label: "JavaScript" },
+        ...(byHand.length > 0 ? [{ id: "hand", label: t.withoutRook }] : []),
+    ]
+    const switches []PaneSwitch = [
+        { id: "code", label: t.code },
+        { id: "result", label: t.result },
+        { id: "both", label: t.both },
+    ]
+    state tab = "code"
+    state panes = "both"
+    state lines []string = []
+
+    func run() {
+        lines = []
+        runProgram(code, preview, output => {
+            lines = output
+        })
+    }
+
+    mount() {
+        run()
+    }
+
+    return <div class={styles.view} data-panes={panes}>
+        <section class={styles.code}>
+            <Tabs items={tabs} active={tab} onSelect={tab = event}>
+                <CopyButton text={code} label={t.copy} doneLabel={t.copied} />
+                <LinkButton
+                    kind="ghost"
+                    size="sm"
+                    icon="external"
+                    href={`${pageHref("playground")}#example=${name}`}
+                >
+                    {t.openInPlayground}
+                </LinkButton>
+            </Tabs>
+            <div class={styles.scroll}>
+                {switch tab {
+                case "code":
+                    <CodeView code={code} />
+                case "js":
+                    <CompiledView source={code} />
+                default:
+                    <HandwrittenView files={byHand} />
+                }}
+            </div>
+        </section>
+        <section class={styles.result}>
+            <div class={styles.scroll}>
+                <ResultView preview={preview} lines={lines} />
+            </div>
+            <span class={styles.again}>
+                <Button kind="secondary" size="sm" icon="refresh" onClick={run()}>{t.runAgain}</Button>
+            </span>
+        </section>
+        <footer class={styles.switch}>
+            {for each in switches {
+                <button
+                    class={styles.option}
+                    type="button"
+                    aria-pressed={each.id == panes ? "true" : "false"}
+                    onClick={panes = each.id}
+                >
+                    {each.label}
+                </button>
+            }}
+        </footer>
+    </div>
+}

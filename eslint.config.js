@@ -43,6 +43,28 @@ export default defineConfig(
     files: ['**/*.js'],
     extends: [tseslint.configs.disableTypeChecked],
   },
+  {
+    files: ['site/examples/**/js/**/*.js'],
+    languageOptions: {
+      globals: Object.fromEntries(
+        [
+          'AbortController',
+          'AbortSignal',
+          'clearTimeout',
+          'console',
+          'document',
+          'ImageData',
+          'navigator',
+          'performance',
+          'self',
+          'setInterval',
+          'setTimeout',
+          'URL',
+          'Worker',
+        ].map((name) => [name, 'readonly']),
+      ),
+    },
+  },
   // The runtime that compiled code imports runs in browsers, their workers and Node: it uses only
   // what they all have, and checks for the rest with `typeof`.
   {

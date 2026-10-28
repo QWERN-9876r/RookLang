@@ -1,0 +1,184 @@
+// Поиск по мере ввода. Каждая клавиша запускает свой поиск: он
+// ждёт паузы в наборе, спрашивает сервер, проверяет ответ и
+// показывает его. Следующая клавиша прерывает его, чем бы он ни
+// был занят, так что старый ответ никогда не закроет новый
+
+interface Fruit {
+    name string
+    price number
+}
+
+const FRUITS []Fruit = [
+    { name: "Гуава", price: 320 },
+    { name: "Киви", price: 60 },
+    { name: "Личи", price: 750 },
+    { name: "Манго", price: 240 },
+    { name: "Папайя", price: 410 },
+    { name: "Маракуйя", price: 90 },
+    { name: "Ананас", price: 380 },
+    { name: "Помело", price: 530 },
+]
+
+// Ненастоящий сервер: отвечает за 0,2–1,2 с, так что на поздний
+// запрос ответ может прийти раньше; в жизни это fetch(url, { signal })
+async func request(query string, signal AbortSignal) (string, error) {
+    select {
+    case <-after(200 + Math.random() * 1000):
+    case <-done(signal):
+        return "", error("прерван")
+    }
+    const q = query.toLowerCase()
+    const found = FRUITS.filter(f => f.name.toLowerCase().includes(q))
+    return JSON.stringify(found), null
+}
+
+type Status "запрос" | "показан" | "прерван" | "плохой ответ"
+
+// Строка журнала запросов под списком
+interface Request {
+    id number
+    query string
+    status Status
+    ms number
+}
+
+comp Search() {
+    state fruits []Fruit = []
+    state log []Request = []
+    derived asking = log.length > 0 && log[0].status == "запрос"
+    let current ?AbortController = null
+    let requests = 0
+
+    async func search(query string) {
+        current?.abort()
+        const controller = new AbortController()
+        current = controller
+        const signal = controller.signal
+
+        // Клавиша, нажатая до паузы, прерывает поиск прямо здесь
+        select {
+        case <-after(300):
+        case <-done(signal):
+            return
+        }
+
+        requests += 1
+        const id = requests
+        const start = performance.now()
+        const line Request = { id, query, status: "запрос", ms: 0 }
+        log = [line, ...log].slice(0, 5)
+
+        // Записывает, чем кончился запрос, в его строку журнала
+        func end(status Status) {
+            const ms = Math.round(performance.now() - start)
+            log = log.map(r => r.id == id ? { id, query, status, ms } : r)
+        }
+
+        const body, failed = await request(query, signal)
+        if failed != null {
+            end("прерван")
+            return
+        }
+        const found, err = decode<[]Fruit>(body)
+        if err != null {
+            console.log(err.message)
+            end("плохой ответ")
+            return
+        }
+        end("показан")
+        fruits = found
+    }
+
+    mount() {
+        search("")
+        return () => current?.abort()
+    }
+
+    style {
+        .search { display: grid; gap: 14px; max-width: 420px; }
+        .field {
+            padding: 10px 14px;
+            border: 1px solid #ffffff2e;
+            border-radius: 10px;
+            background: #ffffff0a;
+            color: inherit;
+            font: inherit;
+        }
+        .field:focus { outline: none; border-color: #f5a524; }
+        .fruits {
+            display: grid;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            transition: opacity 0.2s;
+        }
+        .fruits li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #ffffff0d;
+        }
+        .waiting { opacity: 0.4; }
+        .price { color: #f5a524; font-variant-numeric: tabular-nums; }
+        .empty { margin: 0; color: #ffffff80; }
+        .caption {
+            margin: 0;
+            padding-top: 12px;
+            border-top: 1px solid #ffffff1a;
+            color: #ffffff80;
+            font-size: 0.75em;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .log {
+            display: grid;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.85em;
+        }
+        .log li { display: grid; grid-template-columns: 1fr auto 70px; gap: 12px; }
+        .log .ms { text-align: right; color: #ffffff80; }
+        .log [data-status="запрос"] { color: #ffffff99; }
+        .log [data-status="показан"] { color: #6fcf8f; }
+        .log [data-status="прерван"] {
+            color: #ffffff59;
+            text-decoration: line-through;
+        }
+        .log [data-status="плохой ответ"] { color: #ff7a7a; }
+    }
+
+    return <div class="search">
+        <input
+            class="field"
+            placeholder="Найти фрукт: наберите а, потом н"
+            onInput={search(event.currentTarget.value)}
+        />
+        <ul class={asking ? "fruits waiting" : "fruits"}>
+            {for fruit in fruits {
+                <li>
+                    {fruit.name}
+                    <span class="price">{fruit.price} ₽</span>
+                </li>
+            }}
+        </ul>
+        {if fruits.length == 0 && !asking {
+            <p class="empty">Ничего не нашлось</p>
+        }}
+        <p class="caption">Запросы, новые сверху</p>
+        <ol class="log">
+            {for r in log {
+                <li data-status={r.status}>
+                    <span>{r.query == "" ? "все" : `«${r.query}»`}</span>
+                    <span>{r.status}</span>
+                    <span class="ms">{r.status == "запрос" ? "…" : `${r.ms} мс`}</span>
+                </li>
+            }}
+        </ol>
+    </div>
+}
+
+document.body.append(<Search />)

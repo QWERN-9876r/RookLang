@@ -1,0 +1,9 @@
+/* The name of a file of the program written without Rook, above its code. */
+
+.file {
+  margin: 0;
+  padding: 10px 16px 0;
+  color: var(--rui-muted);
+  font-family: var(--rui-mono);
+  font-size: 0.8125rem;
+}

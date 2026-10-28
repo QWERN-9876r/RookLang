@@ -1,0 +1,184 @@
+// Search as you type. Each key starts a search of its own: it
+// waits for typing to pause, asks the server, checks the answer
+// and shows it. The next key aborts it, whatever it is doing,
+// so an old answer never covers a new one
+
+interface Fruit {
+    name string
+    price number
+}
+
+const FRUITS []Fruit = [
+    { name: "Guava", price: 3.2 },
+    { name: "Kiwi", price: 0.6 },
+    { name: "Lychee", price: 7.5 },
+    { name: "Mango", price: 2.4 },
+    { name: "Papaya", price: 4.1 },
+    { name: "Passion fruit", price: 0.9 },
+    { name: "Pineapple", price: 3.8 },
+    { name: "Pomelo", price: 5.3 },
+]
+
+// A pretend server that answers in 0.2–1.2 s, so a later query
+// may be answered first; in a real app it is fetch(url, { signal })
+async func request(query string, signal AbortSignal) (string, error) {
+    select {
+    case <-after(200 + Math.random() * 1000):
+    case <-done(signal):
+        return "", error("aborted")
+    }
+    const q = query.toLowerCase()
+    const found = FRUITS.filter(f => f.name.toLowerCase().includes(q))
+    return JSON.stringify(found), null
+}
+
+type Status "asking" | "shown" | "aborted" | "bad answer"
+
+// A line of the log of requests under the list
+interface Request {
+    id number
+    query string
+    status Status
+    ms number
+}
+
+comp Search() {
+    state fruits []Fruit = []
+    state log []Request = []
+    derived asking = log.length > 0 && log[0].status == "asking"
+    let current ?AbortController = null
+    let requests = 0
+
+    async func search(query string) {
+        current?.abort()
+        const controller = new AbortController()
+        current = controller
+        const signal = controller.signal
+
+        // A key pressed before the pause aborts the search right here
+        select {
+        case <-after(300):
+        case <-done(signal):
+            return
+        }
+
+        requests += 1
+        const id = requests
+        const start = performance.now()
+        const line Request = { id, query, status: "asking", ms: 0 }
+        log = [line, ...log].slice(0, 5)
+
+        // Writes how the request ended into its line of the log
+        func end(status Status) {
+            const ms = Math.round(performance.now() - start)
+            log = log.map(r => r.id == id ? { id, query, status, ms } : r)
+        }
+
+        const body, failed = await request(query, signal)
+        if failed != null {
+            end("aborted")
+            return
+        }
+        const found, err = decode<[]Fruit>(body)
+        if err != null {
+            console.log(err.message)
+            end("bad answer")
+            return
+        }
+        end("shown")
+        fruits = found
+    }
+
+    mount() {
+        search("")
+        return () => current?.abort()
+    }
+
+    style {
+        .search { display: grid; gap: 14px; max-width: 420px; }
+        .field {
+            padding: 10px 14px;
+            border: 1px solid #ffffff2e;
+            border-radius: 10px;
+            background: #ffffff0a;
+            color: inherit;
+            font: inherit;
+        }
+        .field:focus { outline: none; border-color: #f5a524; }
+        .fruits {
+            display: grid;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            transition: opacity 0.2s;
+        }
+        .fruits li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: #ffffff0d;
+        }
+        .waiting { opacity: 0.4; }
+        .price { color: #f5a524; font-variant-numeric: tabular-nums; }
+        .empty { margin: 0; color: #ffffff80; }
+        .caption {
+            margin: 0;
+            padding-top: 12px;
+            border-top: 1px solid #ffffff1a;
+            color: #ffffff80;
+            font-size: 0.75em;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .log {
+            display: grid;
+            gap: 4px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            font-size: 0.85em;
+        }
+        .log li { display: grid; grid-template-columns: 1fr auto 70px; gap: 12px; }
+        .log .ms { text-align: right; color: #ffffff80; }
+        .log [data-status="asking"] { color: #ffffff99; }
+        .log [data-status="shown"] { color: #6fcf8f; }
+        .log [data-status="aborted"] {
+            color: #ffffff59;
+            text-decoration: line-through;
+        }
+        .log [data-status="bad answer"] { color: #ff7a7a; }
+    }
+
+    return <div class="search">
+        <input
+            class="field"
+            placeholder="Search fruit: type p, then a"
+            onInput={search(event.currentTarget.value)}
+        />
+        <ul class={asking ? "fruits waiting" : "fruits"}>
+            {for fruit in fruits {
+                <li>
+                    {fruit.name}
+                    <span class="price">€{fruit.price.toFixed(2)}</span>
+                </li>
+            }}
+        </ul>
+        {if fruits.length == 0 && !asking {
+            <p class="empty">Nothing found</p>
+        }}
+        <p class="caption">Requests, newest first</p>
+        <ol class="log">
+            {for r in log {
+                <li data-status={r.status}>
+                    <span>{r.query == "" ? "all" : `“${r.query}”`}</span>
+                    <span>{r.status}</span>
+                    <span class="ms">{r.status == "asking" ? "…" : `${r.ms} ms`}</span>
+                </li>
+            }}
+        </ol>
+    </div>
+}
+
+document.body.append(<Search />)

@@ -1,0 +1,126 @@
+/* The code beside the result, each scrolling on its own, over the switch between them. On narrow
+   screens the result goes under the code. */
+
+.view {
+  display: grid;
+  grid-template-areas:
+    'code result'
+    'switch switch';
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  height: 100%;
+  border: 1px solid var(--rui-line);
+  border-radius: var(--rui-radius-lg);
+  overflow: hidden;
+  background: var(--rui-code-bg);
+}
+
+.view[data-panes='code'] {
+  grid-template-areas:
+    'code code'
+    'switch switch';
+}
+
+.view[data-panes='result'] {
+  grid-template-areas:
+    'result result'
+    'switch switch';
+}
+
+.view[data-panes='code'] .result,
+.view[data-panes='result'] .code {
+  display: none;
+}
+
+.code,
+.result {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.code {
+  grid-area: code;
+}
+
+/* On a narrow pane the tabs and their buttons scroll rather than widen it. */
+.code > [role='tablist'] {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.result {
+  position: relative;
+  grid-area: result;
+  border-left: 1px solid var(--rui-line);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Long code scrolls in the pane, not in a box of its own. */
+.scroll pre {
+  max-height: none;
+}
+
+.again {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+}
+
+.switch {
+  display: flex;
+  grid-area: switch;
+  justify-content: flex-end;
+  border-top: 1px solid var(--rui-line);
+  background: var(--rui-surface);
+}
+
+.option {
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--rui-muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.option:hover {
+  color: var(--rui-text);
+}
+
+.option[aria-pressed='true'] {
+  background: var(--rui-surface-2);
+  color: var(--rui-text);
+}
+
+@media (max-width: 900px) {
+  .view,
+  .view[data-panes] {
+    grid-template-areas:
+      'code'
+      'result'
+      'switch';
+    grid-template-rows: auto auto auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .code .scroll {
+    max-height: 60vh;
+  }
+
+  .result {
+    min-height: 60vh;
+    border-top: 1px solid var(--rui-line);
+    border-left: 0;
+  }
+}

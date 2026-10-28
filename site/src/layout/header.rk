@@ -39,6 +39,7 @@ export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content =
                 <Brand />
                 <nav class={styles.links} aria-label={t.sections}>
                     <PageLink target="docs" label={t.docs} />
+                    <PageLink target="examples" label={t.examplesPage} />
                     <PageLink target="playground" label={t.playground} />
                 </nav>
                 {tools}
@@ -72,6 +73,7 @@ export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content =
                 <nav class={styles.menuLinks} aria-label={t.sections}>
                     <PageLink target="home" label="Rook" />
                     <PageLink target="docs" label={t.docs} />
+                    <PageLink target="examples" label={t.examplesPage} />
                     <PageLink target="playground" label={t.playground} />
                 </nav>
                 {menu}

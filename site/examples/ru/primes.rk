@@ -1,0 +1,153 @@
+// Долгая работа на другом процессоре. Она сообщает, докуда дошла,
+// через канал, страница во время работы свободна, а «Отмена»
+// останавливает работу даже посреди цикла
+
+const LIMIT = 50_000_000
+const STEP = LIMIT / 100
+
+func isPrime(n number) bool {
+    if n % 2 == 0 {
+        return n == 2
+    }
+    for let d = 3; d * d <= n; d += 2 {
+        if n % d == 0 {
+            return false
+        }
+    }
+    return n > 1
+}
+
+// Что сообщает горутина: сколько чисел она проверила и сколько
+// простых среди них нашла
+interface Progress {
+    checked number
+    found number
+}
+
+// Работает как горутина: считает простые числа до LIMIT и
+// отчитывается через каждый 1%. У горутины нет страницы, так что
+// цикл может идти сколько нужно
+async func countPrimes(updates chan<- Progress) {
+    let found = 0
+    for let n = 2; n <= LIMIT; n++ {
+        if isPrime(n) {
+            found++
+        }
+        if n % STEP == 0 {
+            updates <- { checked: n, found }
+        }
+    }
+    close(updates)
+}
+
+comp Primes() {
+    state running = false
+    state checked = 0
+    state found = 0
+    state seconds = 0
+    state clicks = 0
+    state report = "Посчитаем простые числа до 50 миллионов"
+    derived percent = Math.round(checked / LIMIT * 100)
+    let stop = chan<bool>()
+
+    async func run() {
+        running = true
+        checked = 0
+        found = 0
+        report = "Считаю на другом процессоре…"
+        stop = chan<bool>()
+        const updates = chan<Progress>()
+        const job = go countPrimes(updates)
+        const start = performance.now()
+        for {
+            select {
+            case p = <-updates:
+                seconds = (performance.now() - start) / 1000
+                if p == null {              // закрыт: горутина закончила
+                    report = `Готово: ${found.toLocaleString()} простых`
+                    running = false
+                    return
+                }
+                checked = p.checked
+                found = p.found
+            case <-stop:
+                cancel(job)                 // останавливает её воркер посреди цикла
+                report = `Отменено на ${percent}%`
+                running = false
+                return
+            }
+        }
+    }
+
+    style {
+        .job { display: grid; gap: 16px; max-width: 460px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .stat {
+            display: grid;
+            gap: 2px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            background: #ffffff0d;
+        }
+        .stat b { font-size: 1.3em; font-variant-numeric: tabular-nums; }
+        .stat span { color: #ffffff80; font-size: 0.8em; }
+        .track {
+            height: 8px;
+            border-radius: 999px;
+            background: #ffffff14;
+            overflow: hidden;
+        }
+        .fill {
+            width: {percent}%;
+            height: 100%;
+            background: #f5a524;
+            transition: width 0.2s;
+        }
+        .buttons { display: flex; gap: 8px; }
+        button {
+            padding: 8px 16px;
+            border: 1px solid #ffffff2e;
+            border-radius: 8px;
+            background: #ffffff0a;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.4; cursor: default; }
+        .start { border-color: #f5a524; background: #f5a524; color: #000; }
+        .report { margin: 0; color: #ffffffb3; }
+        .free {
+            justify-self: start;
+            border-style: dashed;
+            color: #ffffffb3;
+        }
+    }
+
+    return <div class="job">
+        <div class="stats">
+            <div class="stat">
+                <b>{found.toLocaleString()}</b>
+                <span>простых найдено</span>
+            </div>
+            <div class="stat">
+                <b>{percent}%</b>
+                <span>проверено</span>
+            </div>
+            <div class="stat">
+                <b>{seconds.toFixed(1)} с</b>
+                <span>прошло</span>
+            </div>
+        </div>
+        <div class="track"><div class="fill" /></div>
+        <div class="buttons">
+            <button class="start" disabled={running} onClick={run()}>Старт</button>
+            <button disabled={!running} onClick={close(stop)}>Отмена</button>
+        </div>
+        <p class="report">{report}</p>
+        <button class="free" onClick={clicks++}>
+            Страница свободна, нажмите: {clicks}
+        </button>
+    </div>
+}
+
+document.body.append(<Primes />)

@@ -8,8 +8,8 @@ export const REPOSITORY = "https://github.com/QWERN-9876r/RookLang"
 export const MARKETPLACE = "https://marketplace.visualstudio.com/items?itemName=Qwern9876r.rooklang"
 export const OPEN_VSX = "https://open-vsx.org/extension/Qwern9876r/rooklang"
 
-/** The pages of the site: the same three in each language. */
-export type Page "home" | "docs" | "playground"
+/** The pages of the site: the same five in each language. */
+export type Page "home" | "docs" | "examples" | "playground" | "roadmap"
 
 /** A section of the guide: its anchor, its title in the menu, its group there and its content. */
 export interface Section {
@@ -23,6 +23,10 @@ export interface Section {
 export interface Strings {
     tagline string
     docs string
+    /** The page of examples: whole programs, each beside the same program in JS. */
+    examplesPage string
+    /** The page of where Rook stands and the road to 1.0. */
+    roadmap string
     playground string
     getStarted string
     /** The name of the GitHub link when only its icon is shown. */
@@ -56,6 +60,13 @@ export interface Strings {
     editor string
     run string
     openInPlayground string
+    /** The tab of an example with the same program written in JS by hand. */
+    withoutRook string
+    /** The panes of the page of examples, the switch between them, and the button that runs it again. */
+    code string
+    result string
+    both string
+    runAgain string
     reset string
     /** The list of examples in the playground. */
     examples string
@@ -130,18 +141,22 @@ export interface HomeStrings {
 
 let strings ?Strings = null
 let examples any = null
+let handwritten any = null
 let page Page = "home"
 
 /** Where each page is, from the root of its language. */
-const PATHS { home string; docs string; playground string } = {
+const PATHS { home string; docs string; examples string; playground string; roadmap string } = {
     home: "",
     docs: "docs/",
+    examples: "examples/",
     playground: "playground/",
+    roadmap: "roadmap/",
 }
 
-export func setLanguage(text Strings, code any, current Page) {
+export func setLanguage(text Strings, code any, byHand any, current Page) {
     strings = text
     examples = code
+    handwritten = byHand
     page = current
 }
 
@@ -160,6 +175,17 @@ export func currentPage() Page {
 /** The code of an example in site/examples (or site/examples/ru) by its file name. */
 export func exampleCode(name string) string {
     return examples[name]
+}
+
+/** A file of an example written in JS by hand, to compare with its Rook. */
+export interface HandwrittenFile {
+    name string
+    code string
+}
+
+/** The files of the example written in JS by hand, in site/examples/js/<name>; none for most. */
+export func handwrittenFiles(name string) []HandwrittenFile {
+    return handwritten[name] ?? []
 }
 
 /** The names of the examples, as files in site/examples. */

@@ -1,0 +1,7 @@
+/* The roadmap: a column of text as wide as a section of the guide, in the middle of the page. */
+
+.main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 48px var(--rui-gutter) 80px;
+}

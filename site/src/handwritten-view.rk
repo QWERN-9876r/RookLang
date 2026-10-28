@@ -1,0 +1,13 @@
+// The program of an example written in JS by hand, file by file under their names, to compare with
+// its Rook: the tab "Without Rook" of an example in the guide and on the page of examples.
+
+import { CodeView } from "./code-view.rk"
+import { HandwrittenFile } from "./i18n.rk"
+import styles from "./handwritten-view.module.css"
+
+export comp HandwrittenView(files []HandwrittenFile) {
+    return <div>{for file in files {
+        <p class={styles.file}>{file.name}</p>
+        <CodeView code={file.code} language="js" />
+    }}</div>
+}

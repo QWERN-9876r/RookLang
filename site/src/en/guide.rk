@@ -35,6 +35,7 @@ import { Styles } from "./guide/styles.rk"
 import { WebComponents } from "./guide/web-components.rk"
 import { Decorators } from "./guide/decorators.rk"
 import { Tools } from "./guide/tools.rk"
+import { Adoption } from "./guide/adoption.rk"
 
 export const SECTIONS []Section = [
     { id: "intro", title: "What is Rook", group: "Language", content: Intro },
@@ -69,4 +70,5 @@ export const SECTIONS []Section = [
     { id: "web-components", title: "Web components", group: "Markup and components", content: WebComponents },
     { id: "decorators", title: "Decorators", group: "Markup and components", content: Decorators },
     { id: "tools", title: "Tools", group: "More", content: Tools },
+    { id: "adoption", title: "Rook in an existing project", group: "More", content: Adoption },
 ]

@@ -22,7 +22,9 @@ export comp SiteFooter() {
             </nav>
             <nav class={styles.column} aria-label={t.footerResources}>
                 <p class={styles.heading}>{t.footerResources}</p>
+                <a href={pageHref("examples")}>{t.examplesPage}</a>
                 <a href={pageHref("playground")}>{t.playground}</a>
+                <a href={pageHref("roadmap")}>{t.roadmap}</a>
                 <a href={REPOSITORY}>GitHub</a>
                 <a href={`${REPOSITORY}/blob/main/${t.specificationPath}`}>{t.specification}</a>
                 <a href={MARKETPLACE}>{t.vscode}</a>

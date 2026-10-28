@@ -1,0 +1,84 @@
+/* The page of examples: the list at the side and the example next to it, as tall as the screen
+   under the bar of the site. On narrow screens the list goes above the example and the page
+   scrolls. */
+
+.layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  height: calc(100dvh - 65px);
+}
+
+.sidebar {
+  min-height: 0;
+  padding: 24px 16px;
+  border-right: 1px solid var(--rui-line);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rui-line-strong) transparent;
+}
+
+.heading {
+  margin: 0 8px 16px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--rui-line);
+  border-radius: var(--rui-radius);
+  background: var(--rui-surface);
+  color: var(--rui-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-decoration: none;
+}
+
+.item strong {
+  color: var(--rui-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.item:hover {
+  border-color: var(--rui-line-strong);
+}
+
+.item[aria-current] {
+  border-color: var(--rui-accent);
+  background: var(--rui-accent-soft);
+}
+
+.frame {
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+  }
+
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--rui-line);
+  }
+
+  .list {
+    grid-auto-columns: minmax(240px, 80%);
+    grid-auto-flow: column;
+    overflow-x: auto;
+  }
+}

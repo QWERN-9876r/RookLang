@@ -1,0 +1,111 @@
+// The section "Rook in an existing project" of the English guide; guide.rk lists the sections.
+
+import { CodeBlock } from "../../../ui/code-block.rk"
+import { highlight } from "../../highlight.rk"
+import { pageHref, text } from "../../i18n.rk"
+
+const VITE_CONFIG = `import { defineConfig } from "vite"
+import { rook } from "rooklang/vite"
+
+export default defineConfig({ plugins: [rook()] })`
+
+const MATH = `export func divide(a, b number) (number, error) {
+    if b == 0 {
+        return 0, error("division by zero")
+    }
+    return a / b, null
+}`
+
+const MAIN = `import { divide } from "./math.rk"
+
+// Several results are an array in JS
+const [ratio, err] = divide(6, 3)`
+
+const COUNTER = `// A button that counts its clicks, as the custom element <click-counter>
+@html-tag("click-counter")
+comp ClickCounter(label string, start number = 0) {
+    state count = start
+    return <button onClick={count++}>{label}: {count}</button>
+}`
+
+const TOOLBAR = `import "./counter.rk" // defines <click-counter>
+
+export function Toolbar() {
+    return <click-counter label="Clicks" start={3} />
+}`
+
+const LEAVE = `npx rook build src   # .js, .d.ts and .js.map next to each .rk
+rm src/*.rk`
+
+export comp Adoption() {
+    const t = text()
+
+    return <>
+        <p>
+            Rook does not need a project of its own: it comes into an existing one a module at a
+            time, and it can leave the same way.
+        </p>
+        <p>
+            <b>A module in a Vite project.</b> With <code>npm install rooklang</code> and the plugin
+            in the config of Vite, a <code>.rk</code> module is imported from JS and TS like any
+            other:
+        </p>
+        <CodeBlock code={VITE_CONFIG} label="vite.config.ts" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(VITE_CONFIG, "js")}
+        </CodeBlock>
+        <CodeBlock code={MATH} label="math.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(MATH, "rook")}
+        </CodeBlock>
+        <CodeBlock code={MAIN} label="main.ts" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(MAIN, "js")}
+        </CodeBlock>
+        <p>
+            Type errors in <code>.rk</code> modules stop the build. Under Vite, TypeScript does not
+            see their types yet: a line <code>{`declare module "*.rk"`}</code> in a
+            {" "}<code>.d.ts</code> of the project lets it import them as <code>any</code>.
+            {" "}<code>rook build</code>, without Vite, writes a <code>.d.ts</code> next to each
+            module, here <code>{"divide(a: number, b: number): [number, null] | [null, Error]"}</code>.
+        </p>
+        <p>
+            <b>A component in a React app.</b> A component with <code>@html-tag</code> is a custom
+            element, so React, Vue and Svelte use it as any tag
+            (<a href="#web-components">Web components</a>). Markup is off unless the project turns
+            it on, with <code>{`"rook": { "markup": true }`}</code> in its
+            {" "}<code>package.json</code>:
+        </p>
+        <CodeBlock code={COUNTER} label="counter.rk" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(COUNTER, "rook")}
+        </CodeBlock>
+        <CodeBlock code={TOOLBAR} label="toolbar.jsx" copyLabel={t.copy} copiedLabel={t.copied}>
+            {highlight(TOOLBAR, "js")}
+        </CodeBlock>
+        <p>
+            React 19 sets <code>{"start={3}"}</code> as a property of the element, so the component
+            gets a number; an attribute, as in plain HTML, is converted by the type of the property.
+        </p>
+        <p>
+            <b>Leaving Rook.</b> The output of the compiler is readable JS with the names and the
+            structure of the source, so a project can build its modules once and go on without Rook:
+        </p>
+        <CodeBlock code={LEAVE} label={t.terminal} copyLabel={t.copy} copiedLabel={t.copied}>
+            {LEAVE}
+        </CodeBlock>
+        <ul>
+            <li>
+                Imports of <code>./math.rk</code> in JS and TS files become <code>./math.js</code>;
+                imports between the built modules already are.
+            </li>
+            <li>
+                The code that uses channels, goroutines or markup imports
+                {" "}<code>rooklang/runtime</code>, plain JS under the MIT license. The package stays
+                a dependency, or its folder <code>src/runtime</code> is copied into the project and
+                an alias of the bundler points <code>rooklang/runtime</code> to the copy.
+            </li>
+            <li>The comments of the source are not in the output yet.</li>
+        </ul>
+        <p>
+            What is missing for a production project, and when it comes, is on the
+            {" "}<a href={pageHref("roadmap")}>roadmap</a>.
+        </p>
+    </>
+}

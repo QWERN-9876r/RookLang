@@ -1,0 +1,38 @@
+// The examples of the English page of examples; the Russian one, ru/cases.rk, has the same. Each is
+// a whole program in site/examples beside the same program written in JS by hand, in
+// site/examples/js/<name>.
+
+import { Case } from "../examples/page.rk"
+
+export const CASES []Case = [
+    {
+        id: "search",
+        title: "Search as you type",
+        description: "Each key starts a search that waits for a pause and aborts the one before, and a log shows which answers got through: select, after, done and decode.",
+        example: "search",
+    },
+    {
+        id: "filters",
+        title: "Image filters on every core",
+        description: "Five filters of a 1600 × 900 picture, on one thread and on every processor with go for.",
+        example: "filters",
+    },
+    {
+        id: "primes",
+        title: "A long job you can cancel",
+        description: "Fifty million numbers checked on another processor: progress through a channel, a page that stays free, and cancel() that stops the goroutine mid-loop.",
+        example: "primes",
+    },
+    {
+        id: "orders",
+        title: "JSON checked against a type",
+        description: "An order from an API checked when the program runs: decode gives a typed Order, or an error that says where the JSON does not fit.",
+        example: "orders",
+    },
+    {
+        id: "uploads",
+        title: "Uploads three at a time",
+        description: "Three uploaders take files from one channel; a try that hangs is aborted by abortSignal(after(…)), and a failed one is tried again later.",
+        example: "uploads",
+    },
+]

@@ -26,8 +26,11 @@ describe('documentation site', () => {
       'src/docs/page.js',
       'src/docs/search-button.js',
       'src/docs/search-dialog.js',
+      'src/en/cases.js',
       'src/en/docs.js',
+      'src/en/examples.js',
       'src/en/guide.js',
+      'src/en/guide/adoption.js',
       'src/en/guide/async-iterables.js',
       'src/en/guide/async.js',
       'src/en/guide/channel-objects.js',
@@ -63,8 +66,13 @@ describe('documentation site', () => {
       'src/en/home-strings.js',
       'src/en/home.js',
       'src/en/playground.js',
+      'src/en/roadmap-text.js',
+      'src/en/roadmap.js',
       'src/en/strings.js',
       'src/example.js',
+      'src/examples/case-view.js',
+      'src/examples/page.js',
+      'src/handwritten-view.js',
       'src/highlight-css.js',
       'src/highlight.js',
       'src/home/call-to-action.js',
@@ -86,8 +94,12 @@ describe('documentation site', () => {
       'src/layout/reveal.js',
       'src/playground/page.js',
       'src/result-view.js',
+      'src/roadmap/page.js',
+      'src/ru/cases.js',
       'src/ru/docs.js',
+      'src/ru/examples.js',
       'src/ru/guide.js',
+      'src/ru/guide/adoption.js',
       'src/ru/guide/async-iterables.js',
       'src/ru/guide/async.js',
       'src/ru/guide/channel-objects.js',
@@ -123,6 +135,8 @@ describe('documentation site', () => {
       'src/ru/home-strings.js',
       'src/ru/home.js',
       'src/ru/playground.js',
+      'src/ru/roadmap-text.js',
+      'src/ru/roadmap.js',
       'src/ru/strings.js',
       'src/sandbox.js',
       // The RookUI kit, which the pages import.
@@ -145,11 +159,12 @@ describe('documentation site', () => {
     expect(result.warnings).toEqual([]);
   }, 15_000);
 
-  // English examples are in site/examples, Russian ones in site/examples/ru; the guide of a
-  // language is guide.rk with a module for each of its sections, in guide/.
+  // English examples are in site/examples, Russian ones in site/examples/ru. The guide of a
+  // language is guide.rk with a module for each of its sections, in guide/, which show examples
+  // with <Example />; the page of examples lists its cases in cases.rk, each with its example.
   const languages = [
-    { language: 'en', examples: 'examples', guide: 'src/en/guide' },
-    { language: 'ru', examples: 'examples/ru', guide: 'src/ru/guide' },
+    { language: 'en', examples: 'examples', guide: 'src/en/guide', cases: 'src/en/cases.rk' },
+    { language: 'ru', examples: 'examples/ru', guide: 'src/ru/guide', cases: 'src/ru/cases.rk' },
   ];
   const examplesOf = (dir: string) => readdirSync(site(dir)).filter((name) => name.endsWith('.rk'));
   const all = languages.flatMap(({ examples }) =>
@@ -168,9 +183,11 @@ describe('documentation site', () => {
     const guide = readdirSync(site(language.guide))
       .map((name) => readFileSync(site(`${language.guide}/${name}`), 'utf8'))
       .join('\n');
-    const used = [...guide.matchAll(/<Example name="([^"]+)" \/>/g)].map(
-      (match) => `${match[1]}.rk`,
-    );
+    const cases = readFileSync(site(language.cases), 'utf8');
+    const used = [
+      ...[...guide.matchAll(/<Example name="([^"]+)" \/>/g)],
+      ...[...cases.matchAll(/example: "([^"]+)"/g)],
+    ].map((match) => `${match[1]}.rk`);
 
     expect(used.sort()).toEqual(examplesOf(language.examples).sort());
   });
@@ -182,12 +199,39 @@ describe('documentation site', () => {
       [...readFileSync(site(path), 'utf8').matchAll(/\{ id: "([^"]+)"/g)].map((match) => match[1]);
 
     expect(sections('src/ru/guide.rk')).toEqual(sections('src/en/guide.rk'));
+    expect(sections('src/ru/cases.rk')).toEqual(sections('src/en/cases.rk'));
   });
 
-  // Each language has a home page, docs/ and playground/, each drawn by its own entry module.
-  it.each(['en', 'ru'])('has the three pages of %s', (language) => {
+  // An example may have the same program written in JS by hand, in js/<name>/ of its folder, which
+  // its tab "Without Rook" shows.
+  it('has the JS written by hand for existing examples, the same files in both languages', () => {
+    const handwritten = (dir: string) =>
+      readdirSync(site(`${dir}/js`)).map((example) => ({
+        example,
+        files: readdirSync(site(`${dir}/js/${example}`)).sort(),
+      }));
+    const english = handwritten('examples');
+
+    expect(english.length).toBeGreaterThan(0);
+    for (const { example, files } of english) {
+      expect(examplesOf('examples')).toContain(`${example}.rk`);
+      expect(files).toContain(`${example}.js`);
+    }
+
+    expect(handwritten('examples/ru')).toEqual(english);
+  });
+
+  // Each language has a home page, docs/, examples/, playground/ and roadmap/, each drawn by its own
+  // entry module.
+  it.each(['en', 'ru'])('has the five pages of %s', (language) => {
     const root = language === 'en' ? '' : 'ru/';
-    const pages = { home: '', docs: 'docs/', playground: 'playground/' };
+    const pages = {
+      home: '',
+      docs: 'docs/',
+      examples: 'examples/',
+      playground: 'playground/',
+      roadmap: 'roadmap/',
+    };
 
     for (const [page, folder] of Object.entries(pages)) {
       const html = readFileSync(site(`${root}${folder}index.html`), 'utf8');

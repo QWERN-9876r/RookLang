@@ -1,0 +1,151 @@
+// Filters of a picture on one thread and on every processor: go for splits the pixels
+// among the workers, and each applies the same function to its part
+
+const WIDTH = 1600
+const HEIGHT = 900
+
+// A filter is a square of weights: a channel of a pixel becomes the sum of that channel
+// of the pixels around it, each times its weight
+interface Filter {
+    name string
+    size number
+    weights []number
+}
+
+func box(size number) []number {
+    return Array.from({ length: size * size }, () => 1 / (size * size))
+}
+
+func diagonal(size number) []number {
+    const weights = box(size).map(_ => 0)
+    for let i = 0; i < size; i++ {
+        weights[i * (size + 1)] = 1 / size
+    }
+    return weights
+}
+
+const FILTERS []Filter = [
+    { name: "Blur", size: 13, weights: box(13) },
+    { name: "Motion", size: 15, weights: diagonal(15) },
+    { name: "Sharpen", size: 3, weights: [0, -1, 0, -1, 5, -1, 0, -1, 0] },
+    { name: "Edges", size: 3, weights: [-1, -1, -1, -1, 8, -1, -1, -1, -1] },
+    { name: "Emboss", size: 3, weights: [-2, -1, 0, -1, 1, 1, 0, 1, 2] },
+]
+
+// A picture to work on, drawn by a canvas: a sky, circles and big letters
+func picture() Uint8ClampedArray {
+    const canvas = document.createElement("canvas")
+    canvas.width = WIDTH
+    canvas.height = HEIGHT
+    const context = canvas.getContext("2d")
+    if context == null {
+        return new Uint8ClampedArray(WIDTH * HEIGHT * 4)
+    }
+    const sky = context.createLinearGradient(0, 0, WIDTH, HEIGHT)
+    sky.addColorStop(0, "#1d2b64")
+    sky.addColorStop(1, "#f8a35b")
+    context.fillStyle = sky
+    context.fillRect(0, 0, WIDTH, HEIGHT)
+    for let i = 0; i < 40; i++ {
+        context.fillStyle = `hsl(${i * 37} 80% 60% / 0.7)`
+        context.beginPath()
+        context.arc((i * 211) % WIDTH, (i * 137) % HEIGHT, 30 + (i % 5) * 25, 0, Math.PI * 2)
+        context.fill()
+    }
+    context.fillStyle = "#fff"
+    context.font = "bold 300px sans-serif"
+    context.fillText("Rook", 380, 560)
+    return context.getImageData(0, 0, WIDTH, HEIGHT).data
+}
+
+// A channel of one pixel through the filter; past the edges the nearest pixel stands in
+func filteredAt(src Uint8ClampedArray, i number, filter Filter) number {
+    const channel = i % 4
+    if channel == 3 {
+        return 255
+    }
+    const x = Math.floor(i / 4) % WIDTH
+    const y = Math.floor(i / 4 / WIDTH)
+    const half = (filter.size - 1) / 2
+    let sum = 0
+    for let dy = 0; dy < filter.size; dy++ {
+        const yy = Math.min(Math.max(y + dy - half, 0), HEIGHT - 1)
+        for let dx = 0; dx < filter.size; dx++ {
+            const xx = Math.min(Math.max(x + dx - half, 0), WIDTH - 1)
+            sum += src[(yy * WIDTH + xx) * 4 + channel] * filter.weights[dy * filter.size + dx]
+        }
+    }
+    return sum
+}
+
+func applyOnOne(src Uint8ClampedArray, filter Filter) Uint8ClampedArray {
+    const out = new Uint8ClampedArray(src.length)
+    for i, _ in out {
+        out[i] = filteredAt(src, i, filter)
+    }
+    return out
+}
+
+// The same loop with go: each worker gets copies of src and filter, and writes its part of out
+async func applyOnAll(src Uint8ClampedArray, filter Filter) Uint8ClampedArray {
+    const out = new Uint8ClampedArray(src.length)
+    go for i, _ in out {
+        out[i] = filteredAt(src, i, filter)
+    }
+    return out
+}
+
+comp Filters() {
+    const source = picture()
+    state filter = FILTERS[0]
+    state report = "Choose a filter and where to apply it"
+    state busy = false
+    // Turns while the page is free: on one thread it stops until the filter is done
+    state turn = 0
+    ref canvas
+
+    func draw(pixels Uint8ClampedArray) {
+        const image = new ImageData(WIDTH, HEIGHT)
+        image.data.set(pixels)
+        canvas.getContext("2d")?.putImageData(image, 0, 0)
+    }
+
+    async func apply(all bool) {
+        busy = true
+        report = "Working…"
+        <-after(50)                         // lets the page show it before one thread is busy
+        const start = performance.now()
+        const out = all ? await applyOnAll(source, filter) : applyOnOne(source, filter)
+        const ms = Math.round(performance.now() - start)
+        draw(out)
+        const where = all ? `on ${navigator.hardwareConcurrency} processors` : "on one thread"
+        report = `${filter.name}: ${ms} ms ${where}`
+        busy = false
+    }
+
+    mount() {
+        draw(source)
+        const timer = setInterval(() => {
+            turn = (turn + 1) % 8
+        }, 100)
+        return () => clearInterval(timer)
+    }
+
+    return <div>
+        <canvas ref={canvas} width={WIDTH} height={HEIGHT} style="width: 100%" />
+        <p>{for each in FILTERS {
+            <label>
+                <input type="radio" name="filter" checked={each == filter} onChange={filter = each} />
+                {" "}{each.name}{"  "}
+            </label>
+        }}</p>
+        <p>
+            <button disabled={busy} onClick={apply(false)}>One thread</button>
+            {" "}<button disabled={busy} onClick={apply(true)}>Every processor</button>
+            {" "}<button disabled={busy} onClick={draw(source)}>Original</button>
+        </p>
+        <p>{"◐◓◑◒◐◓◑◒"[turn]} {report}</p>
+    </div>
+}
+
+document.body.append(<Filters />)

@@ -1,0 +1,77 @@
+// The page of examples, laid out as the examples of PixiJS: the list of examples on the left, and
+// next to it the code of the one chosen beside its result. The example is chosen by the hash of
+// the address, `examples/#search`.
+
+import "../../ui/theme.rk"
+import { text } from "../i18n.rk"
+import { SiteHeader } from "../layout/header.rk"
+import { previewArea } from "../sandbox.rk"
+import { CaseView } from "./case-view.rk"
+import styles from "./page.module.css"
+
+/** An example: its anchor, title and a line about it, and its program in site/examples. */
+export interface Case {
+    id string
+    title string
+    description string
+    example string
+}
+
+/** The index of the example that the hash names, or of the first one. */
+func indexOf(cases []Case, hash string) number {
+    const id = decodeURIComponent(hash.slice(1))
+    return Math.max(0, cases.findIndex(each => each.id == id))
+}
+
+comp ExamplesPage(cases []Case) {
+    const t = text()
+    state current = indexOf(cases, location.hash)
+    // One area for all the examples: running one stops the one shown before.
+    const preview = previewArea()
+
+    func update() {
+        current = indexOf(cases, location.hash)
+        document.title = `${cases[current].title} — Rook`
+    }
+
+    mount() {
+        update()
+        window.addEventListener("hashchange", update)
+        return () => window.removeEventListener("hashchange", update)
+    }
+
+    return <>
+        <SiteHeader wide={true} />
+        <main class={styles.layout}>
+            <nav class={styles.sidebar} aria-label={t.examplesPage}>
+                <h1 class={styles.heading}>{t.examplesPage}</h1>
+                <ul class={styles.list}>
+                    {for i, each in cases {
+                        <li>
+                            <a
+                                class={styles.item}
+                                href={`#${each.id}`}
+                                aria-current={i == current ? "page" : null}
+                            >
+                                <strong>{each.title}</strong>
+                                <span>{each.description}</span>
+                            </a>
+                        </li>
+                    }}
+                </ul>
+            </nav>
+            <div class={styles.frame}>
+                {for i, each in cases {
+                    if i == current {
+                        <CaseView name={each.example} preview={preview} />
+                    }
+                }}
+            </div>
+        </main>
+    </>
+}
+
+/** Draws the page; the entry module of the language calls it after setLanguage(). */
+export func renderExamples(cases []Case) {
+    document.body.append(<ExamplesPage cases={cases} />)
+}

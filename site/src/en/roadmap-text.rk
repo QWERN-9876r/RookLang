@@ -1,0 +1,231 @@
+// The text of the English roadmap; docs/roadmap.md says the same in the repository.
+
+import { pageHref, REPOSITORY } from "../i18n.rk"
+
+/** A link to a section of the guide. */
+func guide(id string) string {
+    return `${pageHref("docs")}#${id}`
+}
+
+export comp RoadmapText() {
+    return <>
+        <h1>The road to 1.0</h1>
+        <p>
+            Rook is at 0.x: the language works, and this site is written in it, but the
+            specification is a draft and may still change. The goal is <b>1.0, a language to use
+            in production</b>, with a stable core and the tools a team expects. This page says where
+            Rook stands, what is missing and in what order it will come.
+        </p>
+        <p>
+            Rook does not try to be a wider TypeScript. Its place is real threads in the browser and
+            in Node, checked by the compiler, and UI without a framework, in a language that
+            compiles to readable JavaScript you can keep. Each phase below makes that place
+            stronger rather than adding breadth.
+        </p>
+        <p>
+            <b>The syntax is frozen until 1.0.</b> A new construct comes only when a criterion of
+            1.0 cannot be met without it; other ideas wait for 1.0.
+        </p>
+
+        <h2>Rook today</h2>
+        <h3>What is already there</h3>
+        <table>
+            <thead>
+                <tr><th>Concern</th><th>How it is</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Goroutines are an emulation on the event loop</td>
+                    <td>
+                        <code>go f(x)</code> runs <code>f</code> on another thread, a Web Worker or a
+                        Node worker thread (<a href={guide("goroutines")}>Goroutines</a>). Inside a
+                        thread, channels and <code>select</code> work on its event loop, as async
+                        code does.
+                    </td>
+                </tr>
+                <tr>
+                    <td>Data races, as in Go</td>
+                    <td>
+                        What goes to another thread is copied or moved with <code>transfer(x)</code>,
+                        and the compiler checks that it can be. Memory is shared only through a
+                        {" "}<code>SharedArrayBuffer</code> made for it.
+                    </td>
+                </tr>
+                <tr>
+                    <td>The runtime makes the bundle bigger</td>
+                    <td>
+                        A module imports only the functions of <code>rooklang/runtime</code> its code
+                        uses; a program without channels, goroutines or markup imports none. All of
+                        the runtime is about 19 KB gzipped, before minification.
+                    </td>
+                </tr>
+                <tr>
+                    <td>There are no libraries</td>
+                    <td>
+                        Rook imports any JS module and takes the types from TypeScript declarations
+                        (<a href={guide("modules")}>Modules</a>): the libraries of Rook are those of
+                        npm.
+                    </td>
+                </tr>
+                <tr>
+                    <td>A Rook component cannot go into a React or Vue app</td>
+                    <td>
+                        <code>@html-tag</code> makes a component a custom element that React, Vue,
+                        Svelte and plain HTML use as any other
+                        (<a href={guide("web-components")}>Web components</a>).
+                    </td>
+                </tr>
+                <tr>
+                    <td>TypeScript code cannot use Rook modules</td>
+                    <td><code>rook build</code> writes a <code>.d.ts</code> next to each <code>.js</code>.</td>
+                </tr>
+                <tr>
+                    <td>Debugging is blind</td>
+                    <td>
+                        Source maps: stack traces, in goroutines too, and debuggers show the lines of
+                        the <code>.rk</code> file.
+                    </td>
+                </tr>
+                <tr>
+                    <td>Builds and tests</td>
+                    <td>
+                        The Vite plugin <code>rooklang/vite</code>; Vitest runs Rook code, goroutines
+                        included (<a href={guide("tools")}>Tools</a>).
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>What is not there yet</h3>
+        <ul>
+            <li>
+                <b>Stability.</b> The specification is a draft; there is no changelog, no policy of
+                deprecation, no line between stable and experimental features.
+            </li>
+            <li>
+                <b>The editor.</b> The VS Code extension shows errors as you type, completes and has
+                quick fixes, but has no hover, go to definition, references, rename or outline.
+            </li>
+            <li>
+                <b>The command line.</b> <code>rook build</code> and <code>rook run</code>; no
+                formatter, no <code>check</code> for CI, no template of a project.
+            </li>
+            <li>
+                <b>Debugging goroutines.</b> A deadlock is not reported, a goroutine left waiting is
+                not shown, and the workers in DevTools have no names.
+            </li>
+            <li>
+                <b>Numbers.</b> There are no benchmarks of channels and goroutines against plain JS,
+                and none in CI.
+            </li>
+            <li>
+                <b>TypeScript under Vite.</b> The Vite plugin does not write <code>.d.ts</code>, so a
+                {" "}<code>.ts</code> file that imports a <code>.rk</code> module there sees
+                {" "}<code>any</code>.
+            </li>
+            <li>
+                <b>Comments in the output.</b> The generated JS keeps the names and the structure of
+                the source, but not its comments.
+            </li>
+        </ul>
+
+        <h3>Not locked in</h3>
+        <p>
+            Rook compiles to readable JavaScript with the same names and structure. A project can
+            build its <code>.rk</code> files once with <code>rook build</code> and go on in JS. What
+            stays is the <code>rooklang/runtime</code> import of the code that uses channels,
+            goroutines or markup: plain JS under the MIT license, which can be kept as a dependency
+            or copied into the project. The guide shows how:
+            {" "}<a href={guide("adoption")}>Rook in an existing project</a>.
+        </p>
+
+        <h2>The road to 1.0</h2>
+        <h3>Phase 0: say what is there (in progress)</h3>
+        <ul>
+            <li>This roadmap, on the site and in the repository.</li>
+            <li>
+                A section of the guide on using Rook in an existing project: a <code>.rk</code>
+                {" "}module in a Vite project, a Rook component in a React app, and leaving Rook with
+                the generated JS.
+            </li>
+        </ul>
+        <h3>Phase 1: stability</h3>
+        <ul>
+            <li>
+                A changelog. In 0.x a minor version may break code, a patch version never does.
+            </li>
+            <li>
+                Every section of the specification marked <b>stable</b> or <b>experimental</b>.
+                Experimental features may change in any release; stable ones only through
+                deprecation.
+            </li>
+            <li>
+                Deprecation: the old form keeps working for at least one minor version with a
+                warning that shows the new form, then it is removed.
+            </li>
+            <li>
+                Snapshots of the generated code of the examples, so that every change of the output
+                shows in the diff.
+            </li>
+            <li>Comments of the source in the generated code.</li>
+            <li>
+                The open questions of the design of components closed: each decided, marked
+                experimental or moved past 1.0.
+            </li>
+        </ul>
+        <h3>Phase 2: tools</h3>
+        <ul>
+            <li>
+                The language server: hover with the type, go to definition, find references, rename,
+                signature help, document symbols.
+            </li>
+            <li><code>rook fmt</code>: one style, no options, as <code>gofmt</code>; and formatting in the editor.</li>
+            <li><code>rook check</code>: type checking only, for CI and pre-commit hooks.</li>
+            <li><code>rook init</code>: a new project with Vite, Vitest and the settings of VS Code.</li>
+            <li><code>.d.ts</code> of <code>.rk</code> modules under the Vite plugin.</li>
+        </ul>
+        <h3>Phase 3: debugging goroutines</h3>
+        <ul>
+            <li>
+                Deadlocks: when every goroutine waits on a channel and no timer can wake one, the
+                program stops with an error that says where each one waits.
+            </li>
+            <li>
+                <code>rook run --trace</code>: when the program ends, the goroutines still alive and
+                what each waits for.
+            </li>
+            <li>Workers named after the function of the goroutine, as DevTools shows them.</li>
+        </ul>
+        <h3>Phase 4: performance</h3>
+        <ul>
+            <li>
+                Benchmarks of channels, <code>select</code>, goroutines, <code>go for</code> and
+                updates of markup against the same programs written in JS by hand: the numbers on
+                this site, and a run in CI that fails on a regression.
+            </li>
+            <li>
+                Optimizations of the generated code only where a benchmark shows the need.
+                Minifying is the work of the bundler.
+            </li>
+        </ul>
+
+        <h2>1.0</h2>
+        <p>Rook is 1.0 when:</p>
+        <ul>
+            <li>
+                the specification is no longer a draft: its core is stable, deprecation works as
+                described, and the open questions are closed;
+            </li>
+            <li>
+                the language server has navigation and rename; there are <code>rook fmt</code>,
+                {" "}<code>rook check</code> and <code>rook init</code>;
+            </li>
+            <li>deadlocks are reported and goroutines left alive are shown;</li>
+            <li>benchmarks run in CI, and their numbers are on this site;</li>
+            <li>the guide shows how to bring Rook into a project and how to leave it.</li>
+        </ul>
+        <p>
+            The same plan is in the repository: <a href={`${REPOSITORY}/blob/main/docs/roadmap.md`}>docs/roadmap.md</a>.
+        </p>
+    </>
+}

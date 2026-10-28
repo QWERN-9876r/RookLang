@@ -4,5 +4,5 @@ import { renderHome } from "../home/page.rk"
 import { setLanguage } from "../i18n.rk"
 import { STRINGS } from "./strings.rk"
 
-setLanguage(STRINGS, {}, "home")
+setLanguage(STRINGS, {}, {}, "home")
 renderHome()
