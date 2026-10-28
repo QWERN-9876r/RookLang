@@ -2,7 +2,10 @@
 
 **English** · [Русский](spec.ru.md)
 
-> Status: a draft, anything may change.
+> Status: before 1.0. A section marked **experimental** may change in any release. The others
+> change only through deprecation: the old form keeps working, with a warning that shows the new
+> one, for at least one minor version ([CHANGELOG.md](../CHANGELOG.md)). What 1.0 still needs is in
+> [roadmap.md](roadmap.md).
 
 Rook is a language with the semantics of JavaScript, Go-style syntax and static types. Its
 main feature is goroutines: `go f(x)` runs a function as a goroutine, on another processor, and
@@ -336,6 +339,8 @@ require-corp`); elsewhere `make` throws an error that says so. Node always has i
   is then an array of it.
 
 ### Queues
+
+> **Experimental:** may change in any release before 1.0; see the status at the top.
 
 ```go
 const jobs = queue<string>(["build", "test"])
@@ -997,6 +1002,8 @@ $$cancel(task);
 
 ### Signals and cancellation
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 ```go
 import { createServer } from "node:http"
 
@@ -1050,6 +1057,8 @@ abortSignal(stop) })`. It receives that one value, as any receiver of the channe
 
 ### Streams
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 ```go
 async func countWords(chunks <-chan string) number {
     let words = 0
@@ -1096,6 +1105,8 @@ becomes a stream, so that goroutines make pipelines over the network.
 - `stream` is predeclared, like `after`.
 
 ### Topics
+
+> **Experimental:** may change in any release before 1.0; see the status at the top.
 
 ```go
 interface CartEvent {
@@ -1172,6 +1183,8 @@ listen and its sender waits for nobody.
 
 ### Channel and Topic
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 ```go
 const jobs = Channel.make(10, 0)       // chan<number>(10)
 await Channel.send(jobs, 1)             // jobs <- 1
@@ -1225,6 +1238,8 @@ JS, there is no truthy/falsy. `if count {` is an error, write `if count > 0 {`, 
 
 An object literal in the header of `if`, `for` or `switch` goes in parentheses, or its `{` would be
 taken for the start of the block (the same rule as in Go).
+
+> **Experimental:** the initializer of `if` and `switch`; the rest of `if` is stable.
 
 **An initializer** goes before the condition, as in Go: a `const` or `let` declaration and `;`. Its
 variables are seen in the condition and in every branch, `else` included, and not after the `if`,
@@ -1425,6 +1440,8 @@ without an expression: `switch const n = items.length; { case n > 10: ... }`.
 
 ### Labels
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 A label before `for`, `switch` or `select` names the statement for `break` and `continue` inside
 nested loops, as in Go and JS:
 
@@ -1571,6 +1588,8 @@ throw error("unreachable")
 
 ### try
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 ```go
 import { readFileSync, writeFileSync } from "node:fs"
 
@@ -1612,6 +1631,8 @@ of `(T, error)`, the way Rook code returns errors.
   if the expression waits. So `yield` of an iterator cannot be inside `try`.
 
 ### decode
+
+> **Experimental:** may change in any release before 1.0; see the status at the top.
 
 ```go
 interface User {
@@ -1742,6 +1763,8 @@ class User {
 
 ### Getters, setters and readonly fields
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 ```go
 class Circle {
     readonly center Point
@@ -1783,6 +1806,8 @@ c.center = origin                          // an error: readonly
 
 ### Properties of constructor parameters
 
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
 A parameter of a constructor with `public`, `protected`, `private` or `readonly` is a field too,
 which the constructor assigns first, as in TypeScript:
 
@@ -1805,6 +1830,8 @@ In a derived class the fields are assigned right after `super(...)`. `readonly` 
 public field; elsewhere than in a constructor the modifiers are an error.
 
 ### Abstract classes
+
+> **Experimental:** may change in any release before 1.0; see the status at the top.
 
 ```go
 abstract class Shape {
@@ -1838,6 +1865,8 @@ const s Shape = new Square(2)              // new Shape() is an error
 - `abstract` is a name elsewhere: a keyword only before `class` and in a class.
 
 ### data class
+
+> **Experimental:** may change in any release before 1.0; see the status at the top.
 
 ```go
 data class Point {

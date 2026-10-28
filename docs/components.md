@@ -523,6 +523,8 @@ where an update would be lost without it.
 
 ### Two-way binding: `bind:`
 
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
+
 ```go
 comp Signup() {
     state name = ""
@@ -565,6 +567,8 @@ does not update the input itself: if `name` changes only in it, the handler upda
 greeting, and there is no `$$updateName2` at all.
 
 ### References: `ref`
+
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
 
 ```go
 comp Chat() {
@@ -750,6 +754,8 @@ it gets the CSS of its module there.
 
 ### CSS modules
 
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
+
 The main way to style components is a CSS module next to them, a plain `.css` file:
 
 ```css
@@ -898,6 +904,8 @@ parent's state, it is passed through a function property, like `onToggle` above.
 
 ### Components as values
 
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
+
 A component can be passed like any value: put into an array or an object, given as a property,
 kept in `state`. Its type lists the properties with their names, `comp(title string, kind ?Kind)`;
 a component without properties is `comp()`. A tag takes the component from a value: a tag with a
@@ -964,6 +972,8 @@ a component of its module as a value yet.
 
 ### Attributes passed on: `...attrs`
 
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
+
 A component that wraps an element usually needs the attributes of that element too: `disabled`,
 `type`, `title`, `aria-*`, handlers. Declaring each as a property would repeat the DOM, so the last
 property `...attrs` takes the attributes of a use that are not properties, and `{...attrs}` puts
@@ -999,6 +1009,8 @@ attrs?.($$button4);
 ```
 
 ### Decorators
+
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
 
 > Implemented: declarations, arguments, public members with `get`, `mount()`, wrappers, `needs`
 > and exporting. Not yet: renaming a decorator on import, a `return` inside the `if` or `for` of
@@ -1394,41 +1406,39 @@ body of `for`: the code of one row of the list is written there once, and no ext
     the same names in the same order. Such a component becomes a function, like an exported one;
     when the value changes, the component is created again, and when only the properties change,
     it gets them.
+17. **The 100-line threshold is a constant,** `INLINE_LIMIT` of `src/codegen/js.ts`, not a setting.
+18. **The names of `@keyframes` are global,** as in plain CSS.
+19. **A list is keyed with `with key`:** `{for todo in todos with key todo.id { ... }}` finds the
+    blocks by the key instead of the item itself, so a list loaded again from a server keeps its
+    blocks, and the state of the components in them. Not implemented yet.
 
 ## Not decided yet
+
+All of these go into 1.0 ([roadmap.md](roadmap.md)): each is decided first, then implemented.
 
 1. **Whether to report where the compiler did not inline.** Function components and proxies are
    implicit decisions that affect the output. I propose a `rook build --explain` flag that lists
    them: "`Card` became a function: 140 extra lines", "`options` is wrapped in a proxy: passed to
    `confetti`".
-2. **The 100-line threshold: a constant or a setting.** I propose a constant for now, and a setting
-   (`--inline-limit`) when a real need appears. For now it is the constant `INLINE_LIMIT` in
-   `src/codegen/js.ts`.
-3. **An explicit key for `for`.** Now the blocks of a list are found by the item itself. If the
-   array is replaced with new objects with the same data (loaded again from a server, for example),
-   all the blocks are created again. If that becomes a problem, a key can be added, for example
-   `for todo in todos key todo.id`.
-4. **A `derived` of several statements.** Now it is `derived x = expression`. A block form
-   `derived total number { ... return sum }` could be added. I propose only the expression in the
-   first version: complex logic can go into a function.
-5. **Combining decorators.** The syntax of the built-in higher-order decorator is open, and so is
+2. **A `derived` of several statements.** Now it is `derived x = expression`. A block form
+   `derived total number { ... return sum }` could be added.
+3. **Combining decorators.** The syntax of the built-in higher-order decorator is open, and so is
    how it works with the rest: whether the public members of the combined decorators are read as
    `get(@card.count)` or through the name of the combination, whether a combination containing
    `cart` satisfies `needs cart`, and whether `@cart` next to a combination containing it counts as
    applied twice.
-6. **A component that returns `null` for a wrapper.** A 404 page could be a wrapper
+4. **A component that returns `null` for a wrapper.** A 404 page could be a wrapper
    `(page ?Element) => ...` that shows it when the component returns `null`. Now a component returns
    markup only, and the choice between `return`s is made once, at creation; the reactive way is the
    decorator's state, as in `notFound` above.
-7. **Refs in `{if}`, `{switch}` and `{for}`.** An element that exists only sometimes could be a ref
+5. **Refs in `{if}`, `{switch}` and `{for}`.** An element that exists only sometimes could be a ref
    of type `?T`, and the elements of a list an array. For now such an element goes into a component
    with a ref of its own.
-8. **`public ref` in decorators,** for the component to read the element of the wrapper.
-9. **One ref in several `return`s.** Only one `return` runs, so a ref could be bound in each of them
+6. **`public ref` in decorators,** for the component to read the element of the wrapper.
+7. **One ref in several `return`s.** Only one `return` runs, so a ref could be bound in each of them
    when their tags are the same; the same would let a ref point to a component with several
    `return`s.
-10. **Scoped names of `@keyframes`.** Now they are global, as in plain CSS.
-11. **The CSS in a file of its own**, `app.css` next to `app.js` or a CSS module for Vite, instead of
-    `$$style`: it would be cached apart from the code.
-12. **The class of a style only on the elements that some selector can match**, as in Svelte, to
-    make the code shorter.
+8. **The CSS in a file of its own**, `app.css` next to `app.js` or a CSS module for Vite, instead of
+   `$$style`: it would be cached apart from the code.
+9. **The class of a style only on the elements that some selector can match**, as in Svelte, to
+   make the code shorter.

@@ -11,10 +11,10 @@ will come. The same plan is on the site: <https://qwern-9876r.github.io/RookLang
 
 Rook does not try to be a wider TypeScript. Its place is **real threads in the browser and in Node,
 checked by the compiler, and UI without a framework, in a language that compiles to readable
-JavaScript you can keep.** Each phase below makes that place stronger rather than adding breadth.
+JavaScript you can keep.** Each phase below makes that place stronger.
 
-**The syntax is frozen until 1.0.** A new construct comes only when a criterion of 1.0 cannot be
-met without it. Other ideas go to "Not in v0" of the [specification](spec.md) and wait for 1.0.
+**New syntax comes from the list "The language for 1.0" below,** each piece as the maintainer
+decides it. Other ideas go to "Not in v0" of the [specification](spec.md) and wait for 1.0.
 
 ## Rook today
 
@@ -33,8 +33,8 @@ met without it. Other ideas go to "Not in v0" of the [specification](spec.md) an
 
 ### What is not there yet
 
-- **Stability.** The specification is a draft; there is no changelog, no policy of deprecation, no
-  line between stable and experimental features.
+- **Stability.** The specification marks its experimental sections, but the compiler does not warn
+  of deprecated forms yet.
 - **The editor.** The VS Code extension shows errors as you type, completes and has quick fixes,
   but has no hover, go to definition, references, rename or outline.
 - **The command line.** `rook build` and `rook run`; no formatter, no `check` for CI, no template
@@ -57,24 +57,41 @@ how (the section "Rook in an existing project").
 
 ## The road to 1.0
 
-### Phase 0 — say what is there _(in progress)_
+### Phase 0 — say what is there _(done)_
 
 - This roadmap, here and on the site.
 - A section of the guide on using Rook in an existing project: a `.rk` module in a Vite project, a
   Rook component in a React app, and leaving Rook with the generated JS.
 
-### Phase 1 — stability
+### Phase 1 — stability _(in progress)_
 
-- `CHANGELOG.md`. In 0.x a minor version may break code, a patch version never does.
+- [CHANGELOG.md](../CHANGELOG.md). In 0.x a minor version may break code, a patch version never
+  does. _(done)_
 - Every section of the specification is marked **stable** or **experimental**. Experimental
-  features may change in any release; stable ones only through deprecation.
+  features may change in any release; stable ones only through deprecation. _(done)_
 - Deprecation: the old form keeps working for at least one minor version with a warning that shows
   the new form, then it is removed.
 - Snapshots of the generated code for the examples of the site and of `examples/`, so that every
-  change of the output shows in the diff.
+  change of the output shows in the diff. _(done: `tests/output/`)_
 - Comments of the source in the generated code, so that the JS a project keeps is documented.
-- "Not decided yet" of [components.md](components.md) closed: each item decided, marked
-  experimental or moved past 1.0.
+- The open questions of [components.md](components.md) decided: the threshold of inlining stays a
+  constant, and the names of `@keyframes` stay global. _(done)_ The rest is "The language for 1.0".
+
+### The language for 1.0
+
+1.0 is to be as complete as it can. Each item is decided by the maintainer first, then implemented;
+the open ones are listed in "Not decided yet" of [components.md](components.md).
+
+- Keys of lists in markup: `{for todo in todos with key todo.id { ... }}`. _(decided)_
+- A union of interfaces narrowed by a field of a literal type: `if d.kind == "courier"` gives
+  `d.address`, and `{ kind: "pickup", shop: "..." }` fits the union.
+- `derived` of several statements.
+- Combining decorators, and `public ref` in decorators.
+- A component that returns `null` for a wrapper.
+- Refs in `{if}`, `{switch}` and `{for}`, and one ref in several `return`s.
+- `rook build --explain`: where the compiler did not inline a component or added a proxy, and why.
+- The CSS of components in a file of its own, and the class of a style only on the elements that
+  its selectors can match.
 
 ### Phase 2 — tools
 
@@ -104,8 +121,8 @@ how (the section "Rook in an existing project").
 
 Rook is 1.0 when:
 
-- the specification is no longer a draft: its core is stable, deprecation works as described, and
-  "Not decided yet" is closed;
+- the specification is no longer a draft: its core is stable, and deprecation works as described;
+- everything of "The language for 1.0" is in;
 - the language server has navigation and rename; there are `rook fmt`, `rook check` and
   `rook init`;
 - deadlocks are reported and goroutines left alive are shown;

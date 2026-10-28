@@ -20,11 +20,11 @@ export comp RoadmapText() {
             Rook does not try to be a wider TypeScript. Its place is real threads in the browser and
             in Node, checked by the compiler, and UI without a framework, in a language that
             compiles to readable JavaScript you can keep. Each phase below makes that place
-            stronger rather than adding breadth.
+            stronger.
         </p>
         <p>
-            <b>The syntax is frozen until 1.0.</b> A new construct comes only when a criterion of
-            1.0 cannot be met without it; other ideas wait for 1.0.
+            <b>New syntax comes from the list "The language for 1.0" below,</b> each piece as the
+            maintainer decides it; other ideas wait for 1.0.
         </p>
 
         <h2>Rook today</h2>
@@ -99,8 +99,8 @@ export comp RoadmapText() {
         <h3>What is not there yet</h3>
         <ul>
             <li>
-                <b>Stability.</b> The specification is a draft; there is no changelog, no policy of
-                deprecation, no line between stable and experimental features.
+                <b>Stability.</b> The specification marks its experimental sections, but the
+                compiler does not warn of deprecated forms yet.
             </li>
             <li>
                 <b>The editor.</b> The VS Code extension shows errors as you type, completes and has
@@ -140,7 +140,7 @@ export comp RoadmapText() {
         </p>
 
         <h2>The road to 1.0</h2>
-        <h3>Phase 0: say what is there (in progress)</h3>
+        <h3>Phase 0: say what is there (done)</h3>
         <ul>
             <li>This roadmap, on the site and in the repository.</li>
             <li>
@@ -149,15 +149,16 @@ export comp RoadmapText() {
                 the generated JS.
             </li>
         </ul>
-        <h3>Phase 1: stability</h3>
+        <h3>Phase 1: stability (in progress)</h3>
         <ul>
             <li>
-                A changelog. In 0.x a minor version may break code, a patch version never does.
+                A <a href={`${REPOSITORY}/blob/main/CHANGELOG.md`}>changelog</a>. In 0.x a minor
+                version may break code, a patch version never does. <i>Done.</i>
             </li>
             <li>
                 Every section of the specification marked <b>stable</b> or <b>experimental</b>.
                 Experimental features may change in any release; stable ones only through
-                deprecation.
+                deprecation. <i>Done.</i>
             </li>
             <li>
                 Deprecation: the old form keeps working for at least one minor version with a
@@ -165,12 +166,37 @@ export comp RoadmapText() {
             </li>
             <li>
                 Snapshots of the generated code of the examples, so that every change of the output
-                shows in the diff.
+                shows in the diff. <i>Done.</i>
             </li>
             <li>Comments of the source in the generated code.</li>
             <li>
-                The open questions of the design of components closed: each decided, marked
-                experimental or moved past 1.0.
+                The open questions of the design of components decided: the threshold of inlining
+                stays a constant, and the names of <code>@keyframes</code> stay global.
+                {" "}<i>Done.</i> The rest is the language for 1.0.
+            </li>
+        </ul>
+        <h3>The language for 1.0</h3>
+        <p>
+            1.0 is to be as complete as it can. Each item is decided by the maintainer first, then
+            implemented.
+        </p>
+        <ul>
+            <li>
+                Keys of lists in markup: <code>{"{for todo in todos with key todo.id { ... }}"}</code>.
+                {" "}<i>Decided.</i>
+            </li>
+            <li>
+                A union of interfaces narrowed by a field of a literal type:
+                {" "}<code>if d.kind == "courier"</code> gives <code>d.address</code>.
+            </li>
+            <li><code>derived</code> of several statements.</li>
+            <li>Combining decorators, and <code>public ref</code> in decorators.</li>
+            <li>A component that returns <code>null</code> for a wrapper.</li>
+            <li>Refs in <code>{"{if}"}</code>, <code>{"{switch}"}</code> and <code>{"{for}"}</code>, and one ref in several returns.</li>
+            <li><code>rook build --explain</code>: where the compiler did not inline, and why.</li>
+            <li>
+                The CSS of components in a file of its own, and the class of a style only on the
+                elements that its selectors can match.
             </li>
         </ul>
         <h3>Phase 2: tools</h3>
@@ -213,9 +239,10 @@ export comp RoadmapText() {
         <p>Rook is 1.0 when:</p>
         <ul>
             <li>
-                the specification is no longer a draft: its core is stable, deprecation works as
-                described, and the open questions are closed;
+                the specification is no longer a draft: its core is stable, and deprecation works
+                as described;
             </li>
+            <li>everything of the language for 1.0 is in;</li>
             <li>
                 the language server has navigation and rename; there are <code>rook fmt</code>,
                 {" "}<code>rook check</code> and <code>rook init</code>;
