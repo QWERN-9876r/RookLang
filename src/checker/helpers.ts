@@ -86,7 +86,10 @@ export function isContent(given: Type, node: Type): boolean {
   }
 }
 
-/** Values that setAttribute accepts: text, numbers, bools, or null to leave it out. */
+/**
+ * Values that setAttribute accepts: text, numbers, bools, or null to leave it out. A literal is
+ * one of them, and so is a union of such, `type Status "shown" | "aborted"`.
+ */
 export function isAttributeValue(type: Type): boolean {
   const value = nonNull(type);
 
@@ -96,8 +99,10 @@ export function isAttributeValue(type: Type): boolean {
     value.kind === 'number' ||
     value.kind === 'bigint' ||
     value.kind === 'bool' ||
+    value.kind === 'literal' ||
     value.kind === 'null' ||
-    value.kind === 'never'
+    value.kind === 'never' ||
+    (value.kind === 'union' && value.types.every(isAttributeValue))
   );
 }
 

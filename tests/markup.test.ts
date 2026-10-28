@@ -233,7 +233,7 @@ describe('types', () => {
     ['fragments', 'const f DocumentFragment = <><p /><p /></>'],
     [
       'other attributes',
-      'const d = <div data-id={7} aria-hidden={true} role="note" style="color: red" />\nconst e = <div style={{ color: "red" }} />',
+      'const d = <div data-id={7} aria-hidden={true} role="note" style="color: red" />\nconst e = <div style={{ color: "red" }} />\ntype Status "shown" | "aborted" | 404\nconst s Status = "shown"\nconst f = <div data-status={s} />',
     ],
     [
       'functions that return elements',
