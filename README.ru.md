@@ -58,6 +58,7 @@ close(results)
 Руководство с примерами и песочницей: <https://qwern-9876r.github.io/RookLang/ru/>.
 Спецификация: [docs/spec.ru.md](docs/spec.ru.md), концепция компонентов:
 [docs/components.ru.md](docs/components.ru.md), пример: [examples/hello.rk](examples/hello.rk).
+Где Rook сейчас и путь к 1.0: [docs/roadmap.ru.md](docs/roadmap.ru.md).
 
 ## Установка
 

@@ -2707,6 +2707,9 @@ types of other imports come from TypeScript declarations (section 10).
 
 ## 14. Not in v0
 
+What has to come before 1.0, the phases and the criteria of 1.0, is in [roadmap.md](roadmap.md):
+until then the syntax is frozen, and the ideas below wait for 1.0.
+
 - **A WASM backend** for a subset of the language (numbers, arrays, classes).
 
 Planned next, around goroutines and what the browser has:

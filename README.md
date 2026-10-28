@@ -58,6 +58,7 @@ close(results)
 The guide with examples and a playground: <https://qwern-9876r.github.io/RookLang/>.
 Specification: [docs/spec.md](docs/spec.md), design of components:
 [docs/components.md](docs/components.md), an example: [examples/hello.rk](examples/hello.rk).
+Where Rook stands and the road to 1.0: [docs/roadmap.md](docs/roadmap.md).
 
 ## Installation
 
