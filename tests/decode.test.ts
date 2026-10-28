@@ -318,6 +318,22 @@ for value in values {
       'decode Tree: children[0].children: missing',
     ]);
   });
+
+  // The inline runtime has functions of its own named so, which the program must not replace.
+  it('works next to functions of the program named check and describe', async () => {
+    expect(
+      await run(`interface Point { x, y number }
+func describe(p Point) string {
+    return \`(\${p.x}, \${p.y})\`
+}
+func check(json string) string {
+    const point, err = decode<Point>(json)
+    return err != null ? err.message : describe(point)
+}
+console.log(check("{\\"x\\": 1, \\"y\\": 2}"))
+console.log(check("{\\"x\\": 1}"))`),
+    ).toEqual(['(1, 2)', 'decode Point: y: missing']);
+  });
 });
 
 const cli = new URL('../src/cli.ts', import.meta.url).pathname;

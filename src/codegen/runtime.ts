@@ -89,9 +89,15 @@ export function runtimeCode(names: readonly string[], mode: RuntimeMode): string
 
   // The files only declare, but for a few that register what a thread shares, so their order does
   // not matter: the one of RUNTIME_FILES.
-  return [...files]
+  const code = [...files]
     .filter(([file]) => needed.has(file))
     .flatMap(([, { code }], i) => [...(i > 0 ? [''] : []), ...code.split('\n')]);
+  const list = names.join(', ');
+
+  // A function of its own keeps the names of the runtime that are not `$$`, such as check() of
+  // decode, apart from those of the program, which may declare a check() too: only the names that
+  // the code uses come out of it.
+  return [`const { ${list} } = (() => {`, ...code, '', `return { ${list} };`, '})();'];
 }
 
 /**
