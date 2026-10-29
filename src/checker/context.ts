@@ -242,11 +242,41 @@ export interface ClassContext {
 }
 
 /**
- * Types of variables narrowed by the code before the current point, e.g. `?User` → `User`
- * after `if user == null { return }`.
+ * A variable, or a path of data fields from it that is narrowed like one: `order.delivery` is the
+ * binding of `order` with the path `"delivery"`. The path of the variable itself is empty.
  */
-export type Flow = Map<Binding, Type>;
-export type Narrowing = [Binding, Type][];
+export interface Place {
+  binding: Binding;
+  path: string;
+}
+
+const places = new WeakMap<Binding, Map<string, Place>>();
+
+/** The same object for the same variable and path, so that it is a key of a `Flow`. */
+export function placeOf(binding: Binding, path = ''): Place {
+  let byPath = places.get(binding);
+
+  if (!byPath) {
+    byPath = new Map();
+    places.set(binding, byPath);
+  }
+
+  let place = byPath.get(path);
+
+  if (!place) {
+    place = { binding, path };
+    byPath.set(path, place);
+  }
+
+  return place;
+}
+
+/**
+ * Types of variables and paths narrowed by the code before the current point, e.g. `?User` →
+ * `User` after `if user == null { return }`.
+ */
+export type Flow = Map<Place, Type>;
+export type Narrowing = [Place, Type][];
 
 export const NARROWABLE: ReadonlySet<BindingKind> = new Set([
   'let',

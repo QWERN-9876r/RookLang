@@ -13,13 +13,29 @@ interface Item {
     price number
 }
 
+// A tagged union: kind tells which of the two a delivery is
+interface Pickup {
+    kind "pickup"
+    shop string
+}
+
+interface Courier {
+    kind "courier"
+    address string
+    floor ?number
+}
+
 interface Order {
     id number
     customer Customer
     items []Item
     status "new" | "paid" | "sent"
+    delivery Pickup | Courier
     note ?string                    // may be missing
 }
+
+// The delivery of the valid order; a pickup replaces it in the samples
+const COURIER = `"courier", "address": "12 Elm st.", "floor": 3`
 
 const VALID = `{
   "id": 1042,
@@ -28,7 +44,8 @@ const VALID = `{
     { "name": "Mango", "qty": 2, "price": 2.4 },
     { "name": "Lychee", "qty": 1, "price": 7.5 }
   ],
-  "status": "paid"
+  "status": "paid",
+  "delivery": { "kind": ${COURIER} }
 }`
 
 // What an API might send instead, to try
@@ -36,6 +53,8 @@ const SAMPLES = [
     { title: "Valid", json: VALID },
     { title: "Price as text", json: VALID.replace(`"price": 7.5`, `"price": "7.50"`) },
     { title: "Unknown status", json: VALID.replace(`"paid"`, `"lost"`) },
+    { title: "Pickup", json: VALID.replace(COURIER, `"pickup", "shop": "Main st."`) },
+    { title: "Unknown delivery", json: VALID.replace(`"courier"`, `"drone"`) },
     { title: "No email", json: VALID.replace(`, "email": "ann@example.com"`, "") },
     { title: "Cut off", json: VALID.slice(0, 140) },
 ]
@@ -73,12 +92,20 @@ comp Receipt(order Order) {
         .total { padding-top: 6px; border-top: 1px solid #ffffff1a; font-weight: 600; }
     }
 
+    // Below, order.delivery narrows by its kind, like a variable
     return <div class="receipt">
         <div class="head">
             <b>Order #{order.id}</b>
             <span class="status">{order.status}</span>
         </div>
         <p class="who">{order.customer.name} · {order.customer.email}</p>
+        {if order.delivery.kind == "pickup" {
+            <p class="who">Pickup at {order.delivery.shop}</p>
+        } else if order.delivery.floor != null {
+            <p class="who">Courier to {order.delivery.address}, floor {order.delivery.floor}</p>
+        } else {
+            <p class="who">Courier to {order.delivery.address}</p>
+        }}
         {for item in order.items {
             <div class="line">
                 <span>{item.qty} × {item.name}</span>

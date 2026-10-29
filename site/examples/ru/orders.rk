@@ -13,13 +13,29 @@ interface Item {
     price number
 }
 
+// Tagged union: kind говорит, какая из двух это доставка
+interface Pickup {
+    kind "pickup"
+    shop string
+}
+
+interface Courier {
+    kind "courier"
+    address string
+    floor ?number
+}
+
 interface Order {
     id number
     customer Customer
     items []Item
     status "new" | "paid" | "sent"
+    delivery Pickup | Courier
     note ?string                    // может отсутствовать
 }
+
+// Доставка верного заказа; в образцах её заменяет самовывоз
+const COURIER = `"courier", "address": "ул. Вязов, 12", "floor": 3`
 
 const VALID = `{
   "id": 1042,
@@ -28,7 +44,8 @@ const VALID = `{
     { "name": "Манго", "qty": 2, "price": 240 },
     { "name": "Личи", "qty": 1, "price": 750 }
   ],
-  "status": "paid"
+  "status": "paid",
+  "delivery": { "kind": ${COURIER} }
 }`
 
 // Что API может прислать вместо этого — попробуйте
@@ -36,6 +53,8 @@ const SAMPLES = [
     { title: "Верный", json: VALID },
     { title: "Цена строкой", json: VALID.replace(`"price": 750`, `"price": "750"`) },
     { title: "Неизвестный статус", json: VALID.replace(`"paid"`, `"lost"`) },
+    { title: "Самовывоз", json: VALID.replace(COURIER, `"pickup", "shop": "ул. Ленина, 1"`) },
+    { title: "Неизвестная доставка", json: VALID.replace(`"courier"`, `"drone"`) },
     { title: "Без email", json: VALID.replace(`, "email": "anna@example.com"`, "") },
     { title: "Обрезан", json: VALID.slice(0, 140) },
 ]
@@ -73,12 +92,20 @@ comp Receipt(order Order) {
         .total { padding-top: 6px; border-top: 1px solid #ffffff1a; font-weight: 600; }
     }
 
+    // Ниже order.delivery сужается по своему kind, как переменная
     return <div class="receipt">
         <div class="head">
             <b>Заказ №{order.id}</b>
             <span class="status">{order.status}</span>
         </div>
         <p class="who">{order.customer.name} · {order.customer.email}</p>
+        {if order.delivery.kind == "pickup" {
+            <p class="who">Самовывоз: {order.delivery.shop}</p>
+        } else if order.delivery.floor != null {
+            <p class="who">Курьером: {order.delivery.address}, этаж {order.delivery.floor}</p>
+        } else {
+            <p class="who">Курьером: {order.delivery.address}</p>
+        }}
         {for item in order.items {
             <div class="line">
                 <span>{item.qty} × {item.name}</span>

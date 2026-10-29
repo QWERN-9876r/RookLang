@@ -1,5 +1,4 @@
 import type * as ast from '../ast.ts';
-import { assignedNames } from '../names.ts';
 import { cannotWait } from '../parser/syntax.ts';
 import { chanDirection, chanOf, elementOf, isChan } from './channel.ts';
 import { GoroutineChecker } from './goroutines.ts';
@@ -181,7 +180,7 @@ export abstract class ChannelChecker extends GoroutineChecker {
   }
 
   protected override checkSelect(node: ast.SelectStatement): void {
-    this.dropNarrowing(assignedNames(node));
+    this.dropNarrowing(node);
 
     const entry = this.flow;
 

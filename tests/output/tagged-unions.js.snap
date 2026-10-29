@@ -1,0 +1,119 @@
+// tagged-unions.js
+
+import { $$branches, $$element, $$list } from "rooklang/runtime";
+
+const samples = [{ kind: "join", author: "Ann" }, { kind: "text", author: "Ann", body: "Who has the mangoes?" }, { kind: "photo", author: "Bob", emoji: "🥭", caption: "Here, ripe ones" }, { kind: "photo", author: "Bob", emoji: "🍍" }];
+
+// <Chat>
+let $$chat1;
+{
+  let messages = [];
+
+  function next() {
+    messages = [...messages, samples[messages.length % samples.length]];
+    $$updateMessages2();
+  }
+
+  const $$div3 = $$element("div");
+  const $$button4 = $$element("button");
+  $$button4.addEventListener("click", () => {
+    next();
+  });
+  $$button4.append("Next message");
+  const $$ul5 = $$element("ul");
+  const [$$for6, $$updateFor6] = $$list(() => messages, (message) => {
+    const $$block7 = document.createDocumentFragment();
+    const [$$switch8, $$updateSwitch8] = $$branches(() => {
+      switch (message.kind) {
+        case "text":
+          return 0;
+        case "photo":
+          return 1;
+        default:
+          return 2;
+      }
+    }, [() => {
+      const $$block9 = document.createDocumentFragment();
+      const $$li10 = $$element("li");
+      const $$b11 = $$element("b");
+      const $$text12 = document.createTextNode(message.author);
+      $$b11.append($$text12, ":");
+      const $$text13 = document.createTextNode(message.body);
+      $$li10.append($$b11, " ", $$text13);
+      $$block9.append($$li10);
+      return [$$block9, () => {
+        $$text12.data = message.author;
+        $$text13.data = message.body;
+      }];
+    }, () => {
+      const $$block14 = document.createDocumentFragment();
+      const $$li15 = $$element("li");
+      const $$b16 = $$element("b");
+      const $$text17 = document.createTextNode(message.author);
+      $$b16.append($$text17);
+      const $$text18 = document.createTextNode(message.emoji);
+      const [$$if19, $$updateIf19] = $$branches(() => message.caption != null ? 0 : -1, [() => {
+        const $$block20 = document.createDocumentFragment();
+        const $$i21 = $$element("i");
+        const $$text22 = document.createTextNode(message.caption);
+        $$i21.append(" “", $$text22, "”");
+        $$block20.append($$i21);
+        return [$$block20, () => {
+          $$text22.data = message.caption;
+        }];
+      }]);
+      $$li15.append($$b16, " sent ", $$text18, $$if19);
+      $$block14.append($$li15);
+      return [$$block14, () => {
+        $$text17.data = message.author;
+        $$text18.data = message.emoji;
+        $$updateIf19();
+      }];
+    }, () => {
+      const $$block23 = document.createDocumentFragment();
+      const $$li24 = $$element("li");
+      const $$i25 = $$element("i");
+      const $$text26 = document.createTextNode(message.author);
+      $$i25.append($$text26, " joined the chat");
+      $$li24.append($$i25);
+      $$block23.append($$li24);
+      return [$$block23, () => {
+        $$text26.data = message.author;
+      }];
+    }]);
+    $$block7.append($$switch8);
+    return [$$block7, () => {
+      $$updateSwitch8();
+    }];
+  });
+  $$ul5.append($$for6);
+  $$div3.append($$button4, $$ul5);
+
+  function $$updateMessages2() {
+    if (!$$chat1) return;
+    $$updateFor6();
+  }
+
+  $$chat1 = $$div3;
+}
+document.body.append($$chat1);
+
+// tagged-unions.d.ts
+
+interface Text {
+    kind: "text";
+    author: string;
+    body: string;
+}
+interface Photo {
+    kind: "photo";
+    author: string;
+    emoji: string;
+    caption?: string | null;
+}
+interface Join {
+    kind: "join";
+    author: string;
+}
+type Message = Text | Photo | Join;
+export {};

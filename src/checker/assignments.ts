@@ -1,4 +1,5 @@
 import type * as ast from '../ast.ts';
+import { placeOf } from './context.ts';
 import { guardedByError, unpackedResults } from './error-results.ts';
 import { isUntyped, countValues, callName, isCall } from './helpers.ts';
 import { InitializerChecker } from './initializers.ts';
@@ -109,7 +110,7 @@ export abstract class AssignmentChecker extends InitializerChecker {
       const declared = binding?.type;
 
       if (binding && declared && isNullable(declared) && !isNullable(valueTypes[i] ?? UNKNOWN)) {
-        this.flow.set(binding, nonNull(declared));
+        this.flow.set(placeOf(binding), nonNull(declared));
       }
     });
   }

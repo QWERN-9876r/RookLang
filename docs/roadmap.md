@@ -84,7 +84,8 @@ the open ones are listed in "Not decided yet" of [components.md](components.md).
 
 - Keys of lists in markup: `{for todo in todos with key todo.id { ... }}`. _(done)_
 - A union of interfaces narrowed by a field of a literal type: `if d.kind == "courier"` gives
-  `d.address`, and `{ kind: "pickup", shop: "..." }` fits the union.
+  `d.address`, and `{ kind: "pickup", shop: "..." }` fits the union. _(done, with the narrowing
+  of paths: `order.delivery.kind`)_
 - `derived` of several statements.
 - Combining decorators, and `public ref` in decorators.
 - A component that returns `null` for a wrapper.

@@ -94,7 +94,7 @@ func f(section Section) Node {
     ['<page.content title={1} />', 'cannot use number as string for "title" of <page.content>'],
     [
       '<page.other />',
-      '<page.other> may be null: put it into a variable and show it with {if}, e.g. const Other = page.other, then {if Other != null { <Other /> }}',
+      '<page.other> may be null: show it with {if}, e.g. {if page.other != null { <page.other /> }}',
     ],
     [
       '<page.name />',
@@ -135,7 +135,10 @@ func f(page Holder, element any) {
 }
 func f(page Holder) Node {
     const Other = page.other
-    return <div>{if Other != null { <Other /> }}</div>
+    return <div>
+        {if Other != null { <Other /> }}
+        {if page.other != null { <page.other /> }}
+    </div>
 }`),
     ).toEqual([]);
   });

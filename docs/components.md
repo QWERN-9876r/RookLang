@@ -952,7 +952,8 @@ comp Guide() {
 - **The tag is checked against the type:** the properties it needs, their types, children. `ref`,
   a spread `{...object}` and attributes passed on with `...attrs` are not possible, since the
   component is not known at compile time. A value of type `?comp()` is shown with `{if}`, which
-  narrows variables: `{if Page != null { <Page /> }}`.
+  narrows variables and paths of fields: `{if Page != null { <Page /> }}`,
+  `{if page.other != null { <page.other /> }}`.
 - **A capitalized tag** is a component when a component has that name, and a value when a variable
   does: the property `Header comp()` of a component hides a component `Header` of the module. A
   tag with a small letter and no dot is always an element.

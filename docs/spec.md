@@ -434,6 +434,43 @@ func show(value string | number) string {
   `axis "x" | "y"`, is the field (or the union of the fields) of the object. A key that is not a
   field is an error.
 
+### Tagged unions
+
+> **Experimental:** may change in any release before 1.0; see the status at the top.
+
+```go
+interface Pickup  { kind "pickup";  shop string }
+interface Courier { kind "courier"; address string; floor ?number }
+type Delivery Pickup | Courier
+
+interface Order { id number; delivery Delivery }
+
+func where(order Order) string {
+    if order.delivery.kind == "courier" {
+        return order.delivery.address     // here order.delivery is a Courier
+    }
+    return order.delivery.shop            // and here a Pickup
+}
+
+where({ id: 1, delivery: { kind: "pickup", shop: "Main st." } })
+```
+
+- **A tag** is a field that every member of a union has, with a literal type: a string, a number
+  or a union of literals (`state "new" | "edited"`). A union may have several tags. Interfaces and
+  classes with such a field work the same way.
+- **Comparing a tag narrows the value it belongs to:** in `if d.kind == "courier"` the value `d`
+  is a `Courier`, and in `else` the other members. `!=`, `!`, `&&`, `||`, a branch that returns,
+  `switch d.kind` with its `case` and `default`, and `{if}` and `{switch}` of markup narrow as in
+  section 12.
+- **An object literal** where a union is expected is checked as the member that its tag chooses:
+  `{ kind: "pickup", shop: "..." }` is a `Pickup`, with the usual check of its fields. A tag of no
+  member is an error: `"plane" is not a kind of Delivery: write "pickup" or "courier"`.
+- `decode<Delivery>(text)` checks such a union when the program runs (section 7), and its result
+  narrows too.
+- There is no check that a `switch` covers every kind: a `switch` without `default` that leaves a
+  kind out is neither an error nor a warning.
+- Nothing changes in JS: a tag is an ordinary field, and its comparison an ordinary `===`.
+
 ### Generics
 
 Type parameters go in angle brackets after the name, as in TypeScript, and a constraint follows
@@ -507,8 +544,9 @@ if u == null {
 console.log(u.name)                  // and here: on null the function has returned
 ```
 
-- Narrowing works for local variables and parameters. The value of a field (`this.user`) is first
-  put into a `const`.
+- Narrowing works for local variables, parameters and paths of fields from them: in
+  `if user.boss != null` the value `user.boss.name` can be read (section 12). A field of `this`
+  (`this.user`) is first put into a `const`.
 - `error` always allows `null`; there is no need to write `?error`.
 - `xs[i]` has the type `T`, not `?T`: the compiler does not catch indexes out of bounds (nor does
   TypeScript by default).
@@ -2678,7 +2716,8 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 ### Narrowing
 
-The type of a local variable or a parameter narrows from `?T` to `T`:
+The type of a local variable or a parameter narrows from `?T` to `T`, and so does the type of a
+path of fields from one, `order.delivery` (see below):
 
 - inside `if x != null { ... }` and in the branches of `?:`;
 - after `if x == null { return }` (and `throw`, `break`, `continue`);
@@ -2693,11 +2732,31 @@ Unions narrow the same way:
 - `x instanceof Point` keeps the instances of `Point` and removes them in the false branch;
 - `filter == "all"` narrows a union of literals to `"all"`, and `!=` removes `"all"`;
 - in `switch filter { case "active": ... }`, in each branch `filter` is the literals of its `case`,
-  and in `default` those that matched no `case`.
+  and in `default` those that matched no `case`;
+- comparing a tag, `d.kind == "courier"` or `switch d.kind`, keeps the members of a union with this
+  tag (section 3, Tagged unions).
 
 An assignment to a variable ends its narrowing. In a loop, variables that change in it are not
 narrowed. In a closure, narrowing is kept only for constants and variables that are never
 reassigned.
+
+**Paths.** A path is a chain of `.field` from a local variable, a parameter, `state`, `derived`
+or a `const` of the module: `order.delivery`, `response.data.user`. It narrows the same ways as a
+variable, without an intermediate `const`:
+
+- an index `a[i]`, a call and `?.` end a path: `users[0].boss` is not narrowed;
+- only data fields narrow, not getters and methods: a getter may give another value each time;
+- an assignment to the path, to its start or to its continuation ends its narrowing:
+  `order = ...`, `order.delivery = ...` and `order.delivery.kind = ...` end that of
+  `order.delivery`;
+- in a loop, paths that it assigns are not narrowed; in a closure, the narrowing of a path is kept
+  when its variable is a constant or is never reassigned.
+
+A call of a function that changes the object does not end the narrowing of its paths, as in
+TypeScript: after `if order.delivery.kind == "courier" { reset(order) }` the compiler still
+considers `order.delivery` a `Courier`. This is a deliberate trade-off for convenience: a function
+that replaces a field of an object it is given is rare, and checking every call would undo the
+narrowing almost everywhere.
 
 ### Type inference
 

@@ -1,9 +1,9 @@
 import type * as ast from '../ast.ts';
-import { type BindingKind, type Binding, Scope, type Flow } from './context.ts';
-import { ControlFlowChecker } from './control-flow.ts';
+import { type BindingKind, Scope, type Flow, type Place } from './context.ts';
 import { isTerminating } from './flow.ts';
 import { isUntyped, callSignature } from './helpers.ts';
 import { awaitedResults, isPromise } from './promise.ts';
+import { TaggedUnionChecker } from './tagged-unions.ts';
 import {
   commonType,
   containsTypeParam,
@@ -16,7 +16,7 @@ import {
 
 // Bodies of functions, arrow functions and func literals, and the results they return.
 
-export abstract class FunctionChecker extends ControlFlowChecker {
+export abstract class FunctionChecker extends TaggedUnionChecker {
   /**
    * Checks a function body and returns its result types: the declared ones, or those inferred from
    * the `return` statements when `results` is `null`.
@@ -43,7 +43,7 @@ export abstract class FunctionChecker extends ControlFlowChecker {
 
     this.scope = new Scope(this.scope);
     // A closure keeps the narrowing of variables that cannot change before it runs.
-    this.flow = options.closure ? this.stableFlow() : new Map<Binding, Type>();
+    this.flow = options.closure ? this.stableFlow() : new Map<Place, Type>();
     this.fn = {
       results: declared,
       returns: [],
@@ -131,8 +131,11 @@ export abstract class FunctionChecker extends ControlFlowChecker {
   protected stableFlow(): Flow {
     const flow: Flow = new Map();
 
-    for (const [binding, type] of this.flow) {
-      if (binding.kind === 'const' || !this.assigned.has(binding.name)) flow.set(binding, type);
+    // A path keeps its narrowing when its variable does, like `user.boss` of a constant `user`.
+    for (const [place, type] of this.flow) {
+      const { binding } = place;
+
+      if (binding.kind === 'const' || !this.assigned.has(binding.name)) flow.set(place, type);
     }
 
     return flow;

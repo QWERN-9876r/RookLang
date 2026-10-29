@@ -13,6 +13,7 @@ import {
   type FunctionContext,
   type ClassContext,
   type Flow,
+  type Place,
   globalScope,
 } from './context.ts';
 import { DOCUMENT_FRAGMENT, eventType, HTML_ELEMENT, NODE } from './dom.ts';
@@ -34,7 +35,7 @@ import {
 
 // The type checker is a chain of layers, one per area, like the code generator: base → imports →
 // declarations → class members → classes → resolution → initializers → assignments → statements → control flow →
-// functions → expressions → array literals → operators → markup → forwarding → components → component values →
+// tagged unions → functions → expressions → array literals → operators → markup → forwarding → components → component values →
 // refs → styles → decorator wrappers → decorator exports → decorators → decorator members →
 // members → calls → goroutines → channels → signals → queues → topics → decode → try → bytes → loops → go for →
 // iterators → closing → completion → Checker (checker.ts). Statements, expressions and markup
@@ -76,6 +77,9 @@ export abstract class CheckerBase {
   protected abstract forget(target: ast.Expression): void;
 
   protected abstract narrowableBinding(node: ast.Expression): Binding | undefined;
+
+  /** A variable or a path of data fields that conditions narrow, with its type at this point. */
+  protected abstract narrowable(node: ast.Expression): { place: Place; type: Type } | undefined;
 
   /** The error for a value that may be null where it must not be. */
   protected abstract nullError(node: ast.Expression): void;

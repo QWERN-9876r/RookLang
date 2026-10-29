@@ -1,5 +1,4 @@
 import type * as ast from '../ast.ts';
-import { assignedNames } from '../names.ts';
 import { BytesChecker } from './bytes.ts';
 import { chanDirection, elementOf, isChan } from './channel.ts';
 import { asyncIterated, isMap, loopEntry } from './iterables.ts';
@@ -107,7 +106,7 @@ export abstract class LoopChecker extends BytesChecker {
       if (node.key) this.declareValue(node.key, 'loop', key);
       this.declareValue(node.value, 'loop', value);
       if (node.withKey) this.checkListKey(node.withKey);
-      this.dropNarrowing(assignedNames(node.body));
+      this.dropNarrowing(node.body);
 
       const entry = this.flow;
 

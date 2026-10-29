@@ -2,6 +2,8 @@
 // code, path by path, and has to be kept in step with them by hand;
 // the receipt is drawn again on every change
 
+const COURIER = `"courier", "address": "12 Elm st.", "floor": 3`;
+
 const VALID = `{
   "id": 1042,
   "customer": { "name": "Ann", "email": "ann@example.com" },
@@ -9,13 +11,16 @@ const VALID = `{
     { "name": "Mango", "qty": 2, "price": 2.4 },
     { "name": "Lychee", "qty": 1, "price": 7.5 }
   ],
-  "status": "paid"
+  "status": "paid",
+  "delivery": { "kind": ${COURIER} }
 }`;
 
 const SAMPLES = [
   { title: 'Valid', json: VALID },
   { title: 'Price as text', json: VALID.replace(`"price": 7.5`, `"price": "7.50"`) },
   { title: 'Unknown status', json: VALID.replace(`"paid"`, `"lost"`) },
+  { title: 'Pickup', json: VALID.replace(COURIER, `"pickup", "shop": "Main st."`) },
+  { title: 'Unknown delivery', json: VALID.replace(`"courier"`, `"drone"`) },
   { title: 'No email', json: VALID.replace(`, "email": "ann@example.com"`, '') },
   { title: 'Cut off', json: VALID.slice(0, 140) },
 ];
@@ -68,6 +73,24 @@ function parseOrder(json) {
 
   if (!['new', 'paid', 'sent'].includes(status)) {
     throw new DecodeError(`status: expected "new" | "paid" | "sent", got "${status}"`);
+  }
+
+  if (!('delivery' in order)) throw new DecodeError('delivery: missing');
+  object(order.delivery, 'delivery');
+
+  const kind = field(order.delivery, 'delivery.', 'kind', 'string');
+
+  if (kind === 'pickup') {
+    field(order.delivery, 'delivery.', 'shop', 'string');
+  } else if (kind === 'courier') {
+    field(order.delivery, 'delivery.', 'address', 'string');
+    if (order.delivery.floor != null && typeof order.delivery.floor !== 'number') {
+      throw new DecodeError(
+        `delivery.floor: expected number, got ${JSON.stringify(order.delivery.floor)}`,
+      );
+    }
+  } else {
+    throw new DecodeError(`delivery.kind: expected "pickup" | "courier", got "${kind}"`);
   }
 
   if (order.note != null && typeof order.note !== 'string') {
@@ -133,6 +156,15 @@ document.body.append(style, root);
 
 let shown = null;
 
+// Which fields a delivery has depends on its kind: nothing checks that they are read in step
+function deliveryText(delivery) {
+  if (delivery.kind === 'pickup') return `Pickup at ${delivery.shop}`;
+
+  const floor = delivery.floor != null ? `, floor ${delivery.floor}` : '';
+
+  return `Courier to ${delivery.address}${floor}`;
+}
+
 function receipt(order) {
   const total = order.items.reduce((sum, item) => sum + item.qty * item.price, 0);
   const line = (left, right, className = 'line') =>
@@ -147,6 +179,7 @@ function receipt(order) {
       element('span', 'status', order.status),
     ),
     element('p', 'who', `${order.customer.name} · ${order.customer.email}`),
+    element('p', 'who', deliveryText(order.delivery)),
     ...order.items.map((item) =>
       line(`${item.qty} × ${item.name}`, `€${(item.qty * item.price).toFixed(2)}`),
     ),

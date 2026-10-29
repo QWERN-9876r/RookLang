@@ -188,6 +188,7 @@ export comp RoadmapText() {
             <li>
                 A union of interfaces narrowed by a field of a literal type:
                 {" "}<code>if d.kind == "courier"</code> gives <code>d.address</code>.
+                {" "}<i>Done, with the narrowing of paths: <code>order.delivery.kind</code>.</i>
             </li>
             <li><code>derived</code> of several statements.</li>
             <li>Combining decorators, and <code>public ref</code> in decorators.</li>

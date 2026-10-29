@@ -3,8 +3,6 @@ import { ComponentChecker } from './components.ts';
 import type { ComponentInfo } from './context.ts';
 import { isUntyped } from './helpers.ts';
 
-const upperFirst = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
-
 import {
   isNullable,
   typeToString,
@@ -41,14 +39,9 @@ export abstract class ComponentValueChecker extends ComponentChecker {
 
     if (isUntyped(type) || type.kind !== 'component') {
       if (isNullable(type)) {
-        // Only variables are narrowed, so a path goes into one first.
-        const variable = /^[A-Z]/.test(name) ? name : upperFirst(name.split('.').at(-1)!);
-        const show = `{if ${variable} != null { <${variable} /> }}`;
-
+        // A path of fields is narrowed like a variable: `{if page.other != null { <page.other /> }}`.
         this.error(
-          name === variable
-            ? `<${name}> may be null: show it with {if}, e.g. ${show}`
-            : `<${name}> may be null: put it into a variable and show it with {if}, e.g. const ${variable} = ${name}, then ${show}`,
+          `<${name}> may be null: show it with {if}, e.g. {if ${name} != null { <${name} /> }}`,
           tag,
         );
       } else if (!isUntyped(type)) {

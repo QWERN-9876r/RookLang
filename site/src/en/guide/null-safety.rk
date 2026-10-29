@@ -22,5 +22,16 @@ export comp NullSafety() {
             comparison with a literal and <code>switch</code>.
         </p>
         <Example name="unions" />
+        <p>
+            Messages, events and API responses are often one of several kinds, told apart by a
+            field like <code>kind</code>: a tagged union. Comparing the tag narrows the value, so
+            after <code>{'message.kind == "photo"'}</code> the fields of a photo can be read. An
+            object literal chooses its member by the tag too, and a kind that does not exist is an
+            error. Paths of fields narrow like variables, without an intermediate
+            {" "}<code>const</code>: after <code>message.caption != null</code> the caption is a
+            {" "}<code>string</code>, and after <code>{'order.delivery.kind == "courier"'}</code>
+            {" "}<code>order.delivery</code> is the courier's delivery.
+        </p>
+        <Example name="tagged-unions" />
     </>
 }

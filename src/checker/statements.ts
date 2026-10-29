@@ -1,7 +1,7 @@
 import type * as ast from '../ast.ts';
 import { guardedByError } from './error-results.ts';
 import { AssignmentChecker } from './assignments.ts';
-import type { Binding } from './context.ts';
+import { placeOf, type Binding } from './context.ts';
 import { isUntyped, isNumeric, ownStatements } from './helpers.ts';
 import {
   func,
@@ -188,6 +188,8 @@ export abstract class StatementChecker extends AssignmentChecker {
           : null;
 
     if (target.kind === 'IndexExpression') this.checkValue(target.index);
+    // `delete user.boss` makes the field null again.
+    this.forget(target);
     if (isUntyped(object)) return;
     if (object.kind === 'array') {
       this.error('delete leaves a hole in an array: remove items with splice', node);
@@ -253,7 +255,7 @@ export abstract class StatementChecker extends AssignmentChecker {
           const value = values.length === names.length ? values[i] : undefined;
 
           if (value && isNullable(type) && !isNullable(this.typeOfChecked(value))) {
-            this.flow.set(binding, nonNull(type));
+            this.flow.set(placeOf(binding), nonNull(type));
           }
         });
         if (node.keyword === 'const' && !declared) this.linkError(node, bindings);

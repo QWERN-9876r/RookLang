@@ -12,6 +12,17 @@ to change it under **Breaking**. A patch version (0.3.5) never does: it adds and
 
 ### Added
 
+- Tagged unions (experimental): comparing a tag, a field with a literal type in every member of a
+  union, narrows the union. After `if d.kind == "courier"` the fields of `Courier` can be read, and
+  so in `else`, after a branch that returns, in `switch d.kind` and in `{if}` and `{switch}` of
+  markup. An object literal where such a union is expected is checked as the member its tag
+  chooses: `{ kind: "pickup", shop: "Main st." }` fits `Pickup | Courier`, and a kind of no member
+  is an error that lists the kinds.
+- Paths of data fields from a variable, a parameter, `state`, `derived` or a module `const` narrow
+  like the variable: `if user.boss != null` gives `user.boss.name`, without an intermediate
+  `const`; `typeof` and `instanceof` narrow them too. An assignment to the path, its start or its
+  continuation ends the narrowing; getters, `a[i]` and `?.` are not paths. The hint for a nullable
+  `<page.other />` now shows `{if page.other != null { <page.other /> }}`.
 - Keys of lists in markup: `{for todo in todos with key todo.id { ... }}` finds the blocks again
   by the key, so a list loaded again from a server keeps its blocks and the state of the
   components in them.

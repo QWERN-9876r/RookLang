@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
-import { assignedNames } from '../names.ts';
-import { type Binding, type Flow, type Narrowing, NARROWABLE } from './context.ts';
+import { assignedNames, assignedPaths, pathOf } from '../names.ts';
+import { type Binding, type Narrowing, NARROWABLE, placeOf } from './context.ts';
 import {
   narrowByTypeof,
   literalValue,
@@ -8,6 +8,8 @@ import {
   withNarrowing,
   mergeFlows,
   leaves,
+  forgetWritten,
+  withoutAssigned,
 } from './flow.ts';
 import { instanceTypeOf } from './helpers.ts';
 import { StatementChecker } from './statements.ts';
@@ -27,7 +29,8 @@ import {
   widenLiterals,
 } from './types.ts';
 
-// if, for, switch and try, and how conditions narrow the types of variables in the branches.
+// if, for, switch and try, and how conditions narrow the types of variables and paths in the
+// branches.
 
 export abstract class ControlFlowChecker extends StatementChecker {
   protected override checkIf(node: ast.IfStatement): void {
@@ -66,8 +69,8 @@ export abstract class ControlFlowChecker extends StatementChecker {
   protected override checkFor(node: ast.ForStatement): void {
     this.withScope(() => {
       if (node.init) this.checkSimpleStatement(node.init);
-      // Variables assigned in the loop may change between iterations.
-      this.dropNarrowing(assignedNames(node));
+      // Variables and paths assigned in the loop may change between iterations.
+      this.dropNarrowing(node);
 
       const entry = this.flow;
 
@@ -102,7 +105,7 @@ export abstract class ControlFlowChecker extends StatementChecker {
 
     const discriminant = node.discriminant ? this.checkValue(node.discriminant) : null;
 
-    this.dropNarrowing(assignedNames(node));
+    this.dropNarrowing(node);
 
     const entry = this.flow;
 
@@ -129,7 +132,7 @@ export abstract class ControlFlowChecker extends StatementChecker {
           ? switchCase.tests.length === 1
             ? this.narrow(switchCase.tests[0]!, true)
             : []
-          : this.narrowCase(node, switchCase, entry);
+          : this.narrowCase(node, switchCase);
 
       this.flow = withNarrowing(entry, narrowing);
       this.checkBlock(switchCase.body);
@@ -142,16 +145,12 @@ export abstract class ControlFlowChecker extends StatementChecker {
    * `switch filter { case "all": ... default: ... }`: in a case the discriminant has the literals
    * of its tests, in `default` the literals of no case.
    */
-  protected narrowCase(
-    node: ast.SwitchStatement,
-    switchCase: ast.SwitchCase,
-    entry: Flow,
-  ): Narrowing {
-    const binding = node.discriminant ? this.narrowableBinding(node.discriminant) : undefined;
+  protected narrowCase(node: ast.SwitchStatement, switchCase: ast.SwitchCase): Narrowing {
+    const target = node.discriminant ? this.narrowable(node.discriminant) : undefined;
 
-    if (!binding?.type) return [];
+    if (!target) return [];
 
-    const current = entry.get(binding) ?? binding.type;
+    const { place, type: current } = target;
 
     if (!unionMembers(nonNull(current)).some((member) => member.kind === 'literal')) return [];
     if (switchCase.tests.length > 0) {
@@ -159,7 +158,7 @@ export abstract class ControlFlowChecker extends StatementChecker {
 
       if (values.some((value) => value === undefined)) return [];
 
-      return [[binding, union(values.map((value) => literal(value!)))]];
+      return [[place, union(values.map((value) => literal(value!)))]];
     }
 
     let rest = current;
@@ -172,11 +171,11 @@ export abstract class ControlFlowChecker extends StatementChecker {
       }
     }
 
-    return [[binding, rest]];
+    return [[place, rest]];
   }
 
   protected override checkTry(node: ast.TryStatement): void {
-    this.dropNarrowing(assignedNames(node));
+    this.dropNarrowing(node);
 
     const entry = this.flow;
 
@@ -219,7 +218,7 @@ export abstract class ControlFlowChecker extends StatementChecker {
     this.error(`condition must be bool, not ${typeToString(type)}${hint}`, node);
   }
 
-  /** Variables whose type is narrowed when `node` evaluates to `assumeTrue`. */
+  /** Variables and paths whose type is narrowed when `node` evaluates to `assumeTrue`. */
   protected narrow(node: ast.Expression, assumeTrue: boolean): Narrowing {
     if (node.kind === 'UnaryExpression' && node.operator === '!') {
       return this.narrow(node.argument, !assumeTrue);
@@ -248,9 +247,9 @@ export abstract class ControlFlowChecker extends StatementChecker {
     if ((operator === '!=' && assumeTrue) || (operator === '==' && !assumeTrue)) {
       const target =
         right.kind === 'NullLiteral' ? left : left.kind === 'NullLiteral' ? right : null;
-      const binding = target ? this.narrowableBinding(target) : undefined;
+      const found = target ? this.narrowable(target) : undefined;
 
-      if (binding?.type) return [[binding, nonNull(this.flow.get(binding) ?? binding.type)]];
+      if (found) return [[found.place, nonNull(found.type)]];
     }
 
     // `err == null` when true, `err != null` when false: the values returned with `err` are not
@@ -260,8 +259,13 @@ export abstract class ControlFlowChecker extends StatementChecker {
         right.kind === 'NullLiteral' ? left : left.kind === 'NullLiteral' ? right : null;
       const guards = target ? this.narrowableBinding(target)?.guards : undefined;
 
-      if (guards)
-        return guards.map((value) => [value, nonNull(this.flow.get(value) ?? value.type!)]);
+      if (guards) {
+        return guards.map((value) => {
+          const place = placeOf(value);
+
+          return [place, nonNull(this.flow.get(place) ?? value.type!)];
+        });
+      }
     }
 
     if (operator === 'instanceof') return this.narrowInstanceof(left, right, assumeTrue);
@@ -279,27 +283,27 @@ export abstract class ControlFlowChecker extends StatementChecker {
           : [null, null];
 
     if (check && tag?.kind === 'StringLiteral') {
-      const binding = this.narrowableBinding(check.argument);
+      const found = this.narrowable(check.argument);
 
-      if (!binding?.type) return [];
+      if (!found) return [];
 
-      const type = narrowByTypeof(this.flow.get(binding) ?? binding.type, tag.value, equal);
+      const type = narrowByTypeof(found.type, tag.value, equal);
 
-      return type ? [[binding, type]] : [];
+      return type ? [[found.place, type]] : [];
     }
 
     // `filter == "all"`: narrows a type with literals in it.
     const value = literalValue(right) ?? literalValue(left);
     const target = literalValue(right) !== undefined ? left : right;
-    const binding = value === undefined ? undefined : this.narrowableBinding(target);
+    const found = value === undefined ? undefined : this.narrowable(target);
 
-    if (value === undefined || !binding?.type) return [];
+    if (value === undefined || !found) return [];
 
-    const current = this.flow.get(binding) ?? binding.type;
+    const { place, type: current } = found;
 
     if (!unionMembers(nonNull(current)).some((member) => member.kind === 'literal')) return [];
 
-    return [[binding, equal ? literal(value) : withoutLiteral(current, value)]];
+    return [[place, equal ? literal(value) : withoutLiteral(current, value)]];
   }
 
   /** `x instanceof Date`: an instance of the class when true, the rest of a union when false. */
@@ -308,19 +312,19 @@ export abstract class ControlFlowChecker extends StatementChecker {
     right: ast.Expression,
     assumeTrue: boolean,
   ): Narrowing {
-    const binding = this.narrowableBinding(left);
+    const found = this.narrowable(left);
     const classType = this.typeOfChecked(right);
     const instance = instanceTypeOf(classType);
 
-    if (!binding?.type || !instance) return [];
+    if (!found || !instance) return [];
 
-    const current = this.flow.get(binding) ?? binding.type;
+    const { place, type: current } = found;
     const members = unionMembers(nonNull(current));
 
     if (assumeTrue) {
       const kept = members.filter((member) => isAssignable(member, instance));
 
-      return [[binding, kept.length > 0 ? union(kept) : instance]];
+      return [[place, kept.length > 0 ? union(kept) : instance]];
     }
 
     // A class keeps what is not its subclass; a DOM interface what is not assignable to it.
@@ -330,7 +334,7 @@ export abstract class ControlFlowChecker extends StatementChecker {
         : !isAssignable(member, instance),
     );
 
-    return [[binding, union(isNullable(current) ? [...kept, NULL] : kept)]];
+    return [[place, union(isNullable(current) ? [...kept, NULL] : kept)]];
   }
 
   protected override nullError(node: ast.Expression): void {
@@ -355,14 +359,18 @@ export abstract class ControlFlowChecker extends StatementChecker {
     return binding && NARROWABLE.has(binding.kind) ? binding : undefined;
   }
 
-  /** An assignment to a variable ends its narrowing. */
+  /** An assignment to a variable ends its narrowing; one to a path, that of the paths it changes. */
   protected override forget(target: ast.Expression): void {
-    const binding = this.narrowableBinding(target);
+    const path = pathOf(target);
+    const binding = path ? this.lookupValue(path[0]!) : undefined;
 
-    if (binding) this.flow.delete(binding);
+    if (path && binding && NARROWABLE.has(binding.kind)) {
+      forgetWritten(this.flow, binding, path.slice(1).join('.'));
+    }
   }
 
-  protected dropNarrowing(names: ReadonlySet<string>): void {
-    this.flow = new Map([...this.flow].filter(([binding]) => !names.has(binding.name)));
+  /** Ends the narrowing of what `node` assigns: before a loop, or a statement with several ways. */
+  protected dropNarrowing(node: ast.Node): void {
+    this.flow = withoutAssigned(this.flow, assignedNames(node), assignedPaths(node));
   }
 }

@@ -81,7 +81,9 @@ export abstract class MemberChecker extends DecoratorMemberChecker {
         );
       }
 
-      return [member === 'any' ? ANY : (member?.type ?? UNKNOWN), shortCircuits];
+      const type = member === 'any' ? ANY : (member?.type ?? UNKNOWN);
+
+      return [this.pathType(node, object, type), shortCircuits];
     }
 
     const keyed = this.keyedIndex(object, node.index);

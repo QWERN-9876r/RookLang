@@ -1,0 +1,41 @@
+// A tagged union: each kind of message has the field kind with a value of its own
+interface Text  { kind "text";  author string; body string }
+interface Photo { kind "photo"; author string; emoji string; caption ?string }
+interface Join  { kind "join";  author string }
+type Message Text | Photo | Join
+
+// A literal chooses its member by kind: { kind: "join", body: "hi" } is an error
+const samples []Message = [
+    { kind: "join", author: "Ann" },
+    { kind: "text", author: "Ann", body: "Who has the mangoes?" },
+    { kind: "photo", author: "Bob", emoji: "🥭", caption: "Here, ripe ones" },
+    { kind: "photo", author: "Bob", emoji: "🍍" },
+]
+
+comp Chat() {
+    state messages []Message = []
+
+    func next() {
+        messages = [...messages, samples[messages.length % samples.length]]
+    }
+
+    return <div>
+        <button onClick={next()}>Next message</button>
+        <ul>{for message in messages {
+            // In each case, message is the member with that kind
+            switch message.kind {
+            case "text":
+                <li><b>{message.author}:</b> {message.body}</li>
+            case "photo":
+                <li>
+                    <b>{message.author}</b> sent {message.emoji}
+                    {if message.caption != null { <i> “{message.caption}”</i> }}
+                </li>
+            default:
+                <li><i>{message.author} joined the chat</i></li>
+            }
+        }}</ul>
+    </div>
+}
+
+document.body.append(<Chat />)

@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
 import { containsBreak } from '../breaks.ts';
-import type { Flow, Narrowing } from './context.ts';
+import type { Binding, Flow, Narrowing } from './context.ts';
 import {
   BIGINT,
   BOOL,
@@ -12,11 +12,12 @@ import {
   typesEqual,
   union,
   unionMembers,
+  type LiteralType,
   type Type,
 } from './types.ts';
 
-// Control flow for the checker: how conditions narrow the types of variables, and which statements
-// execution never continues after.
+// Control flow for the checker: how conditions narrow the types of variables and paths, and which
+// statements execution never continues after.
 
 /** What a value of unknown type is after `typeof x == tag`. */
 const PRIMITIVE_TAGS: ReadonlyMap<string, Type> = new Map([
@@ -102,22 +103,83 @@ export function withoutLiteral(type: Type, value: string | number | boolean): Ty
   return union(isNullable(type) ? [...kept, NULL] : kept);
 }
 
+/**
+ * A union after a comparison of its tag, a field with literal types in each member: `tags` has the
+ * values the tag may have in each member, `values` those it is compared with. When `equal`, the
+ * members whose tag may be one of the values remain; otherwise those whose tag may be another one.
+ */
+export function narrowByTag(
+  type: Type,
+  tags: readonly (readonly LiteralType['value'][])[],
+  values: readonly LiteralType['value'][],
+  equal: boolean,
+): Type {
+  const kept = unionMembers(nonNull(type)).filter((_, i) => {
+    const tag = tags[i] ?? [];
+
+    return equal
+      ? tag.some((value) => values.includes(value))
+      : !tag.every((value) => values.includes(value));
+  });
+
+  return union(!equal && isNullable(type) ? [...kept, NULL] : kept);
+}
+
+/**
+ * Whether an assignment to the fields `written` of a variable ends the narrowing of its path
+ * `path`: it writes the path, its start or its continuation (`"delivery.kind"` ends the narrowing
+ * of `"delivery"`, which may come from that tag). The variable itself, with the empty path, is
+ * narrowed until the variable is assigned.
+ */
+export function overwrites(written: string, path: string): boolean {
+  if (written === '') return true;
+  if (path === '') return false;
+
+  return path === written || path.startsWith(`${written}.`) || written.startsWith(`${path}.`);
+}
+
+/** Ends the narrowing that an assignment to `binding` or to its fields `written` changes. */
+export function forgetWritten(flow: Flow, binding: Binding, written: string): void {
+  for (const place of flow.keys()) {
+    if (place.binding === binding && overwrites(written, place.path)) flow.delete(place);
+  }
+}
+
+/** The flow without what assignments to the variables `names` and the paths `paths` change. */
+export function withoutAssigned(
+  flow: Flow,
+  names: ReadonlySet<string>,
+  paths: ReadonlySet<string>,
+): Flow {
+  const written = [...paths].map((path) => path.split('.'));
+
+  return new Map(
+    [...flow].filter(
+      ([{ binding, path }]) =>
+        !names.has(binding.name) &&
+        !written.some(
+          ([root, ...fields]) => root === binding.name && overwrites(fields.join('.'), path),
+        ),
+    ),
+  );
+}
+
 export function withNarrowing(flow: Flow, narrowing: Narrowing): Flow {
   const result = new Map(flow);
 
-  for (const [binding, type] of narrowing) result.set(binding, type);
+  for (const [place, type] of narrowing) result.set(place, type);
 
   return result;
 }
 
-/** Narrowing that holds after both branches: the variables narrowed the same way in both. */
+/** Narrowing that holds after both branches: the places narrowed the same way in both. */
 export function mergeFlows(a: Flow, b: Flow): Flow {
   const result: Flow = new Map();
 
-  for (const [binding, type] of a) {
-    const other = b.get(binding);
+  for (const [place, type] of a) {
+    const other = b.get(place);
 
-    if (other && typesEqual(type, other)) result.set(binding, type);
+    if (other && typesEqual(type, other)) result.set(place, type);
   }
 
   return result;

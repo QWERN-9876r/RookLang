@@ -1,0 +1,41 @@
+// Tagged union: у каждого вида сообщения есть поле kind со своим значением
+interface Text  { kind "text";  author string; body string }
+interface Photo { kind "photo"; author string; emoji string; caption ?string }
+interface Join  { kind "join";  author string }
+type Message Text | Photo | Join
+
+// Литерал выбирает свой член по kind: { kind: "join", body: "привет" } — ошибка
+const samples []Message = [
+    { kind: "join", author: "Аня" },
+    { kind: "text", author: "Аня", body: "У кого манго?" },
+    { kind: "photo", author: "Боря", emoji: "🥭", caption: "Вот, спелые" },
+    { kind: "photo", author: "Боря", emoji: "🍍" },
+]
+
+comp Chat() {
+    state messages []Message = []
+
+    func next() {
+        messages = [...messages, samples[messages.length % samples.length]]
+    }
+
+    return <div>
+        <button onClick={next()}>Следующее сообщение</button>
+        <ul>{for message in messages {
+            // В каждом case message — член с этим kind
+            switch message.kind {
+            case "text":
+                <li><b>{message.author}:</b> {message.body}</li>
+            case "photo":
+                <li>
+                    <b>{message.author}</b> прислал {message.emoji}
+                    {if message.caption != null { <i> «{message.caption}»</i> }}
+                </li>
+            default:
+                <li><i>{message.author} заходит в чат</i></li>
+            }
+        }}</ul>
+    </div>
+}
+
+document.body.append(<Chat />)

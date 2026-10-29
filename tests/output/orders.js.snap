@@ -1,14 +1,6 @@
 // orders.js
 
-import {
-  $$branches,
-  $$content,
-  $$decodeJson,
-  $$element,
-  $$list,
-  $$style,
-  $$type,
-} from "rooklang/runtime";
+import { $$branches, $$decodeJson, $$element, $$list, $$style, $$type } from "rooklang/runtime";
 
 const $$styles = [];
 
@@ -17,6 +9,7 @@ const $$typeOrder = $$type("Order", () => ({
   customer: $$typeCustomer,
   items: { array: $$typeItem },
   status: { literal: ["new", "paid", "sent"] },
+  delivery: { union: [$$typePickup, $$typeCourier] },
   note: { nullable: "string" },
 }));
 const $$typeCustomer = $$type("Customer", () => ({
@@ -27,6 +20,15 @@ const $$typeItem = $$type("Item", () => ({
   name: "string",
   qty: "number",
   price: "number",
+}));
+const $$typePickup = $$type("Pickup", () => ({
+  kind: { literal: ["pickup"] },
+  shop: "string",
+}));
+const $$typeCourier = $$type("Courier", () => ({
+  kind: { literal: ["courier"] },
+  address: "string",
+  floor: { nullable: "number" },
 }));
 
 $$style($$styles, "rook-orders-1l85dq6", `.orders.rook-orders-1l85dq6 {
@@ -94,6 +96,8 @@ $$style($$styles, "rook-receipt-1nonkdw", `.receipt.rook-receipt-1nonkdw {
   font-weight: 600;
 }`);
 
+const COURIER = `"courier", "address": "12 Elm st.", "floor": 3`;
+
 const VALID = `{
   "id": 1042,
   "customer": { "name": "Ann", "email": "ann@example.com" },
@@ -101,10 +105,11 @@ const VALID = `{
     { "name": "Mango", "qty": 2, "price": 2.4 },
     { "name": "Lychee", "qty": 1, "price": 7.5 }
   ],
-  "status": "paid"
+  "status": "paid",
+  "delivery": { "kind": ${COURIER} }
 }`;
 
-const SAMPLES = [{ title: "Valid", json: VALID }, { title: "Price as text", json: VALID.replace(`"price": 7.5`, `"price": "7.50"`) }, { title: "Unknown status", json: VALID.replace(`"paid"`, `"lost"`) }, { title: "No email", json: VALID.replace(`, "email": "ann@example.com"`, "") }, { title: "Cut off", json: VALID.slice(0, 140) }];
+const SAMPLES = [{ title: "Valid", json: VALID }, { title: "Price as text", json: VALID.replace(`"price": 7.5`, `"price": "7.50"`) }, { title: "Unknown status", json: VALID.replace(`"paid"`, `"lost"`) }, { title: "Pickup", json: VALID.replace(COURIER, `"pickup", "shop": "Main st."`) }, { title: "Unknown delivery", json: VALID.replace(`"courier"`, `"drone"`) }, { title: "No email", json: VALID.replace(`, "email": "ann@example.com"`, "") }, { title: "Cut off", json: VALID.slice(0, 140) }];
 
 function check(json) {
   const [order, err] = $$decodeJson(json, $$typeOrder);
@@ -161,42 +166,72 @@ let $$orders1;
       const $$text19 = document.createTextNode(order.customer.name);
       const $$text20 = document.createTextNode(order.customer.email);
       $$p18.append($$text19, " · ", $$text20);
-      const [$$for21, $$updateFor21] = $$list(() => order.items, (item) => {
+      const [$$if21, $$updateIf21] = $$branches(() => order.delivery.kind === "pickup" ? 0 : order.delivery.floor != null ? 1 : 2, [() => {
         const $$block22 = document.createDocumentFragment();
-        const $$div23 = $$element("div", { className: "line rook-receipt-1nonkdw" });
-        const $$span24 = $$element("span", { className: "rook-receipt-1nonkdw" });
-        const $$text25 = document.createTextNode(item.qty);
-        const $$text26 = document.createTextNode(item.name);
-        $$span24.append($$text25, " × ", $$text26);
-        const $$span27 = $$element("span", { className: "rook-receipt-1nonkdw" });
-        const $$text28 = document.createTextNode((item.qty * item.price).toFixed(2));
-        $$span27.append("€", $$text28);
-        $$div23.append($$span24, $$span27);
-        $$block22.append($$div23);
+        const $$p23 = $$element("p", { className: "who rook-receipt-1nonkdw" });
+        const $$text24 = document.createTextNode(order.delivery.shop);
+        $$p23.append("Pickup at ", $$text24);
+        $$block22.append($$p23);
         return [$$block22, () => {
-          $$text25.data = item.qty;
-          $$text26.data = item.name;
-          $$text28.data = (item.qty * item.price).toFixed(2);
+          $$text24.data = order.delivery.shop;
         }];
-      });
-      const $$div29 = $$element("div", { className: "line total rook-receipt-1nonkdw" });
-      const $$span30 = $$element("span", { className: "rook-receipt-1nonkdw" });
-      $$span30.append("Total");
-      const $$span31 = $$element("span", { className: "rook-receipt-1nonkdw" });
-      const $$text32 = document.createTextNode(total.toFixed(2));
-      $$span31.append("€", $$text32);
-      $$div29.append($$span30, $$span31);
-      const [$$if33, $$updateIf33] = $$branches(() => order.note != null ? 0 : -1, [() => {
-        const $$block34 = document.createDocumentFragment();
-        const $$p35 = $$element("p", { className: "who rook-receipt-1nonkdw" });
-        const [$$content36, $$updateContent36] = $$content(() => order.note);
-        $$p35.append($$content36);
-        $$block34.append($$p35);
-        return [$$block34, () => {
-          $$updateContent36();
+      }, () => {
+        const $$block25 = document.createDocumentFragment();
+        const $$p26 = $$element("p", { className: "who rook-receipt-1nonkdw" });
+        const $$text27 = document.createTextNode(order.delivery.address);
+        const $$text28 = document.createTextNode(order.delivery.floor);
+        $$p26.append("Courier to ", $$text27, ", floor ", $$text28);
+        $$block25.append($$p26);
+        return [$$block25, () => {
+          $$text27.data = order.delivery.address;
+          $$text28.data = order.delivery.floor;
+        }];
+      }, () => {
+        const $$block29 = document.createDocumentFragment();
+        const $$p30 = $$element("p", { className: "who rook-receipt-1nonkdw" });
+        const $$text31 = document.createTextNode(order.delivery.address);
+        $$p30.append("Courier to ", $$text31);
+        $$block29.append($$p30);
+        return [$$block29, () => {
+          $$text31.data = order.delivery.address;
         }];
       }]);
-      $$div12.append($$div13, $$p18, $$for21, $$div29, $$if33);
+      const [$$for32, $$updateFor32] = $$list(() => order.items, (item) => {
+        const $$block33 = document.createDocumentFragment();
+        const $$div34 = $$element("div", { className: "line rook-receipt-1nonkdw" });
+        const $$span35 = $$element("span", { className: "rook-receipt-1nonkdw" });
+        const $$text36 = document.createTextNode(item.qty);
+        const $$text37 = document.createTextNode(item.name);
+        $$span35.append($$text36, " × ", $$text37);
+        const $$span38 = $$element("span", { className: "rook-receipt-1nonkdw" });
+        const $$text39 = document.createTextNode((item.qty * item.price).toFixed(2));
+        $$span38.append("€", $$text39);
+        $$div34.append($$span35, $$span38);
+        $$block33.append($$div34);
+        return [$$block33, () => {
+          $$text36.data = item.qty;
+          $$text37.data = item.name;
+          $$text39.data = (item.qty * item.price).toFixed(2);
+        }];
+      });
+      const $$div40 = $$element("div", { className: "line total rook-receipt-1nonkdw" });
+      const $$span41 = $$element("span", { className: "rook-receipt-1nonkdw" });
+      $$span41.append("Total");
+      const $$span42 = $$element("span", { className: "rook-receipt-1nonkdw" });
+      const $$text43 = document.createTextNode(total.toFixed(2));
+      $$span42.append("€", $$text43);
+      $$div40.append($$span41, $$span42);
+      const [$$if44, $$updateIf44] = $$branches(() => order.note != null ? 0 : -1, [() => {
+        const $$block45 = document.createDocumentFragment();
+        const $$p46 = $$element("p", { className: "who rook-receipt-1nonkdw" });
+        const $$text47 = document.createTextNode(order.note);
+        $$p46.append($$text47);
+        $$block45.append($$p46);
+        return [$$block45, () => {
+          $$text47.data = order.note;
+        }];
+      }]);
+      $$div12.append($$div13, $$p18, $$if21, $$for32, $$div40, $$if44);
 
       $$setOrder10 = ($$order) => {
         order = $$order;
@@ -205,9 +240,10 @@ let $$orders1;
         $$text17.data = order.status;
         $$text19.data = order.customer.name;
         $$text20.data = order.customer.email;
-        $$updateFor21();
-        $$text32.data = total.toFixed(2);
-        $$updateIf33();
+        $$updateIf21();
+        $$updateFor32();
+        $$text43.data = total.toFixed(2);
+        $$updateIf44();
       };
 
       $$receipt9 = $$div12;
@@ -217,13 +253,13 @@ let $$orders1;
       $$setOrder10(order);
     }];
   }, () => {
-    const $$block37 = document.createDocumentFragment();
-    const $$p38 = $$element("p", { className: "problem rook-orders-1l85dq6" });
-    const $$text39 = document.createTextNode(checked.problem);
-    $$p38.append($$text39);
-    $$block37.append($$p38);
-    return [$$block37, () => {
-      $$text39.data = checked.problem;
+    const $$block48 = document.createDocumentFragment();
+    const $$p49 = $$element("p", { className: "problem rook-orders-1l85dq6" });
+    const $$text50 = document.createTextNode(checked.problem);
+    $$p49.append($$text50);
+    $$block48.append($$p49);
+    return [$$block48, () => {
+      $$text50.data = checked.problem;
     }];
   }]);
   $$div3.append($$div4, $$textarea6, $$if7);
@@ -250,11 +286,21 @@ interface Item {
     qty: number;
     price: number;
 }
+interface Pickup {
+    kind: "pickup";
+    shop: string;
+}
+interface Courier {
+    kind: "courier";
+    address: string;
+    floor?: number | null;
+}
 interface Order {
     id: number;
     customer: Customer;
     items: Item[];
     status: "new" | "paid" | "sent";
+    delivery: Pickup | Courier;
     note?: string | null;
 }
 interface Checked {

@@ -23,6 +23,36 @@ export function assignedNames(node: ast.Node, names = new Set<string>()): Set<st
   return names;
 }
 
+/** `order.delivery.kind`: the variable and the fields of a path, or `null` for other expressions. */
+export function pathOf(node: ast.Expression): string[] | null {
+  if (node.kind === 'Identifier') return [node.name];
+  if (node.kind !== 'MemberExpression' || node.optional) return null;
+
+  const object = pathOf(node.object);
+
+  return object && [...object, node.property.name];
+}
+
+/** Paths of fields assigned anywhere inside `node`, e.g. `order.delivery` of `order.delivery = d`. */
+export function assignedPaths(node: ast.Node, paths = new Set<string>()): Set<string> {
+  const targets =
+    node.kind === 'AssignmentStatement'
+      ? node.targets
+      : node.kind === 'IncDecStatement'
+        ? [node.target]
+        : [];
+
+  for (const target of targets) {
+    const path = pathOf(target);
+
+    if (path && path.length > 1) paths.add(path.join('.'));
+  }
+
+  forEachChild(node, (child) => assignedPaths(child, paths));
+
+  return paths;
+}
+
 /** Whether an identifier with one of `names` occurs in `node`, whatever it refers to. */
 export function mentionsName(node: ast.Node, names: ReadonlySet<string>): boolean {
   if (node.kind === 'Identifier') return names.has(node.name);

@@ -1,5 +1,5 @@
 import type * as ast from '../ast.ts';
-import type { ComponentInfo } from './context.ts';
+import { placeOf, type ComponentInfo } from './context.ts';
 import { FunctionChecker } from './functions.ts';
 import { expectsLiteral, callName, isUntyped } from './helpers.ts';
 import {
@@ -237,7 +237,7 @@ export abstract class ExpressionChecker extends FunctionChecker {
       return UNKNOWN;
     }
 
-    return this.flow.get(binding) ?? binding.type;
+    return this.flow.get(placeOf(binding)) ?? binding.type;
   }
 
   protected thisType(node: ast.NodeBase): Type {
@@ -271,13 +271,14 @@ export abstract class ExpressionChecker extends FunctionChecker {
   protected checkObjectLiteral(node: ast.ObjectLiteral, expected: Type | null): Type {
     let target = expected ? nonNull(expected) : null;
 
-    // `?(ScrollIntoViewOptions | bool)`: an object literal can only be the object type in it.
+    // `?(ScrollIntoViewOptions | bool)`: an object literal can only be the object type in it, or
+    // the one that its tag chooses, `{ kind: "pickup" }` of `Pickup | Courier`.
     if (target?.kind === 'union') {
       const objects = target.types.filter(
         (type) => type.kind === 'object' || type.kind === 'class',
       );
 
-      target = objects.length === 1 ? objects[0]! : null;
+      target = objects.length === 1 ? objects[0]! : this.taggedMember(node, objects, target);
     }
 
     const index = target?.kind === 'object' ? target.index : undefined;
@@ -289,7 +290,8 @@ export abstract class ExpressionChecker extends FunctionChecker {
           : null;
     const members = new Map<string, Member>();
     const written = new Set<string>();
-    let untyped = false;
+    // A tag of no member is reported once, not again where the literal is used.
+    let untyped = target?.kind === 'unknown';
 
     for (const property of node.properties) {
       if (property.kind === 'SpreadElement') {

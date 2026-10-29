@@ -188,6 +188,7 @@ export comp RoadmapText() {
             <li>
                 Объединение интерфейсов сужается по полю литерального типа:
                 {" "}<code>if d.kind == "courier"</code> даёт <code>d.address</code>.
+                {" "}<i>Сделано, вместе с сужением путей: <code>order.delivery.kind</code>.</i>
             </li>
             <li><code>derived</code> из нескольких операторов.</li>
             <li>Объединение декораторов и <code>public ref</code> в декораторах.</li>

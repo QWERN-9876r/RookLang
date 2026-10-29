@@ -10,7 +10,14 @@ import {
   NUMBER_MEMBERS,
   STRING_MEMBERS,
 } from './completion-names.ts';
-import type { Binding, Completion, CompletionContext, CompletionResult, Scope } from './context.ts';
+import {
+  placeOf,
+  type Binding,
+  type Completion,
+  type CompletionContext,
+  type CompletionResult,
+  type Scope,
+} from './context.ts';
 import {
   isSubclass,
   literalBase,
@@ -135,7 +142,7 @@ export abstract class CompletionChecker extends ClosingChecker {
       return { name, kind: 'component', detail: typeToString(this.componentValue(component)) };
     }
 
-    const type = binding.type && (this.flow.get(binding) ?? binding.type);
+    const type = binding.type && (this.flow.get(placeOf(binding)) ?? binding.type);
     const detail = type ? { detail: typeToString(type) } : {};
 
     if (kind === 'function' || type?.kind === 'function')

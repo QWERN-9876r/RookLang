@@ -22,5 +22,16 @@ export comp NullSafety() {
             {" "}<code>instanceof</code>, сравнение с литералом и <code>switch</code>.
         </p>
         <Example name="unions" />
+        <p>
+            Сообщения, события и ответы API часто бывают одним из нескольких видов, а вид задаёт
+            поле вроде <code>kind</code>: это tagged union. Сравнение метки сужает значение, и после
+            {" "}<code>{'message.kind == "photo"'}</code> можно читать поля фотографии. Объектный
+            литерал тоже выбирает свой член по метке, а несуществующий вид — ошибка. Пути полей
+            сужаются так же, как переменные, без промежуточной <code>const</code>: после
+            {" "}<code>message.caption != null</code> подпись — это <code>string</code>, а после
+            {" "}<code>{'order.delivery.kind == "courier"'}</code> <code>order.delivery</code> —
+            доставка курьером.
+        </p>
+        <Example name="tagged-unions" />
     </>
 }
