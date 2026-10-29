@@ -19,8 +19,8 @@ comp Chat() {
     }
 
     func send() {
-        if draft.trim() != "" {
-            messages.push(draft.trim())
+        if const trimmed = draft.trim(); trimmed != "" {
+            messages.push(trimmed)
             draft = ""
         }
 

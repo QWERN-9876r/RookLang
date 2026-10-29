@@ -9,11 +9,14 @@ let $$todos1;
   let title = "";
 
   function add() {
-    if (title.trim() !== "") {
-      todos.push(title.trim());
-      $$updateTodos2();
-      title = "";
-      $$updateTitle3();
+    {
+      const trimmed = title.trim();
+      if (trimmed !== "") {
+        todos.push(trimmed);
+        $$updateTodos2();
+        title = "";
+        $$updateTitle3();
+      }
     }
   }
 

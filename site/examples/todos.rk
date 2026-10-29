@@ -3,8 +3,8 @@ comp Todos() {
     state title = ""
 
     func add() {
-        if title.trim() != "" {
-            todos.push(title.trim())
+        if const trimmed = title.trim(); trimmed != "" {
+            todos.push(trimmed)
             title = ""
         }
     }

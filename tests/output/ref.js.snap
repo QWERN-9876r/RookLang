@@ -21,11 +21,14 @@ let $$chat1, $$mountNode2;
   });
 
   function send() {
-    if (draft.trim() !== "") {
-      messages.push(draft.trim());
-      $$updateMessages3();
-      draft = "";
-      $$updateDraft4();
+    {
+      const trimmed = draft.trim();
+      if (trimmed !== "") {
+        messages.push(trimmed);
+        $$updateMessages3();
+        draft = "";
+        $$updateDraft4();
+      }
     }
 
     input.focus();
