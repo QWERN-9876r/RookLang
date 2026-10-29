@@ -28,7 +28,6 @@ export type Expression =
   | IndexExpression
   | ElementExpression
   | DecoratorMember
-  | DecoratorGet
   | AsExpression
   | GoExpression
   | ChanExpression
@@ -327,17 +326,12 @@ export interface IndexExpression extends NodeBase {
 }
 
 /**
- * `@visible.shown`: a public member of a decorator applied to the component. The names belong to
- * the decorator, not to any scope, so walkers do not visit them as identifiers.
+ * `@visible.shown` or `@visible.show()`: a public member of a decorator applied to the component,
+ * read or called. The names belong to the decorator, not to any scope, so walkers do not visit them
+ * as identifiers.
  */
 export interface DecoratorMember extends NodeBase {
   kind: 'DecoratorMember';
   decorator: Identifier;
   member: Identifier;
-}
-
-/** `get(@visible.shown)`: reads public state or a constant of a decorator. */
-export interface DecoratorGet extends NodeBase {
-  kind: 'DecoratorGet';
-  target: DecoratorMember;
 }

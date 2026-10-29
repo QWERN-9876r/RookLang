@@ -214,7 +214,7 @@ document.body.append(<A />)
 }
 @counted
 comp Clicker() {
-    return <button onClick={@counted.add()}>{get(@counted.label)}</button>
+    return <button onClick={@counted.add()}>{@counted.label}</button>
 }
 document.body.append(<Clicker />)
 `);

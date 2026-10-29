@@ -49,10 +49,6 @@ describe('syntax', () => {
       component('    ref x = <p />'),
       'ref "x" gets its element from the markup, not from a value: write ref x and <div ref={x}>',
     ],
-    [
-      'dec d() {\n    public ref x\n    return (c Element) => <div ref={x}>{c}</div>\n}',
-      'only state, derived, const and func can be public, not "ref"',
-    ],
   ])('reports %j', (source, message) => {
     expect(errors(source)).toEqual([message]);
   });

@@ -30,7 +30,7 @@ describe('generated code', () => {
   it('inlines the decorator with its names prefixed', () => {
     const { code, diagnostics } = compile(`${counter}@counter(5)
 comp Clicker() {
-    return <button onClick={@counter.add()}>{get(@counter.count)}</button>
+    return <button onClick={@counter.add()}>{@counter.count}</button>
 }
 document.body.append(<Clicker />)
 `);
@@ -55,7 +55,7 @@ describe('running', () => {
   it('updates the markup that reads public state', () => {
     const { body } = mountWithDom(`${counter}@counter(5)
 comp Clicker(label string) {
-    return <button onClick={@counter.add()}>{label}: {get(@counter.count)}</button>
+    return <button onClick={@counter.add()}>{label}: {@counter.count}</button>
 }
 document.body.append(<Clicker label="a" />, <Clicker label="b" />)
 `);
@@ -76,7 +76,7 @@ document.body.append(<Clicker label="a" />, <Clicker label="b" />)
 }
 @counted
 comp Clicker() {
-    return <button onClick={@counted.add()}>{get(@counted.double)}</button>
+    return <button onClick={@counted.add()}>{@counted.double}</button>
 }
 document.body.append(<Clicker />)
 `);
@@ -92,7 +92,7 @@ comp Clicker() {
     func add() {
         count++
     }
-    return <button onClick={add(); @counter.add()}>{count} {get(@counter.count)}</button>
+    return <button onClick={add(); @counter.add()}>{count} {@counter.count}</button>
 }
 document.body.append(<Clicker />)
 `);
@@ -176,7 +176,7 @@ document.body.append(<App />)
 @watched
 comp Tree(item Item) {
     return <li onClick={@counter.add()}>
-        {item.name} {get(@counter.count)}
+        {item.name} {@counter.count}
         <ul>{for child in item.children { <Tree item={child} /> }}</ul>
     </li>
 }
@@ -193,7 +193,7 @@ document.body.append(<Tree item={{ name: "root", children: [{ name: "leaf", chil
     const { body } = mountWithDom(`${counter}@html-tag
 @counter(10)
 comp clickBox() {
-    return <button onClick={@counter.add()}>{get(@counter.count)}</button>
+    return <button onClick={@counter.add()}>{@counter.count}</button>
 }
 document.body.append(<click-box />)
 `);

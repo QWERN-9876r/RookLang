@@ -27,7 +27,7 @@ export dec counter(start number = 0) {
 }
 
 export dec badge() needs counter {
-    return (content Element) => <div>{content}<span>{get(@counter.count)}</span></div>
+    return (content Element) => <div>{content}<span>{@counter.count}</span></div>
 }
 `;
 

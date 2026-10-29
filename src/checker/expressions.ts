@@ -181,9 +181,6 @@ export abstract class ExpressionChecker extends FunctionChecker {
       case 'DecoratorMember':
         return this.checkDecoratorMember(node);
 
-      case 'DecoratorGet':
-        return this.checkDecoratorGet(node);
-
       case 'MemberExpression':
       case 'IndexExpression':
       case 'CallExpression': {

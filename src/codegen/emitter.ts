@@ -105,9 +105,19 @@ export abstract class Emitter {
     for (const statement of program.body) {
       if (statement.kind === 'DecoratorDeclaration') {
         decorators.set(statement.name.name, { node: statement, moduleNames: [] });
-      } else if (statement.kind === 'ComponentDeclaration') {
-        for (const use of statement.decorators) this.appliedDecorators.add(use.name.name);
       }
+    }
+
+    // Those that the applied ones include are applied too.
+    const apply = (name: string): void => {
+      if (this.appliedDecorators.has(name)) return;
+      this.appliedDecorators.add(name);
+      for (const use of decorators.get(name)?.node.includes ?? []) apply(use.name.name);
+    };
+
+    for (const statement of program.body) {
+      if (statement.kind !== 'ComponentDeclaration') continue;
+      for (const use of statement.decorators) apply(use.name.name);
     }
 
     const originals = new WeakSet<ast.Node>();

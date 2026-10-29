@@ -53,16 +53,13 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       // The names after `needs` are other decorators', not values in scope.
       visit(node.name);
       each(node.params);
+      each(node.includes);
       visit(node.body);
       break;
 
     case 'DecoratorUse':
       // The name is the decorator's, not a value in scope.
       each(node.arguments);
-      break;
-
-    case 'DecoratorGet':
-      visit(node.target);
       break;
 
     case 'VariableDeclaration':

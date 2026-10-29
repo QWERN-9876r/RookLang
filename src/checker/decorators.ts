@@ -1,10 +1,16 @@
 import type * as ast from '../ast.ts';
 import { freeNames } from '../names.ts';
 import { forEachChild } from '../walk.ts';
-import type { ComponentInfo, DecoratorInfo, PublicMember, Scope } from './context.ts';
+import {
+  withIncluded,
+  type ComponentInfo,
+  type DecoratorInfo,
+  type PublicMember,
+  type Scope,
+} from './context.ts';
 import { DecoratorExportChecker } from './decorator-exports.ts';
 import { lookupIn, ownStatements } from './helpers.ts';
-import { func, UNKNOWN } from './types.ts';
+import { func, UNKNOWN, type Type } from './types.ts';
 
 // Decorators: their parameters, needs and bodies, and the decorators applied to a component with
 // their arguments. Wrappers are in decorator-wrappers.ts, exported decorators in
@@ -51,7 +57,9 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
     }
   }
 
-  /** Decorators after the ones they need. A cycle of needs is an error: none can be first. */
+  /**
+   * Decorators after the ones they need or include. A cycle is an error: none can be first.
+   */
   protected override orderByNeeds(decorators: readonly DecoratorInfo[]): DecoratorInfo[] {
     const order: DecoratorInfo[] = [];
     const path: DecoratorInfo[] = [];
@@ -61,11 +69,16 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
       const at = path.indexOf(info);
 
       if (at >= 0) {
-        const cycle = path.slice(at).map((each) => `@${each.node.name.name}`);
-        const steps = cycle.map((name, i) => `${name} needs ${cycle[(i + 1) % cycle.length]}`);
+        const cycle = path.slice(at);
+        const steps = cycle.map((each, i) => {
+          const next = cycle[(i + 1) % cycle.length]!;
+          const how = each.included.includes(next) ? 'includes' : 'needs';
+
+          return `@${each.node.name.name} ${how} @${next.node.name.name}`;
+        });
 
         this.error(
-          `decorators cannot need each other: ${steps.join(', ')}; remove one of the needs`,
+          `decorators cannot need or include each other: ${steps.join(', ')}; remove one of them`,
           info.node.name,
         );
 
@@ -73,7 +86,7 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
       }
 
       path.push(info);
-      for (const needed of info.needed) visit(needed);
+      for (const needed of [...info.needed, ...info.included]) visit(needed);
 
       path.pop();
       order.push(info);
@@ -140,8 +153,7 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
       } else if (
         statement.kind === 'VariableDeclaration' &&
         statement.isPublic &&
-        statement.keyword !== 'let' &&
-        statement.keyword !== 'ref'
+        statement.keyword !== 'let'
       ) {
         for (const name of statement.names) add(name, statement.keyword);
       }
@@ -150,10 +162,16 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
 
   /**
    * The decorators before `comp`: they exist, are applied once and below the ones they need, get
-   * valid arguments, and their wrappers get what they can take.
+   * valid arguments, and their wrappers get what they can take. Those that a decorator includes
+   * are applied with it, above it.
    */
   protected override checkDecoratorUses(info: ComponentInfo): void {
-    const applied = new Set<DecoratorInfo>();
+    // The decorator that each one is applied with, for those that another includes.
+    const applied = new Map<DecoratorInfo, string | null>();
+    const props = info.node.params.map((param): [ast.Identifier, Type] => [
+      param.name,
+      info.props.get(param.name.name)?.type ?? UNKNOWN,
+    ]);
 
     for (const use of info.node.decorators) {
       const name = use.name.name;
@@ -164,30 +182,62 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
         continue;
       }
 
-      if (applied.has(decorator)) this.error(`@${name} is applied twice: apply it once`, use);
+      for (const each of withIncluded([decorator])) {
+        const via = each === decorator ? null : name;
 
-      // The body of a decorator may read the state of those it needs right away.
-      for (const needed of decorator.needed) {
-        if (applied.has(needed)) continue;
-
-        const other = needed.node.name.name;
-
-        this.error(`@${name} needs @${other} above it: @${other} @${name} comp ...`, use);
+        this.checkApplied(each, via, applied, use);
+        applied.set(each, via);
+        this.checkInlinedNames(use, each, info);
       }
 
-      applied.add(decorator);
-      this.checkDecoratorArguments(use, decorator, info);
-      this.checkInlinedNames(use, decorator, info);
+      this.checkDecoratorArguments(use, decorator, props);
     }
 
     this.checkWrappedTypes(info);
   }
 
-  /** Arguments are positional and see the properties of the component, as its body does. */
+  /** Applied once, below the ones it needs; `via` is the decorator that includes it. */
+  private checkApplied(
+    decorator: DecoratorInfo,
+    via: string | null,
+    applied: ReadonlyMap<DecoratorInfo, string | null>,
+    use: ast.DecoratorUse,
+  ): void {
+    const name = decorator.node.name.name;
+    const where = (other: string | null) => (other === null ? '' : ` (it is in @${other})`);
+
+    if (applied.has(decorator)) {
+      const before = applied.get(decorator) ?? null;
+
+      this.error(
+        before === null && via === null
+          ? `@${name} is applied twice: apply it once`
+          : `@${name} is applied twice${where(via ?? before)}: apply it once`,
+        use,
+      );
+    }
+
+    // The body of a decorator may read the state of those it needs right away.
+    for (const needed of decorator.needed) {
+      if (applied.has(needed)) continue;
+
+      const other = needed.node.name.name;
+
+      this.error(
+        `@${name}${where(via)} needs @${other} above it: @${other} @${via ?? name} comp ...`,
+        use,
+      );
+    }
+  }
+
+  /**
+   * Arguments are positional and see `params`: the properties of the component, as its body does,
+   * or the parameters of the decorator that includes this one.
+   */
   protected checkDecoratorArguments(
     use: ast.DecoratorUse,
     decorator: DecoratorInfo,
-    info: ComponentInfo,
+    scope: readonly [ast.Identifier, Type][],
   ): void {
     const name = use.name.name;
     const { params } = decorator.node;
@@ -203,9 +253,7 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
     }
 
     this.withScope(() => {
-      for (const param of info.node.params) {
-        this.declareValue(param.name, 'prop', info.props.get(param.name.name)?.type ?? UNKNOWN);
-      }
+      for (const [param, type] of scope) this.declareValue(param, 'prop', type);
 
       params.forEach((param, i) => {
         const type = decorator.params[i] ?? UNKNOWN;

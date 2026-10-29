@@ -1,0 +1,40 @@
+// A decorator can include others: they are applied with it, and the component
+// reads all their public members through it
+dec likes() {
+    public state count = 0
+
+    public func like() {
+        count++
+    }
+}
+
+// A public ref gives the component an element of the wrapper
+dec framed(title string) {
+    public ref box
+    return (content Element) => <section ref={box} class="card">
+        <b>{title}</b>
+        {content}
+    </section>
+}
+
+// The arguments of the included decorators see the parameters of card
+dec card(title string) includes framed(title), likes {
+    public derived popular = @likes.count >= 3
+}
+
+@card(name)
+comp Fruit(name string) {
+    func like() {
+        @card.like()
+        if @card.popular {
+            @card.box.style.borderColor = "#f5a623"
+        }
+    }
+
+    return <p>
+        <button onClick={like()}>♥ {@card.count}</button>
+        {if @card.popular { <i> popular</i> }}
+    </p>
+}
+
+document.body.append(<Fruit name="Mango" />, <Fruit name="Guava" />)

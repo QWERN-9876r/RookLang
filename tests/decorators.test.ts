@@ -4,7 +4,7 @@ import { parse } from '../src/parser/parser.ts';
 import { first, inFunction, sx } from './parser-helpers.ts';
 
 // Decorators: `dec name(...) { ... }`, applied as `@name(...)` before `comp`; the component reads
-// their public state with `get(@name.member)` and calls their public functions as `@name.f()`.
+// their public state with `@name.member` and calls their public functions as `@name.f()`.
 
 function errors(source: string): string[] {
   const { program, diagnostics } = parse(source);
@@ -66,12 +66,10 @@ describe('syntax', () => {
   });
 
   it('parses reading and calling members', () => {
-    const [declaration, call] = inFunction(
-      'const n = get(@counter.count).toFixed()\n@counter.add()',
-    );
+    const [declaration, call] = inFunction('const n = @counter.count.toFixed()\n@counter.add()');
 
     expect(declaration?.kind === 'VariableDeclaration' && sx(declaration.values[0]!)).toBe(
-      '(call (. (get @counter.count) toFixed))',
+      '(call (. @counter.count toFixed))',
     );
     expect(call?.kind === 'ExpressionStatement' && sx(call.expression)).toBe('(call @counter.add)');
   });
@@ -95,12 +93,12 @@ describe('syntax', () => {
     ],
     [
       'dec a() {\n    public mount() {\n    }\n}',
-      'only state, derived, const and func can be public, not "mount"',
+      'only state, derived, const, ref and func can be public, not "mount"',
     ],
     ['@a(...xs) comp B() {\n    return <p />\n}', 'arguments of a decorator cannot be spread'],
     [
-      'comp B() {\n    return <p>{get(@a.b, 1)}</p>\n}',
-      'expected ")": get takes one member of a decorator, e.g. get(@visible.shown), found ","',
+      'comp B() {\n    return <p>{get(@a.b)}</p>\n}',
+      'read a member of a decorator without get: @a.b',
     ],
     [
       '@a\nfunc b() {\n}',
@@ -117,14 +115,12 @@ describe('types', () => {
 
   it('gives members of applied decorators their types', () => {
     expect(
-      use(`    const n number = get(@counter.count) + get(@counter.step)
-    const total number = get(@counter.items).length
+      use(`    const n number = @counter.count + @counter.step
+    const total number = @counter.items.length
     const add func() = @counter.add
     @counter.add()`),
     ).toEqual([]);
-    expect(use('    const s string = get(@counter.count)')).toEqual([
-      'cannot use number as string',
-    ]);
+    expect(use('    const s string = @counter.count')).toEqual(['cannot use number as string']);
   });
 
   it('checks the arguments like those of a function', () => {
@@ -145,8 +141,8 @@ describe('types', () => {
   it('reports wrong uses of decorators', () => {
     expect(use('', '@counter @counter')).toEqual(['@counter is applied twice: apply it once']);
     expect(use('', '@missing')).toEqual(['unknown decorator @missing']);
-    expect(use('    const x = get(@other.count)')).toEqual(['unknown decorator @other']);
-    expect(use('    const x = get(@counter.count)', '')).toEqual([
+    expect(use('    const x = @other.count')).toEqual(['unknown decorator @other']);
+    expect(use('    const x = @counter.count', '')).toEqual([
       '@counter is not applied to Clicker: write @counter before comp',
     ]);
     expect(errors(`${counter}func f() {\n    @counter.add()\n}`)).toEqual([
@@ -157,29 +153,26 @@ describe('types', () => {
     ]);
   });
 
-  it('reads state and constants with get and calls functions', () => {
-    expect(use('    const x = @counter.count')).toEqual([
-      'read "count" of @counter with get(@counter.count)',
-    ]);
-    expect(use('    get(@counter.add)()')).toEqual([
-      '"add" of @counter is a function: call it, @counter.add()',
-    ]);
-    expect(use('    const x = get(@counter.clicks)')).toEqual([
+  it('reads state and constants and calls functions', () => {
+    expect(
+      use('    const x = @counter.count\n    @counter.add()\n    const f = @counter.add'),
+    ).toEqual([]);
+    expect(use('    const x = @counter.clicks')).toEqual([
       '"clicks" of @counter is not public: write "public" before its declaration',
     ]);
-    expect(use('    const x = get(@counter.start)')).toEqual([
+    expect(use('    const x = @counter.start')).toEqual([
       '"start" of @counter is not public: write "public" before its declaration',
     ]);
-    expect(use('    const x = get(@counter.size)')).toEqual(['@counter has no member "size"']);
+    expect(use('    const x = @counter.size')).toEqual(['@counter has no member "size"']);
     expect(use('    const x = counter.count')).toEqual([
-      '"counter" is not defined; to read public state of @counter write get(@counter.count)',
+      '"counter" is not defined; to read public state of @counter write @counter.count',
     ]);
     expect(use('    counter.add()')).toEqual([
       '"counter" is not defined; to call a function of @counter write @counter.add()',
     ]);
   });
 
-  it('reads public derived values with get, and keeps them read-only', () => {
+  it('reads public derived values, and keeps them read-only', () => {
     const counted = (body: string) =>
       errors(`dec counted() {
     public state count = 0
@@ -195,12 +188,9 @@ ${body}
     return <p />
 }`);
 
-    expect(counted('    const n number = get(@counted.double)')).toEqual([]);
-    expect(counted('    get(@counted.double) = 1')).toEqual([
+    expect(counted('    const n number = @counted.double')).toEqual([]);
+    expect(counted('    @counted.double = 1')).toEqual([
       '"double" of @counted is read-only outside it; change it with one of its public functions, e.g. @counted.add()',
-    ]);
-    expect(counted('    const x = @counted.double')).toEqual([
-      'read "double" of @counted with get(@counted.double)',
     ]);
   });
 
@@ -208,13 +198,11 @@ ${body}
     const readOnly =
       '"count" of @counter is read-only outside it; change it with one of its public functions, e.g. @counter.add()';
 
-    expect(use('    get(@counter.count) = 2')).toEqual([readOnly]);
-    expect(use('    get(@counter.count)++')).toEqual([readOnly]);
-    expect(use('    get(@counter.items).push(1)')).toEqual([
-      readOnly.replace('"count"', '"items"'),
-    ]);
-    expect(use('    get(@counter.items)[0] = 1')).toEqual([readOnly.replace('"count"', '"items"')]);
-    expect(use('    const copy = get(@counter.items).slice()\n    copy.push(1)')).toEqual([]);
+    expect(use('    @counter.count = 2')).toEqual([readOnly]);
+    expect(use('    @counter.count++')).toEqual([readOnly]);
+    expect(use('    @counter.items.push(1)')).toEqual([readOnly.replace('"count"', '"items"')]);
+    expect(use('    @counter.items[0] = 1')).toEqual([readOnly.replace('"count"', '"items"')]);
+    expect(use('    const copy = @counter.items.slice()\n    copy.push(1)')).toEqual([]);
     expect(errors('dec a(x number) {\n    func f() {\n        x = 2\n    }\n}')).toEqual([
       'cannot assign to "x": parameters of a decorator are read-only',
     ]);
@@ -225,7 +213,9 @@ ${body}
       'cannot use string as number',
     ]);
     expect(errors(`${counter}dec a() {\n    func f() {\n        @counter.add()\n    }\n}`)).toEqual(
-      ['@a can use @counter only if it needs it: write "needs counter" after its parameters'],
+      [
+        '@a can use @counter only if it needs or includes it: write "needs counter" after its parameters',
+      ],
     );
     expect(errors('dec a() {\n    defer console.log(1)\n}')).toEqual([
       'defer is not supported in decorators yet',

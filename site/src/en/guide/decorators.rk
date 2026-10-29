@@ -14,15 +14,15 @@ export comp Decorators() {
         <ul>
             <li>
                 The component sees only what is <b>public</b>: it reads <code>public state</code>,
-                {" "}<code>public derived</code> and <code>public const</code> with
-                {" "}<code>get(@ticker.ticks)</code> and calls a
-                {" "}<code>public func</code> as <code>@ticker.toggle()</code>. In markup,
-                {" "}<code>get</code> updates like the component's own state. Other names of the
+                {" "}<code>public derived</code> and <code>public const</code> as
+                {" "}<code>@ticker.ticks</code> and calls a <code>public func</code> as
+                {" "}<code>@ticker.toggle()</code>. In markup, <code>@ticker.ticks</code> updates
+                like the component's own state. Other names of the
                 decorator are its own and cannot clash with the component's.
             </li>
             <li>
                 Outside the decorator its members are <b>read-only</b>:
-                {" "}<code>get(@ticker.ticks) = 0</code> is an error, changes go through its public
+                {" "}<code>@ticker.ticks = 0</code> is an error, changes go through its public
                 functions. There is no <code>public let</code>.
             </li>
             <li>
@@ -58,7 +58,7 @@ export comp Decorators() {
             </li>
             <li>
                 <code>dec quantityBadge() needs quantity</code> may use
-                {" "}<code>get(@quantity.count)</code> even in its body, so <code>@quantity</code>
+                {" "}<code>@quantity.count</code> even in its body, so <code>@quantity</code>
                 {" "}must be applied above it.
             </li>
             <li>
@@ -67,7 +67,26 @@ export comp Decorators() {
                 inlined there, so it cannot assign the variables of its own module, and the
                 decorators it needs are exported too.
             </li>
-            <li>Not yet: combining decorators.</li>
+        </ul>
+        <p>
+            A decorator can <b>include</b> others:
+            {" "}<code>dec card(title string) includes framed(title), likes</code> applies them
+            with it, above its own body, and their arguments see its parameters. The component
+            reads all their public members through it, <code>@card.count</code>. A
+            {" "}<code>public ref</code> gives the component an element of the wrapper.
+        </p>
+        <Example name="decorator-includes" />
+        <ul>
+            <li>
+                <code>@card</code> counts as <code>@likes</code> applied: it satisfies
+                {" "}<code>needs likes</code> of a decorator below it, and <code>@likes</code> next
+                to it is applied twice. Two members with the same name are an error.
+            </li>
+            <li>
+                A ref always points to its element: <code>@card.box = x</code> is an error, but
+                the element itself can be changed, <code>@card.box.style.color = "red"</code>.
+            </li>
+            <li>Not yet: an exported decorator that includes others.</li>
         </ul>
     </>
 }

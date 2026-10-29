@@ -1,0 +1,40 @@
+// Декоратор может включать другие: они применяются вместе с ним, а компонент
+// читает все их публичные члены через него
+dec likes() {
+    public state count = 0
+
+    public func like() {
+        count++
+    }
+}
+
+// Публичный ref даёт компоненту элемент обёртки
+dec framed(title string) {
+    public ref box
+    return (content Element) => <section ref={box} class="card">
+        <b>{title}</b>
+        {content}
+    </section>
+}
+
+// Аргументы включённых декораторов видят параметры card
+dec card(title string) includes framed(title), likes {
+    public derived popular = @likes.count >= 3
+}
+
+@card(name)
+comp Fruit(name string) {
+    func like() {
+        @card.like()
+        if @card.popular {
+            @card.box.style.borderColor = "#f5a623"
+        }
+    }
+
+    return <p>
+        <button onClick={like()}>♥ {@card.count}</button>
+        {if @card.popular { <i> популярно</i> }}
+    </p>
+}
+
+document.body.append(<Fruit name="Манго" />, <Fruit name="Гуава" />)

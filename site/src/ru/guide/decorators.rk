@@ -14,15 +14,15 @@ export comp Decorators() {
         <ul>
             <li>
                 Компонент видит только <b>публичное</b>: читает <code>public state</code>,
-                {" "}<code>public derived</code> и <code>public const</code> через
-                {" "}<code>get(@ticker.ticks)</code> и вызывает
-                {" "}<code>public func</code> как <code>@ticker.toggle()</code>. В разметке
-                {" "}<code>get</code> обновляется, как собственное состояние компонента. Остальные
+                {" "}<code>public derived</code> и <code>public const</code> как
+                {" "}<code>@ticker.ticks</code> и вызывает <code>public func</code> как
+                {" "}<code>@ticker.toggle()</code>. В разметке <code>@ticker.ticks</code>
+                обновляется, как собственное состояние компонента. Остальные
                 имена декоратора — его собственные и не пересекаются с именами компонента.
             </li>
             <li>
                 Вне декоратора его члены <b>только для чтения</b>:
-                {" "}<code>get(@ticker.ticks) = 0</code> — ошибка, изменения идут через его
+                {" "}<code>@ticker.ticks = 0</code> — ошибка, изменения идут через его
                 публичные функции. <code>public let</code> нет.
             </li>
             <li>
@@ -58,7 +58,7 @@ export comp Decorators() {
             </li>
             <li>
                 <code>dec quantityBadge() needs quantity</code> может использовать
-                {" "}<code>get(@quantity.count)</code> даже в своём теле, поэтому
+                {" "}<code>@quantity.count</code> даже в своём теле, поэтому
                 {" "}<code>@quantity</code> должен быть применён выше.
             </li>
             <li>
@@ -67,7 +67,26 @@ export comp Decorators() {
                 встраивается туда, поэтому он не может присваивать переменные своего модуля, а
                 декораторы, которые ему нужны, тоже экспортируются.
             </li>
-            <li>Ещё нет: объединения декораторов.</li>
+        </ul>
+        <p>
+            Декоратор может <b>включать</b> другие:
+            {" "}<code>dec card(title string) includes framed(title), likes</code> применяет их
+            вместе с собой, выше своего тела, а их аргументы видят его параметры. Компонент читает
+            все их публичные члены через него, <code>@card.count</code>.
+            {" "}<code>public ref</code> даёт компоненту элемент обёртки.
+        </p>
+        <Example name="decorator-includes" />
+        <ul>
+            <li>
+                <code>@card</code> считается применённым <code>@likes</code>: он выполняет
+                {" "}<code>needs likes</code> декоратора ниже, а <code>@likes</code> рядом с ним
+                применён дважды. Два члена с одним именем — ошибка.
+            </li>
+            <li>
+                Ref всегда указывает на свой элемент: <code>@card.box = x</code> — ошибка, но сам
+                элемент менять можно, <code>@card.box.style.color = "red"</code>.
+            </li>
+            <li>Ещё нет: экспортированного декоратора, который включает другие.</li>
         </ul>
     </>
 }

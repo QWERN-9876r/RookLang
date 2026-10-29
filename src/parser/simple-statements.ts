@@ -91,7 +91,6 @@ export abstract class SimpleStatementParser extends ParserBase {
     // Members of decorators are read-only outside them: the checker explains it.
     const assignable =
       target.kind === 'Identifier' ||
-      target.kind === 'DecoratorGet' ||
       target.kind === 'DecoratorMember' ||
       ((target.kind === 'MemberExpression' || target.kind === 'IndexExpression') &&
         !target.optional);

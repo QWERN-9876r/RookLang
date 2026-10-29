@@ -26,8 +26,23 @@
           "comment": "`needs` is a keyword only after the parameters of a decorator: `dec cartBadge() needs cart, auth {`.",
           "begin": "(?<=\\))\\s*(needs)(?=\\s+[A-Za-z_$])",
           "beginCaptures": { "1": { "name": "storage.modifier.needs.rook" } },
+          "end": "(?=\\{|\\s+includes\\s)",
+          "patterns": [
+            { "name": "entity.name.function.decorator.rook", "match": "[A-Za-z_$][\\w$]*" },
+            { "name": "punctuation.separator.comma.rook", "match": "," }
+          ]
+        },
+        {
+          "comment": "`includes` is a keyword only after the parameters or the needs of a decorator: `dec shop(n number) includes counter(n), cart {`.",
+          "begin": "(?<=[)\\w$])\\s+(includes)(?=\\s+[A-Za-z_$])",
+          "beginCaptures": { "1": { "name": "storage.modifier.includes.rook" } },
           "end": "(?=\\{)",
           "patterns": [
+            {
+              "begin": "\\(",
+              "end": "\\)",
+              "patterns": [{ "include": "source.rook#statements" }]
+            },
             { "name": "entity.name.function.decorator.rook", "match": "[A-Za-z_$][\\w$]*" },
             { "name": "punctuation.separator.comma.rook", "match": "," }
           ]

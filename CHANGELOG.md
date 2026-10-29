@@ -10,8 +10,20 @@ to change it under **Breaking**. A patch version (0.3.5) never does: it adds and
 
 ## Unreleased
 
+### Breaking
+
+- A public member of a decorator is read as `@visible.shown`, without `get`: `get(@visible.shown)`
+  is now an error that shows the new form. Decorators are experimental, so the old form is not kept.
+  Write `@visible.shown` everywhere, in markup too: `{if @visible.shown { ... }}`.
+
 ### Added
 
+- A decorator can include others: `dec card(title string) includes framed(title), likes { ... }`
+  applies them with it, above its own body, and their arguments see its parameters. The component
+  reads their public members through it, `@card.count`; `@card` counts as `@likes` applied, for
+  `needs` and for applying twice. An exported decorator cannot include others yet.
+- `public ref` in a decorator: the component reads the element of the wrapper as `@framed.box`.
+  The ref is read-only, its element is not: `@framed.box.title = "Card"`.
 - A `derived` of several statements is a block that returns the value:
   `derived summary string { ...; return text }`. The type may be left out, and is then inferred
   from the `return`s. In JS the block becomes a function, called first and by the updates of what

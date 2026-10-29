@@ -35,7 +35,7 @@ let $$stopwatch1, $$mountNode2;
   });
   const $$text8 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
   $$button7.append($$text8);
-  $$p5.append(label, ": ", $$text6, " s", " ", $$button7);
+  $$p5.append(label, ": ", $$text6, " s", $$button7);
 
   function $$updateTicker$running4() {
     if (!$$stopwatch1) return;
@@ -76,7 +76,7 @@ let $$stopwatch9, $$mountNode10;
   });
   const $$text16 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
   $$button15.append($$text16);
-  $$p13.append(label, ": ", $$text14, " s", " ", $$button15);
+  $$p13.append(label, ": ", $$text14, " s", $$button15);
 
   function $$updateTicker$running12() {
     if (!$$stopwatch9) return;

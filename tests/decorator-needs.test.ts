@@ -27,14 +27,14 @@ const cart = `dec cart() {
 
 /** Reads and calls the members of `cart` in its body, its functions and its wrapper. */
 const badge = (needs = ' needs cart', more = '') => `dec cartBadge()${needs} {
-    const start number = get(@cart.count)
+    const start number = @cart.count
 
     func addTwice() {
         @cart.add()
         @cart.add()
     }
 ${more}
-    return (content Element) => <div>{content}<span onClick={addTwice()}>{get(@cart.count)}</span></div>
+    return (content Element) => <div>{content}<span onClick={addTwice()}>{@cart.count}</span></div>
 }
 `;
 
@@ -63,7 +63,7 @@ describe('syntax', () => {
 describe('types', () => {
   it('gives a decorator the members of the ones it needs, wherever they are declared', () => {
     expect(errors(badge() + cart + card('@cart\n@cartBadge'))).toEqual([]);
-    expect(errors(cart + badge(' needs cart', '    const s string = get(@cart.count)\n'))).toEqual([
+    expect(errors(cart + badge(' needs cart', '    const s string = @cart.count\n'))).toEqual([
       'cannot use number as string',
     ]);
   });
@@ -81,7 +81,7 @@ describe('types', () => {
   it('reports wrong needs', () => {
     expect(errors(cart + badge(''))).toEqual(
       Array(4).fill(
-        '@cartBadge can use @cart only if it needs it: write "needs cart" after its parameters',
+        '@cartBadge can use @cart only if it needs or includes it: write "needs cart" after its parameters',
       ),
     );
     expect(errors(`${cart}dec a() needs cart, auth {\n}`)).toEqual(['unknown decorator @auth']);
@@ -90,16 +90,16 @@ describe('types', () => {
       '@cart is needed twice: name it once',
     ]);
     expect(errors('dec a() needs b {\n}\ndec b() needs c {\n}\ndec c() needs a {\n}')).toEqual([
-      'decorators cannot need each other: @a needs @b, @b needs @c, @c needs @a; remove one of the needs',
+      'decorators cannot need or include each other: @a needs @b, @b needs @c, @c needs @a; remove one of them',
     ]);
-    expect(errors('dec a() {\n    public state x = 1\n    const y = get(@a.x)\n}')).toEqual([
+    expect(errors('dec a() {\n    public state x = 1\n    const y = @a.x\n}')).toEqual([
       'inside @a its members are used by their names: x',
     ]);
   });
 
   it('keeps the members of the needed decorator read-only', () => {
     expect(
-      errors(cart + badge(' needs cart', '    func f() {\n        get(@cart.count) = 1\n    }\n')),
+      errors(cart + badge(' needs cart', '    func f() {\n        @cart.count = 1\n    }\n')),
     ).toEqual([
       '"count" of @cart is read-only outside it; change it with one of its public functions, e.g. @cart.add()',
     ]);

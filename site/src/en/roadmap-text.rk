@@ -194,7 +194,10 @@ export comp RoadmapText() {
                 <code>derived</code> of several statements:
                 {" "}<code>{"derived total number { ... return sum }"}</code>. <i>Done.</i>
             </li>
-            <li>Combining decorators, and <code>public ref</code> in decorators.</li>
+            <li>
+                Combining decorators, and <code>public ref</code> in decorators:
+                {" "}<code>dec card() includes framed, likes</code>. <i>Done.</i>
+            </li>
             <li>A component that returns <code>null</code> for a wrapper.</li>
             <li>Refs in <code>{"{if}"}</code>, <code>{"{switch}"}</code> and <code>{"{for}"}</code>, and one ref in several returns.</li>
             <li><code>rook build --explain</code>: where the compiler did not inline, and why.</li>

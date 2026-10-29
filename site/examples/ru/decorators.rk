@@ -18,12 +18,12 @@ dec ticker(interval number = 1000) {
     }
 }
 
-// Компонент читает публичное состояние через get(@...) и вызывает публичные функции через @
+// Компонент читает публичное состояние как @имя.член и вызывает публичные функции как @имя.f()
 @ticker
 comp Stopwatch(label string) {
     return <p class="card">
-        {label}: {get(@ticker.ticks)} с{" "}
-        <button onClick={@ticker.toggle()}>{get(@ticker.running) ? "Пауза" : "Дальше"}</button>
+        {label}: {@ticker.ticks} с
+        <button onClick={@ticker.toggle()}>{@ticker.running ? "Пауза" : "Дальше"}</button>
     </p>
 }
 
@@ -32,7 +32,7 @@ const FRAMES = ["◐", "◓", "◑", "◒"]
 
 @ticker(150)
 comp Spinner() {
-    return <p class="card">{FRAMES[get(@ticker.ticks) % FRAMES.length]}</p>
+    return <p class="card">{FRAMES[@ticker.ticks % FRAMES.length]}</p>
 }
 
 document.body.append(<Stopwatch label="Чай" />, <Stopwatch label="Яйца" />, <Spinner />)

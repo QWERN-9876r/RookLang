@@ -17,9 +17,6 @@ export function rootName(node: ast.Expression): string | null {
     case 'CallExpression':
       return rootName(node.callee);
 
-    case 'DecoratorGet':
-      return rootName(node.target);
-
     case 'DecoratorMember':
       return decoratedName(node.decorator.name, node.member.name);
 

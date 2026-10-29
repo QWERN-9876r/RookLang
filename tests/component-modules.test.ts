@@ -44,7 +44,7 @@ dec counter() {
 
 @counter
 export comp Clicker() {
-    return <button onClick={@counter.add()}>{get(@counter.clicks)}</button>
+    return <button onClick={@counter.add()}>{@counter.clicks}</button>
 }
 
 type Item { name string; children []Item }
@@ -64,7 +64,7 @@ dec counter() {
 @counter
 comp App() {
     state count = 1
-    return <div title={\`\${get(@counter.clicks)}\`}>
+    return <div title={\`\${@counter.clicks}\`}>
         <button onClick={count++}>+</button>
         <Box title="a" count={count}><p>inside</p></Box>
         <Clicker />

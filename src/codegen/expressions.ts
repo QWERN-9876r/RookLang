@@ -154,9 +154,6 @@ export abstract class ExpressionEmitter extends Emitter {
       case 'DecoratorMember':
         return [decoratedName(node.decorator.name, node.member.name), PRIMARY];
 
-      case 'DecoratorGet':
-        return [decoratedName(node.target.decorator.name, node.target.member.name), PRIMARY];
-
       case 'ThisExpression':
         return ['this', PRIMARY];
 

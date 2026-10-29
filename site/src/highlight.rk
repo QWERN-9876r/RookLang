@@ -96,10 +96,10 @@ func tokenClass(tokens any, i number, language string) string {
     if isDecorator(tokens, i) {
         return "fn"
     }
-    if language != "js" && (isNeeds(tokens, i) || isWithKey(tokens, i)) {
+    if language != "js" && (isNeeds(tokens, i) || isIncludes(tokens, i) || isWithKey(tokens, i)) {
         return "kw"
     }
-    if language != "js" && isNeeded(tokens, i) {
+    if language != "js" && (isNeeded(tokens, i) || isIncluded(tokens, i)) {
         return "fn"
     }
     switch kind {
@@ -224,6 +224,49 @@ func isNeeded(tokens any, i number) bool {
         j -= 2
     }
     return j > 0 && isNeeds(tokens, j)
+}
+
+// includes is a keyword only after the parameters or the needs of a decorator:
+// dec shop(n number) includes counter(n), cart {
+func isIncludes(tokens any, i number) bool {
+    return tokens[i].text == "includes" && i > 0 &&
+        (tokens[i - 1].kind == ")" || tokens[i - 1].kind == "Identifier") &&
+        tokens[i + 1].kind == "Identifier"
+}
+
+// The decorators after includes: counter and cart in includes counter(n), cart
+func isIncluded(tokens any, i number) bool {
+    if tokens[i].kind != "Identifier" {
+        return false
+    }
+    let j = i - 1
+    for j > 0 && tokens[j].kind == "," {
+        j--
+        if tokens[j].kind == ")" {
+            j = openingParen(tokens, j) - 1
+        }
+        if j < 0 || tokens[j].kind != "Identifier" {
+            return false
+        }
+        j--
+    }
+    return j > 0 && isIncludes(tokens, j)
+}
+
+// The ( that the ) at i closes, or -1
+func openingParen(tokens any, i number) number {
+    let depth = 0
+    for let j = i; j >= 0; j-- {
+        if tokens[j].kind == ")" {
+            depth++
+        } else if tokens[j].kind == "(" {
+            depth--
+            if depth == 0 {
+                return j
+            }
+        }
+    }
+    return -1
 }
 
 func isCapitalized(text string) bool {

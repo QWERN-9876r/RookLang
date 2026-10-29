@@ -1,5 +1,6 @@
 import type * as ast from './ast.ts';
 import { type CopyListener, renamer } from './decorator-copy.ts';
+import { aliases, decoratedName } from './decorator-names.ts';
 import { declaredIn, freeNames, mentionsName, topLevelNames } from './names.ts';
 import { containsReturn } from './recursion.ts';
 import { forEachChild } from './walk.ts';
@@ -8,10 +9,7 @@ import { forEachChild } from './walk.ts';
 // bodies of its decorators first. The checker uses it to see what the inlined code uses, the
 // generator to write it.
 
-/** The JS name of a member or a parameter of a decorator, in the components it is applied to. */
-export function decoratedName(decorator: string, member: string): string {
-  return `$$${decorator}$${member}`;
-}
+export { decoratedName, publicMembers } from './decorator-names.ts';
 
 const argumentDeclarations = new WeakSet<ast.VariableDeclaration>();
 const wrappedContents = new WeakSet<ast.Expression>();
@@ -111,7 +109,7 @@ interface AppliedWrapper {
  * The component with its decorators applied. Its body first declares the arguments of each
  * decorator and runs its body, from the top decorator down, then runs the component's own body.
  * The names of a decorator get its prefix, `$$visible$shown`, so they clash neither with each other
- * nor with the component's names, and `get(@visible.shown)` reads that variable. The `mount()` of
+ * nor with the component's names, and `@visible.shown` reads that variable. The `mount()` of
  * the decorators runs after the component's own, from the inside out, so it goes before every
  * `return` of the component's body.
  *
@@ -130,31 +128,42 @@ export function decorate(
 ): ast.ComponentDeclaration {
   if (component.decorators.length === 0) return component;
 
-  const props = new Set(component.params.map((param) => param.name.name));
+  // Arguments that read the properties, or such arguments of a decorator that includes another,
+  // are state: they change with them.
+  const reactive = new Set(component.params.map((param) => param.name.name));
   const setup: ast.Statement[] = [];
   const mounts: ast.Statement[][] = [];
   const wrappers: AppliedWrapper[] = [];
-
-  for (const use of component.decorators) {
-    const source = decorators.get(use.name.name);
-
-    if (!source) continue;
-
+  // `argument` copies an argument into the component: one of the component stays as it is, one of
+  // a decorator it includes is that decorator's code.
+  const apply = (
+    source: DecoratorSource,
+    args: readonly ast.Expression[],
+    argument: (value: ast.Expression) => ast.Expression,
+    applying: ReadonlySet<ast.DecoratorDeclaration>,
+  ): void => {
     const decorator = source.node;
+    // A decorator that includes itself, through others too, is reported by the checker.
+    const inner = new Set([...applying, decorator]);
     const prefix = prefixes?.get(decorator.name.name) ?? decorator.name.name;
     const names = [...decoratorNames(decorator), ...source.moduleNames];
     const renames = membersOf(prefix, names);
     const copy = renamer(renames, copied, { decorators: prefixes, tags: source.tags });
 
     decorator.params.forEach((param, i) => {
-      // A default value is the decorator's code, an argument the component's.
-      const value = use.arguments[i] ?? (param.defaultValue && copy(param.defaultValue, new Set()));
+      const given = args[i];
+      // A default value is the decorator's code.
+      const value = given
+        ? argument(given)
+        : param.defaultValue && copy(param.defaultValue, new Set());
+      const name = renames.get(param.name.name)!;
+      const changes = value !== null && value !== undefined && mentionsName(value, reactive);
       const declaration: ast.VariableDeclaration = {
         kind: 'VariableDeclaration',
         exported: false,
         isPublic: false,
-        keyword: value && mentionsName(value, props) ? 'state' : 'const',
-        names: [{ ...param.name, name: renames.get(param.name.name)! }],
+        keyword: changes ? 'state' : 'const',
+        names: [{ ...param.name, name }],
         type: param.type,
         values: value ? [value] : [],
         body: null,
@@ -162,10 +171,19 @@ export function decorate(
         end: param.end,
       };
 
+      if (changes) reactive.add(name);
       argumentDeclarations.add(declaration);
       copied?.(declaration, param);
       setup.push(declaration);
     });
+
+    for (const use of decorator.includes) {
+      const included = decorators.get(use.name.name);
+
+      if (!included || inner.has(included.node)) continue;
+      apply(included, use.arguments, (value) => copy(value, new Set()), inner);
+      setup.push(...aliases(included, use, prefix, decorators, prefixes));
+    }
 
     const wrapper = wrapperOf(decorator);
     const own: ast.Statement[] = [];
@@ -181,6 +199,12 @@ export function decorate(
 
     mounts.push(own);
     if (wrapper) wrappers.push(applyWrapper(source, wrapper, copied, prefix, prefixes));
+  };
+
+  for (const use of component.decorators) {
+    const source = decorators.get(use.name.name);
+
+    if (source) apply(source, use.arguments, (value) => value, new Set());
   }
 
   const inside = mounts.reverse().flat();

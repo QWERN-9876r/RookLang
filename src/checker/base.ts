@@ -36,7 +36,7 @@ import {
 // The type checker is a chain of layers, one per area, like the code generator: base → imports →
 // declarations → class members → classes → resolution → initializers → assignments → statements → control flow →
 // tagged unions → functions → expressions → array literals → operators → markup → forwarding → components → component values →
-// refs → styles → decorator wrappers → decorator exports → decorators → decorator members →
+// refs → styles → decorator wrappers → decorator exports → decorators → decorator includes → decorator members →
 // members → calls → goroutines → channels → signals → queues → topics → decode → try → bytes → loops → go for →
 // iterators → closing → completion → Checker (checker.ts). Statements, expressions and markup
 // check each other recursively, so methods of later layers that earlier ones call are declared
@@ -136,8 +136,6 @@ export abstract class CheckerBase {
   protected abstract wrappedType(info: ComponentInfo, own: Type, seen: Set<ComponentInfo>): Type;
 
   protected abstract checkDecoratorMember(node: ast.DecoratorMember): Type;
-
-  protected abstract checkDecoratorGet(node: ast.DecoratorGet): Type;
 
   protected abstract checkDecoratorWrite(target: ast.Expression): boolean;
 

@@ -89,7 +89,8 @@ Rook компилируется в читаемый JavaScript с теми же 
   `d.address`, а `{ kind: "pickup", shop: "..." }` подходит к объединению. _(сделано, вместе с
   сужением путей: `order.delivery.kind`)_
 - `derived` из нескольких операторов: `derived total number { ... return sum }`. _(сделано)_
-- Объединение декораторов и `public ref` в декораторах.
+- Объединение декораторов и `public ref` в декораторах: `dec card() includes framed, likes`.
+  _(сделано)_
 - Компонент, который возвращает `null` для обёртки.
 - Ref в `{if}`, `{switch}` и `{for}` и один ref в нескольких `return`.
 - `rook build --explain`: где компилятор не встроил компонент или добавил прокси, и почему.

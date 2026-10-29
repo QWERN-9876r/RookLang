@@ -3,8 +3,8 @@ import { DeclarationParser } from './declarations.ts';
 import { describe, FUNCTION_BODY } from './syntax.ts';
 
 // Decorators: their declarations `dec name(...) { ... }`, the decorators written before `comp`
-// (`@html-tag` and `@visible("300px")`), and the access to their members, `get(@visible.shown)`
-// and `@visible.show()`.
+// (`@html-tag` and `@visible("300px")`), and the access to their members, `@visible.shown` and
+// `@visible.show()`.
 
 export abstract class DecoratorParser extends DeclarationParser {
   /** `dec visible(margin string = "0px") { ... }`: `dec` is a keyword only here. */
@@ -31,6 +31,7 @@ export abstract class DecoratorParser extends DeclarationParser {
     const name = this.parseIdentifier('decorator name');
     const params = this.parseParams(false, true);
     const needs = this.parseNeeds();
+    const includes = this.parseIncludes();
     const body = this.withContext({ ...FUNCTION_BODY, inComponent: true }, () =>
       this.parseDecoratorBody(),
     );
@@ -41,6 +42,7 @@ export abstract class DecoratorParser extends DeclarationParser {
       name,
       params,
       needs,
+      includes,
       body,
       ...this.span(start),
     };
@@ -60,6 +62,40 @@ export abstract class DecoratorParser extends DeclarationParser {
     while (this.accept(',')) needs.push(this.parseIdentifier('decorator name'));
 
     return needs;
+  }
+
+  /** `includes visible(margin), cart` after `needs`: `includes` is a keyword only here. */
+  protected parseIncludes(): ast.DecoratorUse[] {
+    if (!this.checkWord('includes')) return [];
+    if (this.peek(1).kind !== 'Identifier') {
+      this.fail('"includes" is followed by the decorators this one applies, e.g. includes cart');
+    }
+
+    this.next();
+
+    const includes = [this.parseIncluded()];
+
+    while (this.accept(',')) includes.push(this.parseIncluded());
+
+    return includes;
+  }
+
+  /** `visible(margin)` or `cart`: like a decorator before `comp`, without the `@`. */
+  protected parseIncluded(): ast.DecoratorUse {
+    const name = this.parseIdentifier('decorator name');
+    const args = this.check('(') ? this.parseArguments() : [];
+    const spread = args.find((arg) => arg.kind === 'SpreadElement');
+
+    if (spread) {
+      this.error('arguments of a decorator cannot be spread', spread.start, spread.end);
+    }
+
+    return {
+      kind: 'DecoratorUse',
+      name,
+      arguments: args.filter((arg) => arg.kind !== 'SpreadElement'),
+      ...this.span(name.start),
+    };
   }
 
   /** Like the body of a component, but `state`, `const` and `func` may be `public`. */
@@ -104,8 +140,15 @@ export abstract class DecoratorParser extends DeclarationParser {
       return declaration;
     }
 
-    if (!this.check('const') && !this.check('let') && !this.isStateDeclaration()) {
-      this.fail(`only state, derived, const and func can be public, not ${describe(this.peek())}`);
+    if (
+      !this.check('const') &&
+      !this.check('let') &&
+      !this.isStateDeclaration() &&
+      !this.isRefDeclaration()
+    ) {
+      this.fail(
+        `only state, derived, const, ref and func can be public, not ${describe(this.peek())}`,
+      );
     }
 
     const declaration = this.parseVariableDeclaration(modifier.start, false);
@@ -199,20 +242,8 @@ export abstract class DecoratorParser extends DeclarationParser {
   /** `@visible("300px")` or `@visible`: the arguments are positional, as in a call. */
   protected parseDecoratorUse(): ast.DecoratorUse {
     const at = this.expect('@');
-    const name = this.parseIdentifier('decorator name');
-    const args = this.check('(') ? this.parseArguments() : [];
-    const spread = args.find((arg) => arg.kind === 'SpreadElement');
 
-    if (spread) {
-      this.error('arguments of a decorator cannot be spread', spread.start, spread.end);
-    }
-
-    return {
-      kind: 'DecoratorUse',
-      name,
-      arguments: args.filter((arg) => arg.kind !== 'SpreadElement'),
-      ...this.span(at.start),
-    };
+    return { ...this.parseIncluded(), ...this.span(at.start) };
   }
 
   /** `@visible.show`: a member of a decorator; a statement may start with it. */
@@ -233,20 +264,26 @@ export abstract class DecoratorParser extends DeclarationParser {
     return { kind: 'DecoratorMember', decorator, member, ...this.span(at.start) };
   }
 
-  /** `get(@visible.shown)`: `get` is special only when its argument starts with `@`. */
+  /** `get(@visible.shown)`, the old way to read a member: reported, and read as the member. */
   protected isDecoratorGet(): boolean {
     return this.checkWord('get') && this.peek(1).kind === '(' && this.peek(2).kind === '@';
   }
 
-  protected parseDecoratorGet(): ast.DecoratorGet {
+  protected parseDecoratorGet(): ast.DecoratorMember {
     const start = this.next().start;
 
     this.expect('(');
 
     const target = this.parseDecoratorMember();
+    const { decorator, member } = target;
 
-    this.expect(')', '")": get takes one member of a decorator, e.g. get(@visible.shown)');
+    this.expect(')');
+    this.error(
+      `read a member of a decorator without get: @${decorator.name}.${member.name}`,
+      start,
+      this.span(start).end,
+    );
 
-    return { kind: 'DecoratorGet', target, ...this.span(start) };
+    return target;
   }
 }

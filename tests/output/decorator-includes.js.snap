@@ -1,0 +1,133 @@
+// decorator-includes.js
+
+import { $$branches, $$element } from "rooklang/runtime";
+
+// <Fruit>
+let $$fruit1;
+{
+  const name = "Mango";
+  let $$card$title = name;
+  let $$framed$title = $$card$title;
+  const $$framed$box = $$element("section", { className: "card" });
+
+  const $$card$box = $$framed$box;
+  let $$likes$count = 0;
+
+  function $$likes$like() {
+    $$likes$count++;
+    $$updateLikes$count4();
+  }
+
+  let $$card$count = $$likes$count;
+  const $$card$like = $$likes$like;
+  let $$card$popular = $$likes$count >= 3;
+
+  function like() {
+    $$card$like();
+    if ($$card$popular) {
+      $$card$box.style.borderColor = "#f5a623";
+    }
+  }
+
+  const $$framed$content = $$element("p");
+  const $$button5 = $$element("button");
+  $$button5.addEventListener("click", () => {
+    like();
+  });
+  const $$text6 = document.createTextNode($$card$count);
+  $$button5.append("♥ ", $$text6);
+  const [$$if7, $$updateIf7] = $$branches(() => $$card$popular ? 0 : -1, [() => {
+    const $$block8 = document.createDocumentFragment();
+    const $$i9 = $$element("i");
+    $$i9.append(" popular");
+    $$block8.append($$i9);
+    return [$$block8];
+  }]);
+  $$framed$content.append($$button5, $$if7);
+  const $$b10 = $$element("b");
+  const $$text11 = document.createTextNode($$framed$title);
+  $$b10.append($$text11);
+  $$framed$box.append($$b10, $$framed$content);
+
+  function $$updateFramed$title3() {
+    if (!$$fruit1) return;
+    $$text11.data = $$framed$title;
+  }
+
+  function $$updateLikes$count4() {
+    $$card$count = $$likes$count;
+    $$card$popular = $$likes$count >= 3;
+    if (!$$fruit1) return;
+    $$text6.data = $$card$count;
+    $$updateIf7();
+  }
+
+  $$fruit1 = $$framed$box;
+}
+// <Fruit>
+let $$fruit12;
+{
+  const name = "Guava";
+  let $$card$title = name;
+  let $$framed$title = $$card$title;
+  const $$framed$box = $$element("section", { className: "card" });
+
+  const $$card$box = $$framed$box;
+  let $$likes$count = 0;
+
+  function $$likes$like() {
+    $$likes$count++;
+    $$updateLikes$count15();
+  }
+
+  let $$card$count = $$likes$count;
+  const $$card$like = $$likes$like;
+  let $$card$popular = $$likes$count >= 3;
+
+  function like() {
+    $$card$like();
+    if ($$card$popular) {
+      $$card$box.style.borderColor = "#f5a623";
+    }
+  }
+
+  const $$framed$content = $$element("p");
+  const $$button16 = $$element("button");
+  $$button16.addEventListener("click", () => {
+    like();
+  });
+  const $$text17 = document.createTextNode($$card$count);
+  $$button16.append("♥ ", $$text17);
+  const [$$if18, $$updateIf18] = $$branches(() => $$card$popular ? 0 : -1, [() => {
+    const $$block19 = document.createDocumentFragment();
+    const $$i20 = $$element("i");
+    $$i20.append(" popular");
+    $$block19.append($$i20);
+    return [$$block19];
+  }]);
+  $$framed$content.append($$button16, $$if18);
+  const $$b21 = $$element("b");
+  const $$text22 = document.createTextNode($$framed$title);
+  $$b21.append($$text22);
+  $$framed$box.append($$b21, $$framed$content);
+
+  function $$updateFramed$title14() {
+    if (!$$fruit12) return;
+    $$text22.data = $$framed$title;
+  }
+
+  function $$updateLikes$count15() {
+    $$card$count = $$likes$count;
+    $$card$popular = $$likes$count >= 3;
+    if (!$$fruit12) return;
+    $$text17.data = $$card$count;
+    $$updateIf18();
+  }
+
+  $$fruit12 = $$framed$box;
+}
+document.body.append($$fruit1, $$fruit12);
+
+// decorator-includes.d.ts
+
+export {};

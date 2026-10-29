@@ -1022,9 +1022,9 @@ attrs?.($$button4);
 
 > **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
 
-> Implemented: declarations, arguments, public members with `get`, `mount()`, wrappers, `needs`
-> and exporting. Not yet: renaming a decorator on import, a `return` inside the `if` or `for` of
-> a wrapper, and combining decorators.
+> Implemented: declarations, arguments, public members, `mount()`, wrappers, `needs`,
+> `includes` and exporting. Not yet: renaming a decorator on import, a `return` inside the `if` or
+> `for` of a wrapper, and an exported decorator that includes others.
 
 A decorator adds logic to a component: its own state, functions, `mount()` and a wrapper around
 what the component returns. Components are not only markup, and the logic many of them share
@@ -1072,7 +1072,7 @@ comp Playground() {
     }
 
     return <section>
-        {if get(@visible.shown) {
+        {if @visible.shown {
             <Editor source={source} />
         }}
     </section>
@@ -1091,17 +1091,18 @@ comp Playground() {
   evaluated for every instance in the scope of the component's parameters, so
   `@card(product.price)` works on `comp ProductCard(product Product)`. When the parameter changes,
   the decorator gets the new value, like a property of a child component.
-- **Public members** — `public state`, `public derived`, `public const` and `public func` — are
+- **Public members** — `public state`, `public derived`, `public const`, `public ref` and
+  `public func` — are
   visible to the component:
-  - reading is `get(@visible.shown)`; in markup it updates like a read of the component's own
-    state;
+  - reading is `@visible.shown`; in markup it updates like a read of the component's own state;
   - calling is `@visible.show()`;
+  - a `public ref` is read as `@framed.box`: it always points to the element of the wrapper, so
+    assigning it is an error, but the element can be changed, `@framed.box.title = "Card"`;
   - writing from outside is an error:
     `"shown" of @visible is read-only outside it; change it with one of its public functions, e.g. @visible.show()`.
     As with the properties of components, a decorator keeps its state consistent itself;
-  - `get` is special only when its argument starts with `@`, so the program's own `get(url)` still
-    works. `visible.shown` without `@` and `@visible.shown` outside `get` are errors that suggest
-    `get(@visible.shown)`;
+  - `visible.shown` without `@` is an error that suggests `@visible.shown`. The earlier
+    `get(@visible.shown)` is an error too, which shows the new form;
   - there is no `public let`: a value that changes and is read outside is a `state` (or a
     `derived` one, computed from state), and one that does not change is a `const`.
 
@@ -1157,7 +1158,7 @@ dec cart() {
 dec cartBadge() needs cart {
     return (content Element) => <div class="with-badge">
         {content}
-        <span class="badge">{get(@cart.count)}</span>
+        <span class="badge">{@cart.count}</span>
     </div>
 }
 
@@ -1177,7 +1178,7 @@ The body of `cartBadge` may read the state of `cart` at creation, so `cart` must
 `dec checkout() needs cart, auth { ... }`.
 
 **Compilation.** A decorator is inlined like a component: its body goes into the block of every
-instance before the body of the component, with its names renamed. `get(@visible.shown)` becomes a
+instance before the body of the component, with its names renamed. `@visible.shown` becomes a
 read of that variable and `@visible.show()` a call of that function, and the updates of the
 decorator's state include the component's markup that reads it. The wrapper's markup is created
 around the result of the component. There are no decorator objects and no runtime. A decorator of
@@ -1188,8 +1189,49 @@ of another module: those that are functions there are called, the others are inl
 their own, `<visible$Spinner />`. They cannot use components or decorators that their module
 imports yet.
 
-**Later:** a built-in higher-order decorator will combine several decorators into one. A program
-cannot declare higher-order decorators of its own.
+**Including decorators.** A decorator can include others: they are applied with it, above its own
+body, and the component reads all their public members through it.
+
+```go
+dec likes() {
+    public state count = 0
+
+    public func like() {
+        count++
+    }
+}
+
+dec framed(title string) {
+    public ref box
+    return (content Element) => <section ref={box}><b>{title}</b>{content}</section>
+}
+
+dec card(title string) includes framed(title), likes {
+    public derived popular = @likes.count >= 3
+}
+
+@card(name)
+comp Fruit(name string) {
+    return <button onClick={@card.like()}>♥ {@card.count} {@card.popular ? "popular" : ""}</button>
+}
+```
+
+- `includes` follows the parameters and `needs`: `dec x() needs auth includes cart { ... }`. The
+  arguments of the included decorators see the parameters of the one that includes them; the body
+  may be empty, `dec shop() includes cart, cartBadge {}`.
+- `@card` is the list `@framed(title) @likes` followed by the body of `card`: the bodies run in
+  this order, then the component's; the wrapper of `card` is the closest to the component, that of
+  `framed` the outermost; `mount()` runs from the inside out.
+- Inside `card`, the included decorators are used by their names, as with `needs`:
+  `@likes.count`. The component reads all of them through `card`, `@card.count`; `@likes.count` is
+  an error that points to it. The same name from two of them, or from one of them and `card`
+  itself, is an error.
+- `@card` counts as `@likes` applied: it satisfies `needs likes` of a decorator below it, and
+  `@likes` next to it is applied twice.
+- In JS, a member that `card` gets is a variable of `card` that is the included one's:
+  `const $$card$like = $$likes$like`, and `derived` for state, so that what reads it is updated.
+- An exported decorator cannot include others yet: a module that applies it would need their code
+  too.
 
 ### Example: the test site with components
 
@@ -1331,8 +1373,8 @@ body of `for`: the code of one row of the list is written there once, and no ext
 6. ~~**Function components**~~ (recursion, exported components and the 100-line threshold are
    done) **and proxies** for state that goes into unknown code.
 7. **State shared by several components.**
-8. **Decorators (`dec`):** ~~public members, `get`, `mount()`, wrappers and `needs`~~ (done);
-   ~~exporting decorators~~ (done); later combining them.
+8. **Decorators (`dec`):** ~~public members, `mount()`, wrappers and `needs`~~ (done);
+   ~~exporting decorators~~ (done); ~~combining them~~ (done, `includes`).
 9. **State that survives a reload** (planned): a `state` that the compiler loads when the
    component is mounted and saves after each change, in IndexedDB or `localStorage`. IndexedDB
    keeps what `structuredClone` copies, the same values that `go` passes to a worker, so the check
@@ -1376,7 +1418,7 @@ body of `for`: the code of one row of the list is written there once, and no ext
     (see "Decorators"). Not for the component's own state: for logic added to it. The arguments are
     positional, evaluated in the scope of the component's parameters. Public members are
     `public state`, `public derived`, `public const` and `public func`, with no `public let`; outside they are read
-    with `get(@name.member)` and called as `@name.f()`, and writing them from outside is an error.
+    as `@name.member` and called as `@name.f()`, and writing them from outside is an error.
     The type of the wrapper's parameter is written explicitly. One decorator sees another only
     through `needs`, and the one it needs must be applied above it. A decorator applied twice is an
     error. Programs cannot declare higher-order decorators: only a built-in one will combine
@@ -1425,6 +1467,12 @@ body of `for`: the code of one row of the list is written there once, and no ext
     `derived summary string { ...; return text }`. The type may be left out and is then inferred
     from the `return`s, as for a function. The block becomes a function in JS, called first and by
     the updates of what it reads; see "Derived values" in [spec.md](spec.md).
+21. **Decorators are combined with `includes`:** `dec card(title string) includes framed(title), likes
+{ ... }` applies them above its own body. The component reads their public members through the
+    combination, `@card.count`; `@card` satisfies `needs likes` and counts as `@likes` applied. See
+    "Including decorators".
+22. **A decorator has `public ref`,** which the component reads as `@framed.box`, and all public
+    members are read without `get`: `@visible.shown`.
 
 ## Not decided yet
 
@@ -1434,23 +1482,17 @@ All of these go into 1.0 ([roadmap.md](roadmap.md)): each is decided first, then
    implicit decisions that affect the output. I propose a `rook build --explain` flag that lists
    them: "`Card` became a function: 140 extra lines", "`options` is wrapped in a proxy: passed to
    `confetti`".
-2. **Combining decorators.** The syntax of the built-in higher-order decorator is open, and so is
-   how it works with the rest: whether the public members of the combined decorators are read as
-   `get(@card.count)` or through the name of the combination, whether a combination containing
-   `cart` satisfies `needs cart`, and whether `@cart` next to a combination containing it counts as
-   applied twice.
-3. **A component that returns `null` for a wrapper.** A 404 page could be a wrapper
+2. **A component that returns `null` for a wrapper.** A 404 page could be a wrapper
    `(page ?Element) => ...` that shows it when the component returns `null`. Now a component returns
    markup only, and the choice between `return`s is made once, at creation; the reactive way is the
    decorator's state, as in `notFound` above.
-4. **Refs in `{if}`, `{switch}` and `{for}`.** An element that exists only sometimes could be a ref
+3. **Refs in `{if}`, `{switch}` and `{for}`.** An element that exists only sometimes could be a ref
    of type `?T`, and the elements of a list an array. For now such an element goes into a component
    with a ref of its own.
-5. **`public ref` in decorators,** for the component to read the element of the wrapper.
-6. **One ref in several `return`s.** Only one `return` runs, so a ref could be bound in each of them
+4. **One ref in several `return`s.** Only one `return` runs, so a ref could be bound in each of them
    when their tags are the same; the same would let a ref point to a component with several
    `return`s.
-7. **The CSS in a file of its own**, `app.css` next to `app.js` or a CSS module for Vite, instead of
+5. **The CSS in a file of its own**, `app.css` next to `app.js` or a CSS module for Vite, instead of
    `$$style`: it would be cached apart from the code.
-8. **The class of a style only on the elements that some selector can match**, as in Svelte, to
+6. **The class of a style only on the elements that some selector can match**, as in Svelte, to
    make the code shorter.

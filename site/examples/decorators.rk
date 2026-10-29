@@ -18,12 +18,12 @@ dec ticker(interval number = 1000) {
     }
 }
 
-// The component reads public state with get(@...) and calls public functions with @
+// The component reads public state as @name.member and calls public functions as @name.f()
 @ticker
 comp Stopwatch(label string) {
     return <p class="card">
-        {label}: {get(@ticker.ticks)} s{" "}
-        <button onClick={@ticker.toggle()}>{get(@ticker.running) ? "Pause" : "Go on"}</button>
+        {label}: {@ticker.ticks} s
+        <button onClick={@ticker.toggle()}>{@ticker.running ? "Pause" : "Go on"}</button>
     </p>
 }
 
@@ -32,7 +32,7 @@ const FRAMES = ["◐", "◓", "◑", "◒"]
 
 @ticker(150)
 comp Spinner() {
-    return <p class="card">{FRAMES[get(@ticker.ticks) % FRAMES.length]}</p>
+    return <p class="card">{FRAMES[@ticker.ticks % FRAMES.length]}</p>
 }
 
 document.body.append(<Stopwatch label="Tea" />, <Stopwatch label="Eggs" />, <Spinner />)

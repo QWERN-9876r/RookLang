@@ -221,11 +221,6 @@
           "match": "(?<![\\w$])(?<![^.]\\.)(?:error(?=\\s*\\()|decode(?=<))"
         },
         {
-          "comment": "`get` is special only before a member of a decorator: `get(@visible.shown)`.",
-          "name": "support.function.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)get(?=\\s*\\(\\s*@)"
-        },
-        {
           "name": "support.type.primitive.rook",
           "match": "(?<![\\w$])(?<![^.]\\.)(?:number|bigint|byte|u?int(?:8|16|32|64)|float(?:32|64)|string|bool|any|void|error|Content)(?![\\w$])"
         },

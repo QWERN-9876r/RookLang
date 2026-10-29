@@ -111,13 +111,21 @@ describe('VS Code grammar', () => {
       'entity.name.function.decorator',
     );
     expect(scopeOf('const needs = 1', 'needs')).toBe('variable.other.readwrite');
+
+    const shop = 'dec shop(n number) needs auth includes counter(n + 1), cart {';
+
+    expect(scopeOf(shop, 'includes')).toBe('storage.modifier.includes');
+    expect(scopeOf(shop, 'auth')).toBe('entity.name.function.decorator');
+    expect(scopeOf(shop, 'counter')).toBe('entity.name.function.decorator');
+    expect(scopeOf(shop, 'cart')).toBe('entity.name.function.decorator');
+    expect(scopeOf(shop, '1')).toBe('constant.numeric.decimal');
+    expect(scopeOf('const includes = 1', 'includes')).toBe('variable.other.readwrite');
     expect(scopeOf('    public state shown = false', 'public')).toBe('storage.modifier');
     expect(scopeOf('    public state shown = false', 'state')).toBe('storage.type.state');
     expect(scopeOf('    public func show() {', 'func')).toBe('storage.type.function');
     expect(scopeOf('@visible("300px")', 'visible')).toBe('entity.name.function.decorator');
     expect(scopeOf('    @visible.show()', 'visible')).toBe('entity.name.function.decorator');
-    expect(scopeOf('    if get(@visible.shown) {', 'get')).toBe('support.function');
-    expect(scopeOf('    params.get("q")', 'get')).not.toBe('support.function');
+    expect(scopeOf('    if @visible.shown {', 'visible')).toBe('entity.name.function.decorator');
   });
 
   it('treats mount() as a keyword only at the start of a statement', () => {

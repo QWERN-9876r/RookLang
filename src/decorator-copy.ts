@@ -43,7 +43,7 @@ function isNode(value: unknown): value is ast.Node {
 
 /**
  * Renames of the names that are not values: tags of components, `<Icon />`, and decorators,
- * `get(@visible.shown)`. Code of another module refers to those of its own module.
+ * `@visible.shown`. Code of another module refers to those of its own module.
  */
 export interface OtherNames {
   tags?: ReadonlyMap<string, string>;

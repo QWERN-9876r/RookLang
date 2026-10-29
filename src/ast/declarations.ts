@@ -109,6 +109,11 @@ export interface DecoratorDeclaration extends NodeBase {
   params: Parameter[];
   /** `needs cart, auth`: the decorators whose public members it uses; they are applied above it. */
   needs: Identifier[];
+  /**
+   * `includes visible(margin), cart`: decorators applied with it, above its own body, whose
+   * arguments see its parameters. Their public members are its own for the component, `@shop.count`.
+   */
+  includes: DecoratorUse[];
   body: BlockStatement;
 }
 
@@ -132,8 +137,8 @@ export interface VariableDeclaration extends NodeBase {
   exported: boolean;
   keyword: 'let' | 'const' | 'state' | 'derived' | 'ref';
   /**
-   * `public state`, `public derived` or `public const` in a decorator: the component reads it with
-   * `get(@name.x)`.
+   * `public state`, `public derived` or `public const` in a decorator: the component reads it as
+   * `@name.x`.
    */
   isPublic: boolean;
   /** `_` is an ordinary identifier here; the checker treats it as "skip this value". */

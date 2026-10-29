@@ -113,7 +113,8 @@ export abstract class ComponentEmitter extends StyleEmitter {
 
     if (!reactive || !value || !source) return;
 
-    const props = new Set([...reactive.dependencies(value)].filter((s) => s.kind === 'prop'));
+    // Properties, or an argument of a decorator that includes this one, which changes with them.
+    const props = new Set([...reactive.dependencies(value)].filter((each) => each !== source));
 
     if (props.size === 0) return;
 

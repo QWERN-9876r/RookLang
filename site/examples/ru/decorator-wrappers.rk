@@ -21,7 +21,7 @@ dec quantity() {
 dec quantityBadge() needs quantity {
     return (content Element) => <div>
         {content}
-        <p>Взято: {get(@quantity.count)}</p>
+        <p>Взято: {@quantity.count}</p>
     </div>
 }
 

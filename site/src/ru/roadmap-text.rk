@@ -194,7 +194,10 @@ export comp RoadmapText() {
                 <code>derived</code> из нескольких операторов:
                 {" "}<code>{"derived total number { ... return sum }"}</code>. <i>Сделано.</i>
             </li>
-            <li>Объединение декораторов и <code>public ref</code> в декораторах.</li>
+            <li>
+                Объединение декораторов и <code>public ref</code> в декораторах:
+                {" "}<code>dec card() includes framed, likes</code>. <i>Сделано.</i>
+            </li>
             <li>Компонент, который возвращает <code>null</code> для обёртки.</li>
             <li>Ref в <code>{"{if}"}</code>, <code>{"{switch}"}</code> и <code>{"{for}"}</code> и один ref в нескольких <code>return</code>.</li>
             <li><code>rook build --explain</code>: где компилятор не встроил компонент, и почему.</li>

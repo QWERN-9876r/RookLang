@@ -1,44 +1,17 @@
 import type * as ast from '../ast.ts';
 import { ARRAY_MUTATORS } from '../methods.ts';
-import type { DecoratorInfo, PublicMember } from './context.ts';
-import { DecoratorChecker } from './decorators.ts';
+import { withIncluded, type DecoratorInfo, type PublicMember } from './context.ts';
+import { DecoratorIncludeChecker } from './decorator-includes.ts';
 import { nonNull, UNKNOWN, type Type } from './types.ts';
 
 // The public members of decorators, in the components they are applied to: `@visible.show()` calls
-// a function, `get(@visible.shown)` reads state or a constant, and none of them can be changed
-// outside the decorator.
+// a function, `@visible.shown` reads state or a constant, and none of them can be changed outside
+// the decorator.
 
-export abstract class DecoratorMemberChecker extends DecoratorChecker {
-  /** `@visible.show`: a public function; state and constants are read with `get`. */
+export abstract class DecoratorMemberChecker extends DecoratorIncludeChecker {
+  /** `@visible.shown` or `@visible.show`: public state, a constant or a function. */
   protected override checkDecoratorMember(node: ast.DecoratorMember): Type {
-    const member = this.findDecoratorMember(node);
-
-    if (member && member.kind !== 'func') {
-      const { decorator, member: name } = node;
-
-      this.error(
-        `read "${name.name}" of @${decorator.name} with get(@${decorator.name}.${name.name})`,
-        node,
-      );
-    }
-
-    return member?.type ?? UNKNOWN;
-  }
-
-  /** `get(@visible.shown)`: public state or a constant. */
-  protected override checkDecoratorGet(node: ast.DecoratorGet): Type {
-    const member = this.findDecoratorMember(node.target);
-
-    if (member?.kind === 'func') {
-      const { decorator, member: name } = node.target;
-
-      this.error(
-        `"${name.name}" of @${decorator.name} is a function: call it, @${decorator.name}.${name.name}()`,
-        node,
-      );
-    }
-
-    return member?.type ?? UNKNOWN;
+    return this.findDecoratorMember(node)?.type ?? UNKNOWN;
   }
 
   /**
@@ -63,6 +36,21 @@ export abstract class DecoratorMemberChecker extends DecoratorChecker {
     }
 
     const info = component.decorators.find((decorator) => decorator.node.name.name === name);
+    // `@cart.count` of the `cart` that `@shop` includes is `@shop.count`.
+    const via = component.decorators.find((decorator) =>
+      withIncluded(decorator.included).some((each) => each.node.name.name === name),
+    );
+
+    if (!info && via) {
+      const combined = via.node.name.name;
+
+      this.error(
+        `"${member}" of @${name} comes through @${combined}: write @${combined}.${member}`,
+        node,
+      );
+
+      return null;
+    }
 
     if (!info) {
       this.error(
@@ -78,7 +66,7 @@ export abstract class DecoratorMemberChecker extends DecoratorChecker {
     return this.publicMember(node, info);
   }
 
-  /** `get(@cart.count)` in `dec cartBadge() needs cart`. */
+  /** `@cart.count` in `dec cartBadge() needs cart`. */
   protected neededMember(
     node: ast.DecoratorMember,
     decorator: ast.DecoratorDeclaration,
@@ -92,9 +80,11 @@ export abstract class DecoratorMemberChecker extends DecoratorChecker {
       return null;
     }
 
-    if (!decorator.needs.some((need) => need.name === name)) {
+    const uses = [...decorator.needs, ...decorator.includes.map((use) => use.name)];
+
+    if (!uses.some((used) => used.name === name)) {
       this.error(
-        `@${current} can use @${name} only if it needs it: write "needs ${name}" after its parameters`,
+        `@${current} can use @${name} only if it needs or includes it: write "needs ${name}" after its parameters`,
         node.decorator,
       );
 
@@ -125,19 +115,24 @@ export abstract class DecoratorMemberChecker extends DecoratorChecker {
   }
 
   /**
-   * Members of a decorator are read-only outside it: `get(@cart.count) = 0`, `get(@cart.items)[0]
-   * = x`. Returns whether `target` is one of them.
+   * Members of a decorator are read-only outside it: `@cart.count = 0`, `@cart.items[0] = x`.
+   * Returns whether `target` is one of them.
    */
   protected override checkDecoratorWrite(target: ast.Expression): boolean {
     const root = decoratorRoot(target);
 
     if (!root) return false;
-    if (this.findDecoratorMember(root)) this.readOnlyError(root, target);
+
+    const member = this.findDecoratorMember(root);
+
+    // A ref always points to its element, but the element is the page's: `@framed.box.title = x`.
+    if (member?.kind === 'ref' && target !== root) return false;
+    if (member) this.readOnlyError(root, target);
 
     return true;
   }
 
-  /** `get(@cart.items).push(x)`: a method that changes the array. */
+  /** `@cart.items.push(x)`: a method that changes the array. */
   protected checkDecoratorMutation(node: ast.CallExpression): void {
     const { callee } = node;
 
@@ -177,7 +172,7 @@ export abstract class DecoratorMemberChecker extends DecoratorChecker {
     this.error(
       info.members.get(member)?.kind === 'func'
         ? `"${name}" is not defined; to call a function of @${name} write @${name}.${member}()`
-        : `"${name}" is not defined; to read public state of @${name} write get(@${name}.${member})`,
+        : `"${name}" is not defined; to read public state of @${name} write @${name}.${member}`,
       object,
     );
 
@@ -185,14 +180,11 @@ export abstract class DecoratorMemberChecker extends DecoratorChecker {
   }
 }
 
-/** The member of a decorator that `get(@cart.items)[0].done` starts with, if any. */
+/** The member of a decorator that `@cart.items[0].done` starts with, if any. */
 function decoratorRoot(node: ast.Expression): ast.DecoratorMember | null {
   switch (node.kind) {
     case 'DecoratorMember':
       return node;
-
-    case 'DecoratorGet':
-      return node.target;
 
     case 'MemberExpression':
     case 'IndexExpression':

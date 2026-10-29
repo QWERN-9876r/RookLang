@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
 import { decoratorNames, wrapperBody, wrapperOf } from '../decorators.ts';
-import type { ComponentInfo, DecoratorInfo } from './context.ts';
+import { withIncluded, type ComponentInfo, type DecoratorInfo } from './context.ts';
 import { isUntyped, ownStatements } from './helpers.ts';
 import { StyleChecker } from './styles.ts';
 import { isAssignable, typeToString, UNKNOWN, type Type } from './types.ts';
@@ -115,7 +115,7 @@ export abstract class DecoratorWrapperChecker extends StyleChecker {
   }
 
   protected override wrappedType(info: ComponentInfo, own: Type, seen: Set<ComponentInfo>): Type {
-    return info.decorators.reduceRight(
+    return withIncluded(info.decorators).reduceRight(
       (type, decorator) => (decorator.wrapper ? this.wrapperResult(decorator.wrapper, seen) : type),
       own,
     );
@@ -141,7 +141,7 @@ export abstract class DecoratorWrapperChecker extends StyleChecker {
     let type = this.ownResult(info, new Set());
     let source: string | null = null;
 
-    for (const decorator of [...info.decorators].reverse()) {
+    for (const decorator of withIncluded(info.decorators).reverse()) {
       const { wrapper } = decorator;
 
       if (!wrapper) continue;

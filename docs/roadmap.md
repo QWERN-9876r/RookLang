@@ -87,7 +87,8 @@ the open ones are listed in "Not decided yet" of [components.md](components.md).
   `d.address`, and `{ kind: "pickup", shop: "..." }` fits the union. _(done, with the narrowing
   of paths: `order.delivery.kind`)_
 - `derived` of several statements: `derived total number { ... return sum }`. _(done)_
-- Combining decorators, and `public ref` in decorators.
+- Combining decorators, and `public ref` in decorators: `dec card() includes framed, likes`.
+  _(done)_
 - A component that returns `null` for a wrapper.
 - Refs in `{if}`, `{switch}` and `{for}`, and one ref in several `return`s.
 - `rook build --explain`: where the compiler did not inline a component or added a proxy, and why.

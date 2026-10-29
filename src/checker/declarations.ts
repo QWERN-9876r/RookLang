@@ -123,6 +123,7 @@ export abstract class DeclarationChecker extends ImportChecker {
             freeNames: null,
             wrapper: null,
             needed: [],
+            included: [],
             moduleNames: [],
             expressionTypes: null,
             inline: null,

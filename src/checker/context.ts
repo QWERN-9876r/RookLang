@@ -188,6 +188,8 @@ export interface DecoratorInfo {
   wrapper: { node: Wrapper; param: Type; result: Type | null } | null;
   /** The decorators after `needs` that exist; they are applied above it. */
   needed: DecoratorInfo[];
+  /** The decorators after `includes` that exist: applied with it, above its own body. */
+  included: DecoratorInfo[];
   /**
    * For an exported decorator: the names of its module that its code uses, which other modules get
    * through hidden exports, and the types of its expressions, for the code generator there.
@@ -199,8 +201,22 @@ export interface DecoratorInfo {
 }
 
 export interface PublicMember {
-  kind: 'state' | 'derived' | 'const' | 'func';
+  kind: 'state' | 'derived' | 'const' | 'ref' | 'func';
   type: Type;
+}
+
+/**
+ * The decorators applied with those they include, which come before them: `@shop` of
+ * `dec shop() includes visible, cart` gives visible, cart, shop. A cycle of includes is reported
+ * where the decorators are declared; here it stops.
+ */
+export function withIncluded(
+  decorators: readonly DecoratorInfo[],
+  seen: ReadonlySet<DecoratorInfo> = new Set(),
+): DecoratorInfo[] {
+  return decorators.flatMap((each) =>
+    seen.has(each) ? [] : [...withIncluded(each.included, new Set([...seen, each])), each],
+  );
 }
 
 /** A `type` alias, resolved when first used. */

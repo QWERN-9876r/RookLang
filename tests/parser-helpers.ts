@@ -152,9 +152,6 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
 
     case 'DecoratorMember':
       return `@${node.decorator.name}.${node.member.name}`;
-
-    case 'DecoratorGet':
-      return `(get ${sx(node.target)})`;
   }
 }
 

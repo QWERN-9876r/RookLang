@@ -89,10 +89,9 @@ Inside a class declaration `static`, `private`, `protected`, `public`, `readonly
 `implements` are keywords too, and so are `get` and `set` before the name of a method; before
 `class` so are `data` and `abstract`, in `import` and `export` so is `from`, at the start of a statement in a component's body
 `state`, `derived`, `ref`, `style`, `mount` and `effect`, at the start of a top-level declaration `dec`, after its
-parameters `needs`, in a decorator's body `public`, before `{` at the start of a statement
+parameters `needs` and `includes`, in a decorator's body `public`, before `{` at the start of a statement
 `select`, and `queue` in a type before the type of its values and before the `<` that makes a
-queue. Elsewhere they are ordinary names; outside of classes `get` is special only in
-`get(@name.member)`. Decorators are written before `comp`: `@html-tag` (see
+queue. Elsewhere they are ordinary names. Decorators are written before `comp`: `@html-tag` (see
 "Web components") and those declared with `dec` (see "Decorators").
 
 After `.` and in object keys, keywords can be used as ordinary names: `xs.map(f)`, `event.type`,
@@ -2622,7 +2621,7 @@ dec counter(start number = 0) {
 
 @counter(5)
 comp Clicker(label string) {
-    return <button onClick={@counter.add()}>{label}: {get(@counter.count)}</button>
+    return <button onClick={@counter.add()}>{label}: {@counter.count}</button>
 }
 ```
 
@@ -2635,11 +2634,10 @@ comp Clicker(label string) {
   `return` of a wrapper; its refs are bound in the markup of the wrapper. Its own names are used in
   it as usual; the component does not see them unless they are `public`.
 - **Public members** are `public state`, `public derived`, `public const` and `public func`;
-  there is no `public let`. The component reads state, derived values and constants with
-  `get(@counter.count)` (in markup this
-  updates like its own state) and calls functions as `@counter.add()`. Outside the decorator its
-  members are read-only: `get(@counter.count) = 0` or `get(@counter.items).push(x)` is an error,
-  changes go through its public functions. `get` is special only when its argument starts with `@`.
+  there is no `public let`. The component reads state, derived values and constants as
+  `@counter.count` (in markup this updates like its own state) and calls functions as
+  `@counter.add()`. Outside the decorator its members are read-only: `@counter.count = 0` or
+  `@counter.items.push(x)` is an error, changes go through its public functions.
 - **The decorator does not see the component**, only its arguments, so it fits any component.
 - **The wrapper** `return (content Element) => ...` gets what the component returned, and what it
   returns is what the component gives in the end. It is a function literal with one parameter, whose
@@ -2652,6 +2650,11 @@ comp Clicker(label string) {
   its parameters: `dec cartBadge() needs cart, auth { ... }`. Its body may read their state right
   away, so they must be applied above it: `@cart @cartBadge comp ...`. Decorators that need each
   other are an error.
+- **Including.** `dec card(title string) includes framed(title), likes { ... }` applies them with
+  it, above its own body; their arguments see its parameters. The component reads their public
+  members through it, `@card.count`, and `@card` counts as `@likes` applied, for `needs` and for
+  applying twice. An exported decorator cannot include others yet. A `public ref` of a decorator is
+  read as `@framed.box`: the ref is read-only, its element is not.
 - **Several decorators**, `@a @b comp X`: the bodies run from top to bottom, then the body of the
   component; the wrappers apply from the bottom up (the result of the component goes to `b`, the
   result of `b` to `a`); `mount()` runs from the inside out (the component, `b`, `a`), the
