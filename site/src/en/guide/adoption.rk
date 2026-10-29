@@ -69,7 +69,7 @@ export comp Adoption() {
         <p>
             <b>A component in a React app.</b> A component with <code>@html-tag</code> is a custom
             element, so React, Vue and Svelte use it as any tag
-            (<a href="#web-components">Web components</a>). Markup is off unless the project turns
+            (<a href="../web-components/">Web components</a>). Markup is off unless the project turns
             it on, with <code>{`"rook": { "markup": true }`}</code> in its
             {" "}<code>package.json</code>:
         </p>

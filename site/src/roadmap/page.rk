@@ -10,7 +10,7 @@ import styles from "./page.module.css"
 
 /** Draws the page; the entry module of the language calls it after setLanguage(). */
 export func renderRoadmap(content Content) {
-    document.body.append(<>
+    document.body.replaceChildren(<>
         <SiteHeader />
         <main class={styles.main}>
             <Prose>{content}</Prose>

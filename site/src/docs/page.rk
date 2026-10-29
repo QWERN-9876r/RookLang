@@ -1,13 +1,14 @@
-// The guide: the sections in a tree on the left and one section at a time on the right, chosen by
-// the hash of the address, `docs/#goroutines`, so that the links of the guide to each other, `#id`,
-// work as they are. All the sections are in the page, the others hidden, so that the search of the
-// guide finds their text.
+// The guide: the sections in a tree on the left and one section at a time on the right. Each
+// section has an address of its own, `docs/goroutines/`, which search engines index as a page; the
+// links between sections change the address without loading the page again. All the sections are
+// in the page, the others hidden, so that the search of the guide finds their text.
 
 import "../../ui/theme.rk"
 import { Icon } from "../../ui/icon.rk"
 import { NavGroup, NavList } from "../../ui/nav-list.rk"
 import { Prose } from "../../ui/prose.rk"
 import { REPOSITORY, Section, text } from "../i18n.rk"
+import { sectionIn, sectionLinks, withSections } from "../sections.rk"
 import { SiteHeader } from "../layout/header.rk"
 import styles from "./page.module.css"
 import { SearchButton } from "./search-button.rk"
@@ -28,27 +29,22 @@ func navGroups(sections []Section) []NavGroup {
     return groups
 }
 
-/** The index of the section that the hash names, or of the first one. */
-func indexOf(sections []Section, hash string) number {
-    const id = decodeURIComponent(hash.slice(1))
-    return Math.max(0, sections.findIndex(section => section.id == id))
-}
-
 comp DocsPage(sections []Section) {
     const t = text()
     const groups = navGroups(sections)
-    state current = indexOf(sections, location.hash)
+    const ids = sections.map(each => each.id)
+    state current = Math.max(0, sectionIn(ids, location.pathname))
     derived section = sections[current]
     state searching = false
 
     // A new section starts at the top of the page, with its name in the title of the tab.
     func update() {
-        const next = indexOf(sections, location.hash)
-        if next != current {
+        const next = sectionIn(ids, location.pathname)
+        if next >= 0 && next != current {
             current = next
             window.scrollTo(0, 0)
         }
-        document.title = `${sections[current].title} — Rook`
+        document.title = `${sections[current].title} — ${t.docsTitle}`
     }
 
     // ⌘K or Ctrl+K opens the search anywhere, and / where nothing is being typed.
@@ -62,10 +58,10 @@ comp DocsPage(sections []Section) {
 
     mount() {
         update()
-        window.addEventListener("hashchange", update)
+        const stop = sectionLinks(ids, update)
         window.addEventListener("keydown", onKey)
         return () => {
-            window.removeEventListener("hashchange", update)
+            stop()
             window.removeEventListener("keydown", onKey)
         }
     }
@@ -73,12 +69,12 @@ comp DocsPage(sections []Section) {
     return <>
         <SiteHeader
             tools={<SearchButton onOpen={searching = true} />}
-            menu={<NavList groups={groups} active={section.id} label={t.sections} />}
+            menu={<NavList groups={groups} active={section.id} label={t.sections} hrefOf={id => `../${id}/`} />}
         />
         <SearchDialog open={searching} sections={sections} onClose={searching = false} />
         <div class={styles.layout}>
             <aside class={styles.sidebar}>
-                <NavList groups={groups} active={section.id} label={t.sections} />
+                <NavList groups={groups} active={section.id} label={t.sections} hrefOf={id => `../${id}/`} />
             </aside>
             <main class={styles.main}>
                 <div class={styles.content}>
@@ -97,7 +93,7 @@ comp DocsPage(sections []Section) {
                     }}
                     <nav class={styles.pager} aria-label={t.sections}>
                         {if current > 0 {
-                            <a class={styles.previous} href={`#${sections[current - 1].id}`}>
+                            <a class={styles.previous} href={`../${sections[current - 1].id}/`}>
                                 <span class={styles.direction}>
                                     <Icon name="chevron-left" size={14} />
                                     {t.previous}
@@ -106,7 +102,7 @@ comp DocsPage(sections []Section) {
                             </a>
                         }}
                         {if current < sections.length - 1 {
-                            <a class={styles.next} href={`#${sections[current + 1].id}`}>
+                            <a class={styles.next} href={`../${sections[current + 1].id}/`}>
                                 <span class={styles.direction}>
                                     {t.next}
                                     <Icon name="chevron-right" size={14} />
@@ -124,7 +120,11 @@ comp DocsPage(sections []Section) {
     </>
 }
 
-/** Draws the page; the entry module of the language calls it after setLanguage(). */
+/**
+ * Draws the page; the entry module of the language calls it after setLanguage(). The page may be
+ * there already, drawn when the site was built for search engines: it is drawn again, alive.
+ */
 export func renderDocs(sections []Section) {
-    document.body.append(<DocsPage sections={sections} />)
+    withSections(sections.map(each => each.id))
+    document.body.replaceChildren(<DocsPage sections={sections} />)
 }

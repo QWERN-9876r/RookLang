@@ -4,7 +4,7 @@
 import { LinkButton } from "../../ui/link-button.rk"
 import { CopyButton } from "../../ui/copy-button.rk"
 import { Icon } from "../../ui/icon.rk"
-import { pageHref, text } from "../i18n.rk"
+import { pageHref, sectionHref, text } from "../i18n.rk"
 import { INSTALL } from "./code.rk"
 import board from "./board.module.css"
 import styles from "./hero.module.css"
@@ -44,7 +44,7 @@ export comp Hero() {
         </div>
         <div class={styles.glow} aria-hidden="true" />
         <div class={styles.content}>
-            <a class={styles.news} href={`${pageHref("docs")}#goroutines`}>
+            <a class={styles.news} href={sectionHref("docs", "goroutines")}>
                 <span class={styles.newLabel}>{h.newLabel}</span>
                 {h.news}
                 <Icon name="chevron-right" size={14} />

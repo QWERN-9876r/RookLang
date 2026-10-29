@@ -57,7 +57,7 @@
   "scripts": {
     "rook": "node src/cli.ts",
     "site:dev": "vite",
-    "site:build": "vite build",
+    "site:build": "vite build && node scripts/prerender.ts",
     "site": "npm run site:build && node src/cli.ts run site/server.rk",
     "site:images": "node scripts/og-image.ts",
     "vscode:build": "node scripts/build-vscode.ts",

@@ -1,0 +1,72 @@
+// Pages whose sections have addresses of their own, docs/goroutines/ and examples/orders/: which
+// section an address names, the old addresses with a hash, docs/#goroutines, and the links between
+// the sections, which change the address without loading the page again.
+
+import { otherLanguageHref } from "./i18n.rk"
+
+/** The index of the section that the last folder of `path` names, or -1. */
+export func sectionIn(ids []string, path string) number {
+    const parts = path.split("/").filter(part => part != "")
+    return ids.indexOf(decodeURIComponent(parts.at(-1) ?? ""))
+}
+
+/**
+ * Before the page is drawn: docs/ and the old docs/#goroutines go to the address of a section,
+ * docs/goroutines/, for which the links of the page are written.
+ */
+export func withSections(ids []string) {
+    if sectionIn(ids, location.pathname) >= 0 {
+        return
+    }
+    const hash = decodeURIComponent(location.hash.slice(1))
+    const id = ids.includes(hash) ? hash : ids[0]
+    history.replaceState(null, "", `${id}/`)
+}
+
+/** The folder of a section: /docs/ of /docs/goroutines/. */
+func folderOf(path string) string {
+    return path.slice(0, path.lastIndexOf("/", path.length - 2) + 1)
+}
+
+/**
+ * Follows the links to the other sections of the page, as `../channels/`, without loading it
+ * again, and the buttons back and forward; `update` shows the section of the new address. Returns
+ * the function that stops it.
+ */
+export func sectionLinks(ids []string, update func()) func() {
+    // The links to the other language lead to the section shown.
+    func show() {
+        update()
+        for link in document.querySelectorAll("a[hreflang]") {
+            link.setAttribute("href", otherLanguageHref())
+        }
+    }
+
+    func follow(event MouseEvent) {
+        if event.defaultPrevented || event.button != 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey {
+            return
+        }
+        const target = event.target
+        const link = target instanceof Element ? target.closest("a") : null
+        if link == null || link.target != "" {
+            return
+        }
+        const url = new URL(link.href)
+        const other = url.origin != location.origin || folderOf(url.pathname) != folderOf(location.pathname)
+        if other || sectionIn(ids, url.pathname) < 0 {
+            return
+        }
+        event.preventDefault()
+        if url.pathname != location.pathname {
+            history.pushState(null, "", url.href)
+        }
+        show()
+    }
+
+    document.addEventListener("click", follow)
+    window.addEventListener("popstate", show)
+    return () => {
+        document.removeEventListener("click", follow)
+        window.removeEventListener("popstate", show)
+    }
+}

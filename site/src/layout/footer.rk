@@ -1,7 +1,7 @@
 // The bottom of the home page and the guide: the rook, links into the guide and to the other
 // resources, the other language.
 
-import { MARKETPLACE, otherLanguageHref, pageHref, REPOSITORY, text } from "../i18n.rk"
+import { MARKETPLACE, otherLanguageHref, pageHref, REPOSITORY, sectionHref, text } from "../i18n.rk"
 import { Brand } from "./brand.rk"
 import styles from "./footer.module.css"
 
@@ -17,7 +17,7 @@ export comp SiteFooter() {
             <nav class={styles.column} aria-label={t.footerDocs}>
                 <p class={styles.heading}>{t.footerDocs}</p>
                 {for link in t.footerSections {
-                    <a href={`${pageHref("docs")}#${link.id}`}>{link.title}</a>
+                    <a href={sectionHref("docs", link.id)}>{link.title}</a>
                 }}
             </nav>
             <nav class={styles.column} aria-label={t.footerResources}>

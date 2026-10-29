@@ -13,7 +13,7 @@ import { Start } from "./start.rk"
 
 /** Draws the page; the entry module of the language calls it after setLanguage(). */
 export func renderHome() {
-    document.body.append(<>
+    document.body.replaceChildren(<>
         <SiteHeader />
         <main>
             <Hero />

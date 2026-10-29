@@ -1,8 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { headTags, LANGUAGES, pageOf, pagePath, SITE, sitemap } from '../site/seo.ts';
+import { deeper, sectionPage } from '../site/sections.ts';
+import {
+  headTags,
+  LANGUAGES,
+  pageOf,
+  pagePath,
+  SITE,
+  sitemap,
+  tagsHtml,
+  withoutTags,
+} from '../site/seo.ts';
 
-// What search engines and social networks read from the documentation site (site/seo.ts).
+// What search engines and social networks read from the documentation site (site/seo.ts), and the
+// addresses of the sections of the guide and of the examples (site/sections.ts).
 
 const site = (path: string) => new URL(`../site/${path}`, import.meta.url).pathname;
 
@@ -88,6 +99,82 @@ describe('site SEO', () => {
       PAGES.flatMap((page) => LANGUAGES.map((language) => SITE + pagePath({ language, page }))),
     );
     expect(xml.match(/hreflang=/g)).toHaveLength(PAGES.length * LANGUAGES.length ** 2);
+  });
+
+  it('finds the page that draws a section by its address', () => {
+    expect(sectionPage('docs/goroutines/')).toBe('docs/');
+    expect(sectionPage('ru/examples/orders/')).toBe('ru/examples/');
+    expect(sectionPage('docs/')).toBeNull();
+    expect(sectionPage('playground/goroutines/')).toBeNull();
+    expect(sectionPage('docs/assets/index.js')).toBeNull();
+    expect(sectionPage('docs/a/b/')).toBeNull();
+  });
+
+  it('moves the relative addresses of a page one folder deeper for a section', () => {
+    expect(
+      deeper('<script src="../assets/a.js"></script><link href="../a.css"><a href="#x">'),
+    ).toBe('<script src="../../assets/a.js"></script><link href="../../a.css"><a href="#x">');
+  });
+
+  it('describes a section of the guide as an article in the guide, an example as a program', () => {
+    const section = (page: string) => {
+      const html = `<title>Goroutines — Rook documentation</title><meta name="description" content="Threads.">`;
+      const all = headTags(html, { language: 'en', page });
+      const script = all.find((tag) => tag.attrs?.type === 'application/ld+json')?.children;
+
+      return {
+        type: all.find((tag) => tag.attrs?.property === 'og:type')?.attrs?.content,
+        graph: (JSON.parse(script as string) as { '@graph': Record<string, unknown>[] })['@graph'],
+      };
+    };
+    const docs = section('docs/goroutines');
+
+    expect(docs.type).toBe('article');
+    expect(docs.graph[0]).toMatchObject({
+      '@type': 'TechArticle',
+      headline: 'Goroutines',
+      description: 'Threads.',
+      url: `${SITE}docs/goroutines/`,
+      inLanguage: 'en',
+    });
+    expect(docs.graph[1]).toMatchObject({
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { position: 1, name: 'Rook', item: SITE },
+        { position: 2, name: 'Documentation', item: `${SITE}docs/` },
+        { position: 3, name: 'Goroutines', item: `${SITE}docs/goroutines/` },
+      ],
+    });
+    expect(section('examples/orders').graph[0]).toMatchObject({
+      '@type': 'SoftwareSourceCode',
+      programmingLanguage: 'Rook',
+    });
+  });
+
+  it('gives a drawn page its tags anew, as HTML', () => {
+    const page = { language: 'ru', page: 'docs/null' };
+    const built = readFileSync(site('ru/docs/index.html'), 'utf8').replace(
+      '</head>',
+      `${tagsHtml(headTags(readFileSync(site('ru/docs/index.html'), 'utf8'), { language: 'ru', page: 'docs' }))}</head>`,
+    );
+    const html = withoutTags(built).replace('</head>', `${tagsHtml(headTags(built, page))}</head>`);
+
+    expect(html.match(/rel="canonical"/g)).toHaveLength(1);
+    expect(html).toContain(`<link rel="canonical" href="${SITE}ru/docs/null/">`);
+    expect(html).toContain(`<link rel="alternate" hreflang="en" href="${SITE}docs/null/">`);
+    expect(html.match(/application\/ld\+json/g)).toHaveLength(1);
+    expect(html.match(/og:title/g)).toHaveLength(1);
+  });
+
+  it('lists the sections in the sitemap at their own addresses', () => {
+    const xml = sitemap(['docs/goroutines', 'examples/orders']);
+
+    expect([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])).toEqual([
+      `${SITE}docs/goroutines/`,
+      `${SITE}ru/docs/goroutines/`,
+      `${SITE}examples/orders/`,
+      `${SITE}ru/examples/orders/`,
+    ]);
   });
 
   // PNG keeps its width and height at bytes 16–23; og:image:width and height promise 1200×630.

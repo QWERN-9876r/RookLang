@@ -26,7 +26,7 @@ npx vitest run tests/html-tag.test.ts # one test file
 npx vitest run -u tests/output.test.ts # write tests/output/ again after a change of the generated code
 npm run rook -- build app.rk      # compile (app.js next to the source); `run` compiles and runs
 node src/cli.ts ast file.rk        # print the AST
-npm run site:dev / site:build / site  # the docs site: Vite dev server / build / build and serve
+npm run site:dev / site:build / site  # the docs site: Vite dev server / build (needs Chrome) / build and serve
 npm run site:images                   # redraw the og:image pictures of site/public (needs Chrome)
 npm run vscode:build                  # bundle the VS Code extension and its language server
 npm run vscode:install                # rebuild and install the VS Code extension
@@ -99,6 +99,12 @@ npm run format                        # prettier --write, eslint --fix for blank
 - Titles and descriptions of pages are in their `index.html`; `site/seo.ts` makes from them the
   canonical address, hreflang, Open Graph, JSON-LD, `sitemap.xml` and `robots.txt`. A new page goes
   into `PAGES` of `vite.config.ts`.
+- Each section of the guide and each example has an address of its own, `docs/goroutines/`
+  (`site/sections.ts`, `site/src/sections.rk`); links between sections are relative, `../channels/`,
+  and change the address without loading the page. `npm run site:build` ends with
+  `scripts/prerender.ts`: headless Chrome draws every page, and its HTML, with the text in it, is
+  written to `site/dist`, one page per section, with the title, the first paragraph as the
+  description and tags of its own. The scripts of a page draw it again with `replaceChildren`.
 
 ## Adding a language feature
 

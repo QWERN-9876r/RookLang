@@ -1,6 +1,7 @@
 // The search of the guide: a palette over the page that ⌘K, Ctrl+K or / opens, as does its button
 // (search-button.rk). It finds sections by their titles and their text, which it reads from the
-// sections in the page (page.rk keeps the hidden ones there), and opens the chosen one by its hash.
+// sections in the page (page.rk keeps the hidden ones there), and opens the chosen one at its
+// address, docs/goroutines/, without loading the page again.
 
 import { Icon } from "../../ui/icon.rk"
 import { Section, text } from "../i18n.rk"
@@ -85,7 +86,9 @@ export comp SearchDialog(open bool, sections []Section, onClose func()) {
     }
 
     func choose(found Found) {
-        location.hash = found.entry.id
+        // The page shows the section of the new address when it hears popstate (sections.rk).
+        history.pushState(null, "", `../${found.entry.id}/`)
+        window.dispatchEvent(new PopStateEvent("popstate"))
         onClose()
     }
 
@@ -124,7 +127,7 @@ export comp SearchDialog(open bool, sections []Section, onClose func()) {
                 {for i, found in results {
                     <a
                         class={i == selected ? `${styles.result} ${styles.selected}` : styles.result}
-                        href={`#${found.entry.id}`}
+                        href={`../${found.entry.id}/`}
                         role="option"
                         aria-selected={i == selected ? "true" : "false"}
                         onMouseMove={selected = i}

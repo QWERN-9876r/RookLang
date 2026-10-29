@@ -6,10 +6,11 @@
 // The path to Chrome is taken from $CHROME, else the usual ones are tried.
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { chrome } from './chrome.ts';
 
 const root = new URL('../', import.meta.url).pathname;
 const output = join(root, 'site/public');
@@ -36,22 +37,6 @@ const TEXTS: Texts[] = [
     lead: 'Семантика JavaScript, синтаксис Go, статические типы.',
   },
 ];
-
-const CHROMES = [
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/Applications/Chromium.app/Contents/MacOS/Chromium',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-];
-
-function chrome(): string {
-  const path = process.env.CHROME ?? CHROMES.find((candidate) => existsSync(candidate));
-
-  if (path === undefined) throw new Error('Chrome is not found; give its path in $CHROME');
-
-  return path;
-}
 
 const font = (name: string, file: string) =>
   pathToFileURL(join(root, 'node_modules/@fontsource-variable', name, 'files', file)).href;

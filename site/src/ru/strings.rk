@@ -6,6 +6,8 @@ import { HOME } from "./home-strings.rk"
 export const STRINGS Strings = {
     tagline: "JavaScript на всех ядрах.",
     docs: "Документация",
+    docsTitle: "документация Rook",
+    examplesTitle: "примеры на Rook",
     examplesPage: "Примеры",
     roadmap: "Дорожная карта",
     playground: "Песочница",

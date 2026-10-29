@@ -6,6 +6,8 @@ import { HOME } from "./home-strings.rk"
 export const STRINGS Strings = {
     tagline: "JavaScript on every core.",
     docs: "Docs",
+    docsTitle: "Rook documentation",
+    examplesTitle: "Rook examples",
     examplesPage: "Examples",
     roadmap: "Roadmap",
     playground: "Playground",

@@ -23,6 +23,10 @@ export interface Section {
 export interface Strings {
     tagline string
     docs string
+    /** What the title of a section of the guide ends with: "Goroutines — Rook documentation". */
+    docsTitle string
+    /** What the title of an example ends with. */
+    examplesTitle string
     /** The page of examples: whole programs, each beside the same program in JS. */
     examplesPage string
     /** The page of where Rook stands and the road to 1.0. */
@@ -193,9 +197,15 @@ export func exampleNames() []string {
     return Object.keys(examples)
 }
 
-// The pages are folders, so the root of the language is one level up from all but the home page.
+/** The pages whose sections have addresses of their own: docs/goroutines/, examples/orders/. */
+func hasSections(target Page) bool {
+    return target == "docs" || target == "examples"
+}
+
+// The pages are folders, so the root of the language is one level up from all but the home page,
+// and two from the sections of the guide and of the examples.
 func root() string {
-    return page == "home" ? "./" : "../"
+    return page == "home" ? "./" : hasSections(page) ? "../../" : "../"
 }
 
 /** A link to a page of this language, relative to the current page. */
@@ -203,7 +213,14 @@ export func pageHref(target Page) string {
     return root() + PATHS[target]
 }
 
-/** A link to the same page in the other language. */
+/** A link to a section of the guide or an example: docs/goroutines/. */
+export func sectionHref(target Page, id string) string {
+    return `${root()}${PATHS[target]}${id}/`
+}
+
+/** A link to the same page in the other language, at the same section. */
 export func otherLanguageHref() string {
-    return root() + text().otherRoot + PATHS[page]
+    const parts = location.pathname.split("/").filter(part => part != "")
+    const section = hasSections(page) && parts.length > 0 ? `${parts.at(-1)}/` : ""
+    return root() + text().otherRoot + PATHS[page] + section
 }

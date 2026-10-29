@@ -19,7 +19,7 @@ export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content =
     const t = text()
     state open = false
 
-    // The other language opens at the same place: the section of the guide is in the hash.
+    // The other language opens at the same place, the section of the guide or the example.
     func switchLanguage(event Event) {
         event.preventDefault()
         location.assign(otherLanguageHref() + location.hash)

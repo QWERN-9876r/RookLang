@@ -139,6 +139,7 @@ describe('documentation site', () => {
       'src/ru/roadmap.js',
       'src/ru/strings.js',
       'src/sandbox.js',
+      'src/sections.js',
       // The RookUI kit, which the pages import.
       'ui/button.js',
       'ui/callout.js',

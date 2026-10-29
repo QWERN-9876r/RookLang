@@ -1,9 +1,10 @@
 // The page of examples, laid out as the examples of PixiJS: the list of examples on the left, and
-// next to it the code of the one chosen beside its result. The example is chosen by the hash of
-// the address, `examples/#search`.
+// next to it the code of the one chosen beside its result. Each example has an address of its own,
+// `examples/search/`, and the links of the list change it without loading the page again.
 
 import "../../ui/theme.rk"
 import { text } from "../i18n.rk"
+import { sectionIn, sectionLinks, withSections } from "../sections.rk"
 import { SiteHeader } from "../layout/header.rk"
 import { previewArea } from "../sandbox.rk"
 import { CaseView } from "./case-view.rk"
@@ -17,27 +18,21 @@ export interface Case {
     example string
 }
 
-/** The index of the example that the hash names, or of the first one. */
-func indexOf(cases []Case, hash string) number {
-    const id = decodeURIComponent(hash.slice(1))
-    return Math.max(0, cases.findIndex(each => each.id == id))
-}
-
 comp ExamplesPage(cases []Case) {
     const t = text()
-    state current = indexOf(cases, location.hash)
+    const ids = cases.map(each => each.id)
+    state current = Math.max(0, sectionIn(ids, location.pathname))
     // One area for all the examples: running one stops the one shown before.
     const preview = previewArea()
 
     func update() {
-        current = indexOf(cases, location.hash)
-        document.title = `${cases[current].title} — Rook`
+        current = Math.max(0, sectionIn(ids, location.pathname))
+        document.title = `${cases[current].title} — ${t.examplesTitle}`
     }
 
     mount() {
         update()
-        window.addEventListener("hashchange", update)
-        return () => window.removeEventListener("hashchange", update)
+        return sectionLinks(ids, update)
     }
 
     return <>
@@ -50,7 +45,7 @@ comp ExamplesPage(cases []Case) {
                         <li>
                             <a
                                 class={styles.item}
-                                href={`#${each.id}`}
+                                href={`../${each.id}/`}
                                 aria-current={i == current ? "page" : null}
                             >
                                 <strong>{each.title}</strong>
@@ -71,7 +66,8 @@ comp ExamplesPage(cases []Case) {
     </>
 }
 
-/** Draws the page; the entry module of the language calls it after setLanguage(). */
+/** Draws the page, again if the build drew it for search engines; see renderDocs(). */
 export func renderExamples(cases []Case) {
-    document.body.append(<ExamplesPage cases={cases} />)
+    withSections(cases.map(each => each.id))
+    document.body.replaceChildren(<ExamplesPage cases={cases} />)
 }

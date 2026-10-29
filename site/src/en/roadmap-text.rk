@@ -1,10 +1,10 @@
 // The text of the English roadmap; docs/roadmap.md says the same in the repository.
 
-import { pageHref, REPOSITORY } from "../i18n.rk"
+import { REPOSITORY, sectionHref } from "../i18n.rk"
 
 /** A link to a section of the guide. */
 func guide(id string) string {
-    return `${pageHref("docs")}#${id}`
+    return sectionHref("docs", id)
 }
 
 export comp RoadmapText() {

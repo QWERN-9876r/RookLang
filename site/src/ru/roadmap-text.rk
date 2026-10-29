@@ -1,10 +1,10 @@
 // Текст русской дорожной карты; то же самое в репозитории — docs/roadmap.ru.md.
 
-import { pageHref, REPOSITORY } from "../i18n.rk"
+import { REPOSITORY, sectionHref } from "../i18n.rk"
 
 /** Ссылка на раздел руководства. */
 func guide(id string) string {
-    return `${pageHref("docs")}#${id}`
+    return sectionHref("docs", id)
 }
 
 export comp RoadmapText() {

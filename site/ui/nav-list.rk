@@ -18,6 +18,10 @@ export comp NavList(
     active string,
     label string,
     onNavigate func() = func() {},
+    /** Where a link leads: the part of the page by its id, or another address. */
+    hrefOf func(string) string = func(id string) string {
+        return `#${id}`
+    },
 ) {
     return <nav class={styles.nav} aria-label={label}>
         {for group in groups {
@@ -27,7 +31,7 @@ export comp NavList(
                     {for link in group.links {
                         <a
                             class={link.id == active ? `${styles.link} ${styles.active}` : styles.link}
-                            href={`#${link.id}`}
+                            href={hrefOf(link.id)}
                             aria-current={link.id == active ? "location" : null}
                             onClick={onNavigate()}
                         >

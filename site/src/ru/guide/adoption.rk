@@ -68,7 +68,7 @@ export comp Adoption() {
         <p>
             <b>Компонент в приложении на React.</b> Компонент с <code>@html-tag</code> — это custom
             element, поэтому React, Vue и Svelte используют его как любой тег
-            (<a href="#web-components">Веб-компоненты</a>). Разметка выключена, пока проект её не
+            (<a href="../web-components/">Веб-компоненты</a>). Разметка выключена, пока проект её не
             включит строкой <code>{`"rook": { "markup": true }`}</code> в своём
             {" "}<code>package.json</code>:
         </p>

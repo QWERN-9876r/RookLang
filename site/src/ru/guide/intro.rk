@@ -16,7 +16,7 @@ export comp Intro() {
         <CardGrid>
             <Card title="Горутины и каналы" icon="cpu">
                 <code>go f(x)</code> запускает функцию на другом процессоре, а каналы и
-                {" "}<code>select</code> связывают горутины: см. <a href="#goroutines">Горутины</a>.
+                {" "}<code>select</code> связывают горутины: см. <a href="../goroutines/">Горутины</a>.
             </Card>
             <Card title="Как в JavaScript" icon="layers">
                 Те же значения, объекты, массивы, классы и модули. Можно использовать любые
