@@ -190,7 +190,7 @@ func f(b Box) {
     ).toEqual([]);
   });
 
-  it('ends the narrowing of a path when the path, its start or its continuation is assigned', () => {
+  it('ends the narrowing of a path when the path or its start is assigned', () => {
     const narrowed = (statement: string) =>
       errors(`${user}func f(u User, other User) {
     let v = u
@@ -203,20 +203,47 @@ func f(b Box) {
     expect(narrowed('v.name = ""')).toEqual([]);
     expect(narrowed('v.boss = other.boss')).toEqual([mayBeNull]);
     expect(narrowed('v = other')).toEqual([mayBeNull]);
-    expect(narrowed('v.boss.boss = null')).toEqual([mayBeNull]);
+    expect(narrowed('v.boss.boss = null')).toEqual([]);
+    expect(narrowed('v.boss.name = "Ann"')).toEqual([]);
+  });
+
+  it('ends the narrowing of a union when its tag is assigned, not another field', () => {
+    const narrowed = (statement: string) =>
+      errors(`${delivery}func f(order Order, d Delivery) {
+    if order.delivery.kind == "courier" && d.kind == "courier" {
+        ${statement}
+        const a string = order.delivery.address
+        const b string = d.address
+    }
+}`);
+    const noAddress =
+      'Delivery has no member "address" in every type: narrow it with typeof or instanceof';
+
+    expect(narrowed('order.delivery.floor = 2\n        d.floor = 2')).toEqual([]);
+    expect(narrowed('order.delivery.kind = "courier"')).toEqual([noAddress]);
+    expect(narrowed('d.kind = "courier"')).toEqual([noAddress]);
   });
 
   it('does not narrow paths that a loop assigns', () => {
     expect(
-      errors(`${user}func f(u User, others []User) {
-    if u.boss != null {
+      errors(`${user}${delivery}func f(u User, others []User, order Order) {
+    if u.boss != null && order.delivery.kind == "courier" {
         for other in others {
             const name string = u.boss.name
+            const address string = order.delivery.address
             u.boss = other.boss
+            order.delivery.floor = 1
+        }
+        for other in others {
+            const address string = order.delivery.address
+            order.delivery.kind = "courier"
         }
     }
 }`),
-    ).toEqual([mayBeNull]);
+    ).toEqual([
+      mayBeNull,
+      'Delivery has no member "address" in every type: narrow it with typeof or instanceof',
+    ]);
   });
 
   it('keeps the narrowing of a path in a closure while its variable is not assigned', () => {
@@ -309,15 +336,20 @@ describe('decode', () => {
         return "courier to " + d.address
     }
 }
-const texts = ['{"kind":"pickup","shop":"Main st."}', '{"kind":"courier","address":"Elm st."}', '{"kind":"plane"}']
+const texts = ['{"kind":"pickup","shop":"Main st."}', '{"kind":"courier","address":"Elm st."}', '{"kind":"plane"}', '{"kind":"courier"}']
 for text in texts {
     const d, err = decode<Delivery>(text)
     if err != null {
-        console.log("error")
+        console.log(err.message)
         continue
     }
     console.log(where(d))
 }`),
-    ).toEqual(['pickup at Main st.', 'courier to Elm st.', 'error']);
+    ).toEqual([
+      'pickup at Main st.',
+      'courier to Elm st.',
+      'decode Pickup | Courier: kind: expected "pickup" | "courier", got "plane"',
+      'decode Pickup | Courier: address: missing',
+    ]);
   });
 });

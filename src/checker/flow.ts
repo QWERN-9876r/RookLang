@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
 import { containsBreak } from '../breaks.ts';
-import type { Binding, Flow, Narrowing } from './context.ts';
+import type { Binding, Flow, Narrowing, Place } from './context.ts';
 import {
   BIGINT,
   BOOL,
@@ -126,22 +126,32 @@ export function narrowByTag(
 }
 
 /**
- * Whether an assignment to the fields `written` of a variable ends the narrowing of its path
- * `path`: it writes the path, its start or its continuation (`"delivery.kind"` ends the narrowing
- * of `"delivery"`, which may come from that tag). The variable itself, with the empty path, is
- * narrowed until the variable is assigned.
+ * Whether `field` is a tag of what `place` was declared as: then an assignment to it may change
+ * the member of the union that the place was narrowed to.
  */
-export function overwrites(written: string, path: string): boolean {
-  if (written === '') return true;
-  if (path === '') return false;
+export type IsTag = (place: Place, field: string) => boolean;
 
-  return path === written || path.startsWith(`${written}.`) || written.startsWith(`${path}.`);
+/**
+ * Whether an assignment to the fields `written` of a variable ends the narrowing of `place`, a
+ * path of the same variable or the variable itself (the empty path): it writes the path, its
+ * start or a tag of it. `"delivery.kind"` ends the narrowing of `"delivery"`, which may come from
+ * that tag; `"delivery.floor"` does not.
+ */
+export function overwrites(written: string, place: Place, isTag: IsTag): boolean {
+  const { path } = place;
+
+  if (written === '' || written === path || path.startsWith(`${written}.`)) return true;
+
+  const field =
+    path === '' ? written : written.startsWith(`${path}.`) ? written.slice(path.length + 1) : null;
+
+  return field !== null && !field.includes('.') && isTag(place, field);
 }
 
 /** Ends the narrowing that an assignment to `binding` or to its fields `written` changes. */
-export function forgetWritten(flow: Flow, binding: Binding, written: string): void {
+export function forgetWritten(flow: Flow, binding: Binding, written: string, isTag: IsTag): void {
   for (const place of flow.keys()) {
-    if (place.binding === binding && overwrites(written, place.path)) flow.delete(place);
+    if (place.binding === binding && overwrites(written, place, isTag)) flow.delete(place);
   }
 }
 
@@ -150,15 +160,17 @@ export function withoutAssigned(
   flow: Flow,
   names: ReadonlySet<string>,
   paths: ReadonlySet<string>,
+  isTag: IsTag,
 ): Flow {
   const written = [...paths].map((path) => path.split('.'));
 
   return new Map(
     [...flow].filter(
-      ([{ binding, path }]) =>
-        !names.has(binding.name) &&
+      ([place]) =>
+        !names.has(place.binding.name) &&
         !written.some(
-          ([root, ...fields]) => root === binding.name && overwrites(fields.join('.'), path),
+          ([root, ...fields]) =>
+            root === place.binding.name && overwrites(fields.join('.'), place, isTag),
         ),
     ),
   );

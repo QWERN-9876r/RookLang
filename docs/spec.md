@@ -1713,8 +1713,10 @@ result is `(T, error)`, as in section 7: `user` may be `null` until `err` is che
   (`boss ?User`) or `any`. Only the own fields of an object count.
 - **The error** says where the value does not fit: `decode User: tags[1]: expected string, got 42`,
   `decode User: name: missing`, `decode User: invalid JSON: ...`. Of a union, the member that the
-  value fits deepest is reported: `{ kind: "circle", r: "2" }` of `Circle | Square` gives
-  `r: expected number, got "2"`.
+  value fits deepest is reported, and of those the one whose tag fits: `{ kind: "circle", r: "2" }`
+  of `Circle | Square` gives `r: expected number, got "2"`, and `{ kind: "square" }` gives
+  `side: missing`. A tag that fits no member gives all of them:
+  `kind: expected "circle" | "square", got "oval"`.
 - **Which types:** what JSON holds: `number`, `string`, `bool`, literal types, `?T`, arrays, unions,
   interfaces and object types without methods, generic ones with their arguments (`Box<number>`),
   and types that refer to themselves (`interface Tree { children []Tree }`). A class, `Date`,
@@ -2746,9 +2748,10 @@ variable, without an intermediate `const`:
 
 - an index `a[i]`, a call and `?.` end a path: `users[0].boss` is not narrowed;
 - only data fields narrow, not getters and methods: a getter may give another value each time;
-- an assignment to the path, to its start or to its continuation ends its narrowing:
-  `order = ...`, `order.delivery = ...` and `order.delivery.kind = ...` end that of
-  `order.delivery`;
+- an assignment to the path or to its start ends its narrowing, and so does one to its tag, which
+  may make it another member of the union: `order = ...`, `order.delivery = ...` and
+  `order.delivery.kind = ...` end that of `order.delivery`, but `order.delivery.floor = 2` does
+  not. A tag of a variable is the same: `d.kind = ...` ends the narrowing of `d`;
 - in a loop, paths that it assigns are not narrowed; in a closure, the narrowing of a path is kept
   when its variable is a constant or is never reassigned.
 

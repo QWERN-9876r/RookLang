@@ -1711,8 +1711,10 @@ const [user, err] = $$decodeJson(await request.text(), $$typeUser);
   `any`. Считаются только собственные поля объекта.
 - **Ошибка** говорит, где значение не подходит: `decode User: tags[1]: expected string, got 42`,
   `decode User: name: missing`, `decode User: invalid JSON: ...`. Для union сообщается о том члене,
-  в который значение прошло глубже всего: `{ kind: "circle", r: "2" }` для `Circle | Square` даёт
-  `r: expected number, got "2"`.
+  в который значение прошло глубже всего, а из них — о том, чья метка подошла:
+  `{ kind: "circle", r: "2" }` для `Circle | Square` даёт `r: expected number, got "2"`, а
+  `{ kind: "square" }` — `side: missing`. Метка, которая не подошла ни к одному члену, даёт их все:
+  `kind: expected "circle" | "square", got "oval"`.
 - **Какие типы:** то, что умеет JSON: `number`, `string`, `bool`, литеральные типы, `?T`, массивы,
   union, интерфейсы и объектные типы без методов, дженерики с аргументами (`Box<number>`) и типы,
   которые ссылаются на себя (`interface Tree { children []Tree }`). Класс, `Date`, `Map`, `bigint`,
@@ -2745,8 +2747,10 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 
 - индекс `a[i]`, вызов и `?.` обрывают путь: `users[0].boss` не сужается;
 - сужаются только поля с данными, а не геттеры и методы: геттер может вернуть разное значение;
-- присваивание самого пути, его начала или его продолжения сбрасывает сужение: `order = ...`,
-  `order.delivery = ...` и `order.delivery.kind = ...` сбрасывают сужение `order.delivery`;
+- присваивание самого пути или его начала сбрасывает сужение, как и присваивание его метки, после
+  которого он может стать другим членом union: `order = ...`, `order.delivery = ...` и
+  `order.delivery.kind = ...` сбрасывают сужение `order.delivery`, а `order.delivery.floor = 2` —
+  нет. С меткой переменной так же: `d.kind = ...` сбрасывает сужение `d`;
 - в цикле не сужаются пути, которые он присваивает; в замыкании сужение пути сохраняется, если его
   переменная — константа или нигде не переприсваивается.
 

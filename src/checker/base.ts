@@ -81,6 +81,9 @@ export abstract class CheckerBase {
   /** A variable or a path of data fields that conditions narrow, with its type at this point. */
   protected abstract narrowable(node: ast.Expression): { place: Place; type: Type } | undefined;
 
+  /** Whether an assignment to `field` of `place` may change the member of a union it is. */
+  protected abstract isTagOf(place: Place, field: string): boolean;
+
   /** The error for a value that may be null where it must not be. */
   protected abstract nullError(node: ast.Expression): void;
 

@@ -365,12 +365,19 @@ export abstract class ControlFlowChecker extends StatementChecker {
     const binding = path ? this.lookupValue(path[0]!) : undefined;
 
     if (path && binding && NARROWABLE.has(binding.kind)) {
-      forgetWritten(this.flow, binding, path.slice(1).join('.'));
+      forgetWritten(this.flow, binding, path.slice(1).join('.'), (place, field) =>
+        this.isTagOf(place, field),
+      );
     }
   }
 
   /** Ends the narrowing of what `node` assigns: before a loop, or a statement with several ways. */
   protected dropNarrowing(node: ast.Node): void {
-    this.flow = withoutAssigned(this.flow, assignedNames(node), assignedPaths(node));
+    this.flow = withoutAssigned(
+      this.flow,
+      assignedNames(node),
+      assignedPaths(node),
+      (place, field) => this.isTagOf(place, field),
+    );
   }
 }

@@ -21,7 +21,8 @@ to change it under **Breaking**. A patch version (0.3.5) never does: it adds and
 - Paths of data fields from a variable, a parameter, `state`, `derived` or a module `const` narrow
   like the variable: `if user.boss != null` gives `user.boss.name`, without an intermediate
   `const`; `typeof` and `instanceof` narrow them too. An assignment to the path, its start or its
-  continuation ends the narrowing; getters, `a[i]` and `?.` are not paths. The hint for a nullable
+  tag ends the narrowing, one to another field does not; getters, `a[i]` and `?.` are not paths.
+  The hint for a nullable
   `<page.other />` now shows `{if page.other != null { <page.other /> }}`.
 - Keys of lists in markup: `{for todo in todos with key todo.id { ... }}` finds the blocks again
   by the key, so a list loaded again from a server keeps its blocks and the state of the
@@ -36,6 +37,9 @@ to change it under **Breaking**. A patch version (0.3.5) never does: it adds and
 
 ### Fixed
 
+- The error of `decode` for a union names the member whose tag fits: `{ "kind": "square" }` of
+  `Circle | Square` gives `side: missing`, not `kind: expected "circle", got "square"`. A tag that
+  fits no member lists all of them: `kind: expected "circle" | "square", got "oval"`.
 - A literal type or a union of them, `type Status "shown" | "aborted"`, goes into an attribute
   without a DOM property, `data-status={status}`.
 - With `runtime: "inline"`, as in the playground, a function of the program named like one of the

@@ -48,13 +48,22 @@ export function $$decode(value, type) {
 
 const PRIMITIVES = { number: 'number', string: 'string', bool: 'boolean' };
 
-/** Where and how the value does not fit the type, or null if it does. */
-function check(value, type, path) {
+/**
+ * Where and how the value does not fit the type, or null if it does. For a member of a union,
+ * `tagsFirst` checks its fields of literal types first: a member whose tag does not fit reports
+ * that, not another field.
+ */
+function check(value, type, path, tagsFirst = false) {
   if (typeof type === 'string') {
     return type === 'any' || typeof value === PRIMITIVES[type] ? null : mismatch(value, type, path);
   }
 
-  if ('literal' in type) return type.literal.includes(value) ? null : mismatch(value, type, path);
+  if ('literal' in type) {
+    // Remembered for unions: a tag that fits no member lists the tags of all of them.
+    return type.literal.includes(value)
+      ? null
+      : { ...mismatch(value, type, path), literal: type.literal, value };
+  }
 
   if ('nullable' in type) {
     if (value == null) return null;
@@ -92,7 +101,11 @@ function check(value, type, path) {
     return null;
   }
 
-  for (const [name, field] of Object.entries(type.fields)) {
+  const fields = Object.entries(type.fields);
+
+  if (tagsFirst) fields.sort(([, a], [, b]) => Number(isLiteral(b)) - Number(isLiteral(a)));
+
+  for (const [name, field] of fields) {
     // Only own fields: a field named `toString` is not the method of every object.
     if (!Object.hasOwn(value, name)) {
       if (isOptional(field)) continue;
@@ -110,24 +123,42 @@ function check(value, type, path) {
 
 /**
  * The value fits one of the types. If none fits, the type whose check went deepest into the value
- * is most likely the one meant, `{ kind: "circle", r: "2" }` of `Circle | Square`, so its problem
- * is the one reported.
+ * is most likely the one meant, and of those the one whose tag fits: `{ kind: "circle", r: "2" }`
+ * of `Circle | Square` is a Circle, so its problem is the one reported. When no tag fits, the
+ * message lists them all: `kind: expected "circle" | "square", got "oval"`.
  */
 function checkUnion(value, type, path) {
-  let deepest = null;
+  const problems = [];
 
   for (const member of type.union) {
-    const problem = check(value, member, path);
+    const problem = check(value, member, path, true);
 
     if (problem === null) return null;
-    if (problem.path.length > (deepest?.path.length ?? path.length)) deepest = problem;
+    problems.push(problem);
   }
 
-  return deepest ?? mismatch(value, type, path);
+  const depth = Math.max(...problems.map((problem) => problem.path.length));
+
+  if (depth === path.length) return mismatch(value, type, path);
+
+  const deepest = problems.filter((problem) => problem.path.length === depth);
+  const fitting = deepest.find((problem) => !problem.literal);
+
+  if (fitting) return fitting;
+
+  const [first] = deepest;
+  const same = deepest.filter((problem) => pathText(problem.path) === pathText(first.path));
+  const literal = [...new Set(same.flatMap((problem) => problem.literal))];
+
+  return { ...mismatch(first.value, { literal }, first.path), literal, value: first.value };
 }
 
 function isObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isLiteral(type) {
+  return typeof type === 'object' && 'literal' in type;
 }
 
 function isOptional(type) {

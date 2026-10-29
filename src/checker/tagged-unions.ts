@@ -24,6 +24,15 @@ export abstract class TaggedUnionChecker extends ControlFlowChecker {
   /** The paths among the checked member expressions, with the types of their fields. */
   private readonly paths = new WeakMap<ast.MemberExpression, { place: Place; type: Type }>();
 
+  /** The types of the fields of the paths, before narrowing: what their tags are found in. */
+  private readonly declared = new WeakMap<Place, Type>();
+
+  protected override isTagOf(place: Place, field: string): boolean {
+    const type = place.path === '' ? place.binding.type : this.declared.get(place);
+
+    return type != null && this.tagValues(unionMembers(nonNull(type)), field) !== null;
+  }
+
   protected override narrowable(node: ast.Expression): { place: Place; type: Type } | undefined {
     if (node.kind === 'Identifier') {
       const binding = this.narrowableBinding(node);
@@ -57,6 +66,7 @@ export abstract class TaggedUnionChecker extends ControlFlowChecker {
     const place = placeOf(parent.binding, parent.path === '' ? name : `${parent.path}.${name}`);
 
     this.paths.set(node, { place, type });
+    this.declared.set(place, type);
 
     return this.flow.get(place) ?? type;
   }

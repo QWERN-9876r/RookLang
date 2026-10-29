@@ -252,7 +252,7 @@ describe('running', () => {
     ]);
   });
 
-  it('reports the member of a union that the value is closest to', async () => {
+  it('reports the member of a union whose tag fits, or all the tags', async () => {
     const shapes = `interface Circle { kind "circle"; r number }
 interface Square { kind "square"; side number }
 `;
@@ -260,13 +260,21 @@ interface Square { kind "square"; side number }
     expect(
       await decodes(
         'Circle | Square',
-        ['{"kind": "square", "side": 2}', '{"kind": "circle", "r": "2"}', '{"kind": "oval"}'],
+        [
+          '{"kind": "square", "side": 2}',
+          '{"kind": "circle", "r": "2"}',
+          '{"kind": "square"}',
+          '{"kind": "oval"}',
+          '{"side": 2, "kind": "oval"}',
+        ],
         shapes,
       ),
     ).toEqual([
       '{"kind":"square","side":2}',
       'decode Circle | Square: r: expected number, got "2"',
-      'decode Circle | Square: kind: expected "circle", got "oval"',
+      'decode Circle | Square: side: missing',
+      'decode Circle | Square: kind: expected "circle" | "square", got "oval"',
+      'decode Circle | Square: kind: expected "circle" | "square", got "oval"',
     ]);
   });
 
