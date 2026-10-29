@@ -40,7 +40,7 @@ let $$shop1;
       $$button16.append($$text17);
       const $$text18 = document.createTextNode(name);
       const $$text19 = document.createTextNode(stock);
-      $$li15.append($$button16, " ", $$text18, ": ", $$text19, " in stock");
+      $$li15.append($$button16, $$text18, ": ", $$text19, " in stock");
 
       $$setName10 = ($$name) => {
         name = $$name;
@@ -84,7 +84,7 @@ let $$shop1;
       $$button31.append($$text32);
       const $$text33 = document.createTextNode(name);
       const $$text34 = document.createTextNode(stock);
-      $$li30.append($$button31, " ", $$text33, ": ", $$text34, " in stock");
+      $$li30.append($$button31, $$text33, ": ", $$text34, " in stock");
 
       $$setName25 = ($$name) => {
         name = $$name;

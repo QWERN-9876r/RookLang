@@ -145,7 +145,7 @@ let $$filters1, $$mountNode2;
       filter = each;
       $$updateFor9();
     });
-    $$label11.append($$input12, " ", each.name, "  ");
+    $$label11.append($$input12, each.name);
     $$block10.append($$label11);
     return [$$block10, () => {
       $$input12.checked = each === filter;
@@ -168,7 +168,7 @@ let $$filters1, $$mountNode2;
     draw(source);
   });
   $$button16.append("Original");
-  $$p13.append($$button14, " ", $$button15, " ", $$button16);
+  $$p13.append($$button14, $$button15, $$button16);
   const $$p17 = $$element("p");
   const $$text18 = document.createTextNode("◐◓◑◒◐◓◑◒"[turn]);
   const $$text19 = document.createTextNode(report);

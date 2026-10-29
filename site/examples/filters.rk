@@ -136,13 +136,13 @@ comp Filters() {
         <p>{for each in FILTERS {
             <label>
                 <input type="radio" name="filter" checked={each == filter} onChange={filter = each} />
-                {" "}{each.name}{"  "}
+                {each.name}
             </label>
         }}</p>
         <p>
             <button disabled={busy} onClick={apply(false)}>One thread</button>
-            {" "}<button disabled={busy} onClick={apply(true)}>Every processor</button>
-            {" "}<button disabled={busy} onClick={draw(source)}>Original</button>
+            <button disabled={busy} onClick={apply(true)}>Every processor</button>
+            <button disabled={busy} onClick={draw(source)}>Original</button>
         </p>
         <p>{"◐◓◑◒◐◓◑◒"[turn]} {report}</p>
     </div>

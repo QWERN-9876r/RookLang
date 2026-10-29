@@ -48,7 +48,7 @@ let $$form1;
     $$button9.append(children);
   }
   const $$text10 = document.createTextNode(saved);
-  $$p3.append($$button6, $$button9, " ", "Saved ", $$text10, " times");
+  $$p3.append($$button6, $$button9, "Saved ", $$text10, " times");
 
   function $$updateSaved2() {
     $$attrsElement8.disabled = saved === 0;

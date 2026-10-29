@@ -9,7 +9,7 @@ comp Form() {
     return <p>
         <Button onClick={saved++} title="Сохранить черновик">Сохранить</Button>
         <Button kind="ghost" disabled={saved == 0} onClick={saved = 0}>Сбросить</Button>
-        {" "}Сохранено {saved} раз
+        Сохранено {saved} раз
     </p>
 }
 

@@ -48,7 +48,7 @@ let $$basket10;
     $$element13.count = kiwis;
   });
   $$button14.append("One more kiwi");
-  $$p12.append($$element13, " ", $$button14);
+  $$p12.append($$element13, $$button14);
   $$basket10 = $$p12;
 }
 document.body.append($$basket10);

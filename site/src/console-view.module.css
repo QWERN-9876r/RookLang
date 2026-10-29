@@ -3,7 +3,7 @@
 .console {
   margin: 12px 0 0;
   padding: 10px 14px;
-  border-left: 3px solid var(--rui-leaf);
+  border-left: 3px solid var(--rui-success);
   border-radius: 6px;
   background: var(--rui-surface);
   font-family: var(--rui-mono);

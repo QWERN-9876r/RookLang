@@ -22,7 +22,7 @@ comp Row(name string, stock number) {
     state starred = false
     return <li>
         <button onClick={starred = !starred}>{starred ? "★" : "☆"}</button>
-        {" "}{name}: {stock} на складе
+        {name}: {stock} на складе
     </li>
 }
 

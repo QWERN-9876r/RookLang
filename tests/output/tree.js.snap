@@ -32,7 +32,7 @@ function $$Tree(item, depth = 0) {
       $$updateFor12();
     }];
   }]);
-  $$li5.append($$button6, " ", $$text8, $$if9);
+  $$li5.append($$button6, $$text8, $$if9);
 
   function $$updateOpen3() {
     $$text7.data = item.children.length === 0 ? "·" : open ? "−" : "+";

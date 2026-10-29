@@ -27,7 +27,7 @@ comp Basket() {
     state kiwis = 1
     return <p>
         <fruit-badge name="Киви" count={kiwis} />
-        {" "}<button onClick={kiwis++}>Ещё киви</button>
+        <button onClick={kiwis++}>Ещё киви</button>
     </p>
 }
 
