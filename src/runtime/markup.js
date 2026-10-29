@@ -216,8 +216,10 @@ export function $$dynamic(component, create) {
 
 // `{for item in items { ... }}` in markup: a block for each item, between its own markers. On
 // updates the blocks are found again by the item itself: blocks of items that stay are updated and
-// moved into place, others are created or removed.
-export function $$list(items, create) {
+// moved into place, others are created or removed. With `key`, of `with key item.id`, they are
+// found by the key instead, so an item replaced by another with the same key keeps its block,
+// which gets the new item.
+export function $$list(items, create, key = (item) => item) {
   const end = document.createTextNode('');
   const fragment = document.createDocumentFragment();
 
@@ -236,24 +238,25 @@ export function $$list(items, create) {
     const old = new Map();
 
     for (const block of blocks) {
-      const same = old.get(block.item);
+      const same = old.get(block.key);
 
       if (same) same.push(block);
-      else old.set(block.item, [block]);
+      else old.set(block.key, [block]);
     }
 
     const next = [];
     let index = 0;
 
     for (const item of items()) {
-      let block = old.get(item)?.shift();
+      const id = key(item, index);
+      let block = old.get(id)?.shift();
 
       if (block) {
-        block.update?.(index);
+        block.update?.(index, item);
       } else {
         const [[content, blockUpdate], remove] = $$owned(() => create(item, index));
 
-        block = { item, start: document.createTextNode(''), end: document.createTextNode('') };
+        block = { key: id, start: document.createTextNode(''), end: document.createTextNode('') };
         block.update = blockUpdate;
         block.remove = remove;
         block.content = document.createDocumentFragment();

@@ -153,6 +153,7 @@ export function freeNames(component: {
         declared.add(node.value.name);
         if (node.key) declared.add(node.key.name);
         visit(node.iterable);
+        if (node.withKey) visit(node.withKey);
         visit(node.body);
 
         return;
@@ -307,6 +308,7 @@ export function collectValueNames(
 
     case 'ForInStatement':
       visit(node.iterable);
+      visit(node.withKey ?? null);
       visit(node.body);
 
       return;

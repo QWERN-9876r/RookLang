@@ -343,7 +343,7 @@ describe('VS Code grammar', () => {
   });
 
   it('colours control flow and elements nested in markup', () => {
-    const source = `const list = <div>{for i, product in products {
+    const source = `const list = <div>{for i, product in products with key product.id {
     if product != null {
         <Product {...product} />
     } else {
@@ -352,6 +352,9 @@ describe('VS Code grammar', () => {
 }}</div>`;
 
     expect(scopeOf(source, 'for')).toBe('keyword.control.loop');
+    expect(scopeOf(source, 'with')).toBe('keyword.control.loop');
+    expect(scopeOf(source, 'key')).toBe('keyword.control.loop');
+    expect(scopeOf('const key = with', 'key')).not.toBe('keyword.control.loop');
     expect(scopeOf(source, 'if')).toBe('keyword.control.conditional');
     expect(scopeOf(source, 'Product')).toBe('support.class.component');
     expect(scopeOf(source, '...')).toBe('keyword.operator.spread');

@@ -22,6 +22,14 @@ export comp Reactivity() {
         </p>
         <Example name="todos" />
         <p>
+            A list that comes again as new objects with the same data, as one loaded again from a
+            server, has no item that stays, so all its blocks are made again and the components in
+            them lose their state. <code>with key fruit.id</code> after the items finds the blocks
+            by the key instead, a string or a number: star a fruit in both lists, then load them
+            again.
+        </p>
+        <Example name="keys" />
+        <p>
             <code>derived</code> declares a value computed from state, read-only. When the state
             changes, the value is computed again right before the markup that reads it is updated.
             {" "}<code>effect</code> runs its code once the markup is created, and again when what

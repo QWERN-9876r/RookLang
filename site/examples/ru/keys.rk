@@ -1,0 +1,44 @@
+// Список, загруженный с сервера, каждый раз приходит новыми объектами.
+// Без ключа его блоки находятся по самому элементу, поэтому все они
+// создаются заново и теряют состояние; с key fruit.id они остаются
+
+interface Fruit {
+    id number
+    name string
+    stock number
+}
+
+// Ненастоящий сервер: те же фрукты со свежим остатком, новыми объектами
+func load() []Fruit {
+    return ["Гуава", "Личи", "Манго"].map((name, i) => ({
+        id: i + 1,
+        name,
+        stock: Math.round(Math.random() * 9),
+    }))
+}
+
+// Отмечен ли фрукт — его собственное состояние, которое новый блок теряет
+comp Row(name string, stock number) {
+    state starred = false
+    return <li>
+        <button onClick={starred = !starred}>{starred ? "★" : "☆"}</button>
+        {" "}{name}: {stock} на складе
+    </li>
+}
+
+comp Shop() {
+    state fruits = load()
+    return <div>
+        <button onClick={fruits = load()}>Загрузить заново</button>
+        <p>Без ключа:</p>
+        <ul>{for fruit in fruits {
+            <Row name={fruit.name} stock={fruit.stock} />
+        }}</ul>
+        <p>С ключом fruit.id:</p>
+        <ul>{for fruit in fruits with key fruit.id {
+            <Row name={fruit.name} stock={fruit.stock} />
+        }}</ul>
+    </div>
+}
+
+document.body.append(<Shop />)

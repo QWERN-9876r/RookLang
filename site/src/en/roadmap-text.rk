@@ -183,7 +183,7 @@ export comp RoadmapText() {
         <ul>
             <li>
                 Keys of lists in markup: <code>{"{for todo in todos with key todo.id { ... }}"}</code>.
-                {" "}<i>Decided.</i>
+                {" "}<i>Done.</i>
             </li>
             <li>
                 A union of interfaces narrowed by a field of a literal type:

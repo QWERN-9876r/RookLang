@@ -1,0 +1,44 @@
+// A list loaded from a server comes as new objects every time. Without
+// a key, its blocks are found by the item itself, so they are all made
+// again and lose their state; with key fruit.id they stay
+
+interface Fruit {
+    id number
+    name string
+    stock number
+}
+
+// A pretend server: the same fruits with fresh stock, as new objects
+func load() []Fruit {
+    return ["Guava", "Lychee", "Mango"].map((name, i) => ({
+        id: i + 1,
+        name,
+        stock: Math.round(Math.random() * 9),
+    }))
+}
+
+// Whether it is starred is state of its own, which a new block loses
+comp Row(name string, stock number) {
+    state starred = false
+    return <li>
+        <button onClick={starred = !starred}>{starred ? "★" : "☆"}</button>
+        {" "}{name}: {stock} in stock
+    </li>
+}
+
+comp Shop() {
+    state fruits = load()
+    return <div>
+        <button onClick={fruits = load()}>Load again</button>
+        <p>Without a key:</p>
+        <ul>{for fruit in fruits {
+            <Row name={fruit.name} stock={fruit.stock} />
+        }}</ul>
+        <p>With key fruit.id:</p>
+        <ul>{for fruit in fruits with key fruit.id {
+            <Row name={fruit.name} stock={fruit.stock} />
+        }}</ul>
+    </div>
+}
+
+document.body.append(<Shop />)

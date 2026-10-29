@@ -2185,6 +2185,9 @@ link.append("Link ", name);
   }}</ul>
   ```
 
+  `with key product.id` after the items finds the blocks of a list again by the key, so a list
+  loaded again keeps its blocks ([components.md](components.md)).
+
 ### Components
 
 A component exists only at compile time: every use of it is replaced by its code.

@@ -171,6 +171,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       optional(node.key);
       visit(node.value);
       visit(node.iterable);
+      optional(node.withKey ?? null);
       visit(node.body);
       break;
 

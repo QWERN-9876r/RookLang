@@ -820,6 +820,12 @@ blocks are the content:
 - **Spread of properties into a component** `<Product {...product} />` passes the object's fields
   named like the component's properties; other fields are ignored. Attributes after the spread
   override it.
+- **A key of a list,** `{for todo in todos with key todo.id { ... }}`: the blocks are found again
+  by the key, a string or a number, instead of the item itself. Without one, a list whose items are
+  replaced by new objects with the same data, as one loaded again from a server, gets all its blocks
+  created again, and the components in them lose their state; with one, the block of an item whose
+  key stays is kept and gets the new item. `with` and `key` are words only there: a key on a loop
+  outside markup or on `go for` is an error.
 
 **Compilation.**
 
@@ -844,7 +850,9 @@ blocks are the content:
   - `for x in xs` → `$$list`: a block for each item. On an update the blocks are found by the array
     item itself (an object by reference, a string or a number by value). Blocks of items that stay
     are updated and moved, not created again, so the nodes and the state of the components inside
-    them are kept. The index `i` is updated.
+    them are kept. The index `i` is updated. With a key, `$$list` gets a third function,
+    `(todo) => todo.id`, and finds the blocks by what it returns; the update of a block that stays
+    gets the new item as well, and the parts of the block that read it change with it.
   - The classic `for let i = 0; ...` runs again on every update: there is nothing to find the blocks
     by.
   - A `const` in a block is recomputed on an update if it depends on state.
@@ -1410,7 +1418,7 @@ body of `for`: the code of one row of the list is written there once, and no ext
 18. **The names of `@keyframes` are global,** as in plain CSS.
 19. **A list is keyed with `with key`:** `{for todo in todos with key todo.id { ... }}` finds the
     blocks by the key instead of the item itself, so a list loaded again from a server keeps its
-    blocks, and the state of the components in them. Not implemented yet.
+    blocks, and the state of the components in them; see "Control flow in markup".
 
 ## Not decided yet
 

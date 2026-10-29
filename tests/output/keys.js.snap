@@ -1,0 +1,127 @@
+// keys.js
+
+import { $$element, $$list } from "rooklang/runtime";
+
+function load() {
+  return ["Guava", "Lychee", "Mango"].map((name, i) => ({ id: i + 1, name, stock: Math.round(Math.random() * 9) }));
+}
+
+// <Shop>
+let $$shop1;
+{
+  let fruits = load();
+  const $$div3 = $$element("div");
+  const $$button4 = $$element("button");
+  $$button4.addEventListener("click", () => {
+    fruits = load();
+    $$updateFruits2();
+  });
+  $$button4.append("Load again");
+  const $$p5 = $$element("p");
+  $$p5.append("Without a key:");
+  const $$ul6 = $$element("ul");
+  const [$$for7, $$updateFor7] = $$list(() => fruits, (fruit) => {
+    const $$block8 = document.createDocumentFragment();
+    // <Row>
+    let $$row9;
+    let $$setName10;
+    let $$setStock11;
+    {
+      let name = fruit.name;
+      let stock = fruit.stock;
+      let starred = false;
+      const $$li15 = $$element("li");
+      const $$button16 = $$element("button");
+      $$button16.addEventListener("click", () => {
+        starred = !starred;
+        $$text17.data = starred ? "★" : "☆";
+      });
+      const $$text17 = document.createTextNode(starred ? "★" : "☆");
+      $$button16.append($$text17);
+      const $$text18 = document.createTextNode(name);
+      const $$text19 = document.createTextNode(stock);
+      $$li15.append($$button16, " ", $$text18, ": ", $$text19, " in stock");
+
+      $$setName10 = ($$name) => {
+        name = $$name;
+        $$text18.data = name;
+      };
+
+      $$setStock11 = ($$stock) => {
+        stock = $$stock;
+        $$text19.data = stock;
+      };
+
+      $$row9 = $$li15;
+    }
+    $$block8.append($$row9);
+    return [$$block8, () => {
+      $$setName10(fruit.name);
+      $$setStock11(fruit.stock);
+    }];
+  });
+  $$ul6.append($$for7);
+  const $$p20 = $$element("p");
+  $$p20.append("With key fruit.id:");
+  const $$ul21 = $$element("ul");
+  const [$$for22, $$updateFor22] = $$list(() => fruits, (fruit) => {
+    const $$block23 = document.createDocumentFragment();
+    // <Row>
+    let $$row24;
+    let $$setName25;
+    let $$setStock26;
+    {
+      let name = fruit.name;
+      let stock = fruit.stock;
+      let starred = false;
+      const $$li30 = $$element("li");
+      const $$button31 = $$element("button");
+      $$button31.addEventListener("click", () => {
+        starred = !starred;
+        $$text32.data = starred ? "★" : "☆";
+      });
+      const $$text32 = document.createTextNode(starred ? "★" : "☆");
+      $$button31.append($$text32);
+      const $$text33 = document.createTextNode(name);
+      const $$text34 = document.createTextNode(stock);
+      $$li30.append($$button31, " ", $$text33, ": ", $$text34, " in stock");
+
+      $$setName25 = ($$name) => {
+        name = $$name;
+        $$text33.data = name;
+      };
+
+      $$setStock26 = ($$stock) => {
+        stock = $$stock;
+        $$text34.data = stock;
+      };
+
+      $$row24 = $$li30;
+    }
+    $$block23.append($$row24);
+    return [$$block23, ($$index, $$item) => {
+      fruit = $$item;
+      $$setName25(fruit.name);
+      $$setStock26(fruit.stock);
+    }];
+  }, (fruit) => fruit.id);
+  $$ul21.append($$for22);
+  $$div3.append($$button4, $$p5, $$ul6, $$p20, $$ul21);
+
+  function $$updateFruits2() {
+    $$updateFor7();
+    $$updateFor22();
+  }
+
+  $$shop1 = $$div3;
+}
+document.body.append($$shop1);
+
+// keys.d.ts
+
+interface Fruit {
+    id: number;
+    name: string;
+    stock: number;
+}
+export {};

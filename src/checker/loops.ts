@@ -106,6 +106,7 @@ export abstract class LoopChecker extends BytesChecker {
     this.withScope(() => {
       if (node.key) this.declareValue(node.key, 'loop', key);
       this.declareValue(node.value, 'loop', value);
+      if (node.withKey) this.checkListKey(node.withKey);
       this.dropNarrowing(assignedNames(node.body));
 
       const entry = this.flow;
@@ -114,6 +115,18 @@ export abstract class LoopChecker extends BytesChecker {
       this.checkBlock(node.body.body);
       this.flow = entry;
     });
+  }
+
+  /** `with key todo.id`: a string or a number, by which the blocks of the list are found again. */
+  private checkListKey(key: ast.Expression): void {
+    const type = this.checkValue(key);
+
+    if (!isListKey(type)) {
+      this.error(
+        `the key of a list must be a string or a number, not ${typeToString(type)}: e.g. "with key todo.id"`,
+        key,
+      );
+    }
   }
 
   /**
@@ -133,5 +146,26 @@ export abstract class LoopChecker extends BytesChecker {
     }
 
     return [UNKNOWN, taken[0] ?? UNKNOWN];
+  }
+}
+
+/** A key of a list: a string, a number, a literal of one or a union of them. */
+function isListKey(type: Type): boolean {
+  switch (type.kind) {
+    case 'string':
+    case 'number':
+    case 'bigint':
+    case 'any':
+    case 'unknown':
+      return true;
+
+    case 'literal':
+      return typeof type.value !== 'boolean';
+
+    case 'union':
+      return type.types.every(isListKey);
+
+    default:
+      return false;
   }
 }

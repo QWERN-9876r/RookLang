@@ -117,6 +117,14 @@
           }
         },
         {
+          "comment": "`{for todo in todos with key todo.id { ... }}`: words only together, after the items.",
+          "match": "(?<![\\w$])(?<![^.]\\.)(with)[ \\t]+(key)(?![\\w$])",
+          "captures": {
+            "1": { "name": "keyword.control.loop.rook" },
+            "2": { "name": "keyword.control.loop.rook" }
+          }
+        },
+        {
           "name": "keyword.control.loop.rook",
           "match": "(?<![\\w$])(?<![^.]\\.)(?:for|in|break|continue)(?![\\w$])"
         },

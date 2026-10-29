@@ -107,11 +107,13 @@ export abstract class ControlFlowParser extends StatementParser {
     this.expect('in');
 
     const iterable = this.parseHeaderExpression();
+    const withKey = this.parseWithKey(go);
+    const keyed = withKey ? { withKey } : {};
 
     if (!go) {
       const body = this.parseLoopBody();
 
-      return { kind: 'ForInStatement', key, value, iterable, body, ...this.span(start) };
+      return { kind: 'ForInStatement', key, value, iterable, ...keyed, body, ...this.span(start) };
     }
 
     // The parts run at once in workers: nothing can leave the loop but `continue`.
@@ -120,7 +122,40 @@ export abstract class ControlFlowParser extends StatementParser {
       () => this.parseBlock(),
     );
 
-    return { kind: 'ForInStatement', key, value, iterable, body, go, ...this.span(start) };
+    return {
+      kind: 'ForInStatement',
+      key,
+      value,
+      iterable,
+      ...keyed,
+      body,
+      go,
+      ...this.span(start),
+    };
+  }
+
+  /**
+   * `with key todo.id` after the items of a `{for}` in markup: its blocks are found again by the
+   * key instead of the item. `with` and `key` are words only here, not keywords.
+   */
+  private parseWithKey(go: boolean): ast.Expression | null {
+    if (!this.checkWord('with')) return null;
+
+    const start = this.next().start;
+
+    this.expectWord('key');
+
+    const key = this.parseHeaderExpression();
+
+    if (go || !this.context.inMarkup) {
+      this.error(
+        '"with key" finds again the blocks of a {for} in markup, and this loop has none: remove it',
+        start,
+        key.end,
+      );
+    }
+
+    return key;
   }
 
   /** `go for i, v in items { }`: the parts of the array run as goroutines, and the loop waits. */

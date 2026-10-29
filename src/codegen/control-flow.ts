@@ -42,8 +42,10 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
 
       case 'ForInStatement': {
         const items = this.liveFunction(statement.iterable);
+        const create = this.blockCreator(statement.body.body, live, statement);
+        const key = statement.withKey ? `, ${this.listKey(statement, statement.withKey)}` : '';
 
-        call = `$$list(${items}, ${this.blockCreator(statement.body.body, live, statement)})`;
+        call = `$$list(${items}, ${create}${key})`;
         break;
       }
 
@@ -115,11 +117,7 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
     component?: ast.Identifier,
   ): string {
     const block = new Block(parent);
-    const params = loop
-      ? [loop.value, ...(loop.key ? [loop.key] : [])].map(parameter)
-      : component
-        ? [parameter(component)]
-        : [];
+    const params = loop ? loopParameters(loop) : component ? [parameter(component)] : [];
 
     return this.withFunction('none', params, () =>
       this.withRendering(this.rendering + 1, () => {
@@ -130,9 +128,16 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
             this.line(`const ${fragment} = document.createDocumentFragment();`);
             this.children(fragment, statements, block);
 
-            // The block of an item that stays gets the item's new position.
+            // The block of an item that stays gets the item's new position, and with a key the
+            // item itself, which may be another object with the same key.
             const key = loop?.key && loop.key.name !== '_' ? this.name(loop.key.name) : null;
-            const updates = [...(key ? [`${key} = $$index;`] : []), ...block.statements];
+            const item =
+              loop?.withKey && loop.value.name !== '_' ? this.name(loop.value.name) : null;
+            const updates = [
+              ...(key ? [`${key} = $$index;`] : []),
+              ...(item ? [`${item} = $$item;`] : []),
+              ...block.statements,
+            ];
 
             if (updates.length === 0) {
               this.line(`return [${fragment}];`);
@@ -144,12 +149,25 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
               for (const statement of updates) this.line(indentMore(statement));
             });
 
-            this.line(`return [${fragment}, (${key ? '$$index' : ''}) => ${update}];`);
+            const args = item ? '$$index, $$item' : key ? '$$index' : '';
+
+            this.line(`return [${fragment}, (${args}) => ${update}];`);
           }),
         );
 
         return `(${paramList}) => ${body}`;
       }),
+    );
+  }
+
+  /** The key of a list, `with key todo.id`: `(todo) => todo.id`, which its blocks are found by. */
+  private listKey(loop: ast.ForInStatement, key: ast.Expression): string {
+    const params = loopParameters(loop);
+
+    return this.withFunction(
+      'none',
+      params,
+      () => `(${this.params(params)}) => ${this.expression(key, CONDITIONAL)}`,
     );
   }
 
@@ -181,6 +199,11 @@ function returnNumber(value: number, at: ast.NodeBase): ast.ReturnStatement {
   };
 
   return { kind: 'ReturnStatement', values: [number], start: at.start, end: at.start };
+}
+
+/** The variables of a loop, `(todo, i)`, as the parameters of its blocks and of its key. */
+function loopParameters(loop: ast.ForInStatement): ast.Parameter[] {
+  return [loop.value, ...(loop.key ? [loop.key] : [])].map(parameter);
 }
 
 /** A loop variable as a parameter of the function that creates the loop's blocks. */

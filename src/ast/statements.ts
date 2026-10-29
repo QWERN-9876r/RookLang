@@ -157,6 +157,8 @@ export interface ForInStatement extends NodeBase {
   key: Identifier | null;
   value: Identifier;
   iterable: Expression;
+  /** `with key todo.id` of a `{for}` in markup: what its blocks are found again by. */
+  withKey?: Expression;
   body: BlockStatement;
   go?: boolean;
 }

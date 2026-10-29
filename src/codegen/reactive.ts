@@ -336,6 +336,8 @@ export class Reactive implements Live {
         case 'ForInStatement':
           add(node.value.name, this.rootSources(node.iterable));
           if (node.key && inMarkup) add(node.key.name, this.dependencies(node.iterable));
+          // With a key, the block of an item may get another object with the same key.
+          if (node.withKey && inMarkup) add(node.value.name, this.dependencies(node.iterable));
           break;
 
         case 'VariableDeclaration':

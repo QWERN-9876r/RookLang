@@ -12,13 +12,16 @@ to change it under **Breaking**. A patch version (0.3.5) never does: it adds and
 
 ### Added
 
+- Keys of lists in markup: `{for todo in todos with key todo.id { ... }}` finds the blocks again
+  by the key, so a list loaded again from a server keeps its blocks and the state of the
+  components in them.
 - The browser compiler, which the playground uses, knows `AbortController`, `AbortSignal` and
   `ImageData` as types too: `signal AbortSignal` compiles there.
 - The VS Code extension checks a file with the `rooklang` installed next to it, so the editor shows
   the errors of the version that `rook build` runs; in an untrusted workspace, and without an
   installed one, it uses its own copy. The status bar shows which compiler checked the file.
-- [docs/roadmap.md](docs/roadmap.md): where Rook stands and the road to 1.0. Until 1.0 the syntax
-  is frozen.
+- [docs/roadmap.md](docs/roadmap.md): where Rook stands and the road to 1.0, with what the
+  language is to have by then.
 
 ### Fixed
 

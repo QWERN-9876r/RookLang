@@ -209,6 +209,7 @@ export function renamer(
           {
             ...node,
             iterable: copy(node.iterable, hidden),
+            ...(node.withKey ? { withKey: copy(node.withKey, scoped(names, hidden)) } : {}),
             body: copy(node.body, scoped(names, hidden)),
           } as T,
           node,

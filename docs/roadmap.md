@@ -82,7 +82,7 @@ how (the section "Rook in an existing project").
 1.0 is to be as complete as it can. Each item is decided by the maintainer first, then implemented;
 the open ones are listed in "Not decided yet" of [components.md](components.md).
 
-- Keys of lists in markup: `{for todo in todos with key todo.id { ... }}`. _(decided)_
+- Keys of lists in markup: `{for todo in todos with key todo.id { ... }}`. _(done)_
 - A union of interfaces narrowed by a field of a literal type: `if d.kind == "courier"` gives
   `d.address`, and `{ kind: "pickup", shop: "..." }` fits the union.
 - `derived` of several statements.

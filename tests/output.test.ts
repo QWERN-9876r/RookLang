@@ -45,9 +45,12 @@ describe('the output of the examples', () => {
     );
   });
 
+  // A missing file is written by the test above, or fails it in CI; one left over is caught here.
   it('keeps no file of an example that is gone', () => {
-    expect(readdirSync(new URL('output/', import.meta.url)).sort()).toEqual(
-      examples.map(({ name }) => `${name}.js.snap`).sort(),
-    );
+    const files = new Set(examples.map(({ name }) => `${name}.js.snap`));
+
+    expect(
+      readdirSync(new URL('output/', import.meta.url)).filter((file) => !files.has(file)),
+    ).toEqual([]);
   });
 });

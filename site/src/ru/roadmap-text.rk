@@ -183,7 +183,7 @@ export comp RoadmapText() {
         <ul>
             <li>
                 Ключи списков в разметке: <code>{"{for todo in todos with key todo.id { ... }}"}</code>.
-                {" "}<i>Решено.</i>
+                {" "}<i>Сделано.</i>
             </li>
             <li>
                 Объединение интерфейсов сужается по полю литерального типа:

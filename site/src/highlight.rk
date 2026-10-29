@@ -96,7 +96,7 @@ func tokenClass(tokens any, i number, language string) string {
     if isDecorator(tokens, i) {
         return "fn"
     }
-    if language != "js" && isNeeds(tokens, i) {
+    if language != "js" && (isNeeds(tokens, i) || isWithKey(tokens, i)) {
         return "kw"
     }
     if language != "js" && isNeeded(tokens, i) {
@@ -229,4 +229,11 @@ func isNeeded(tokens any, i number) bool {
 func isCapitalized(text string) bool {
     const first = text.charAt(0)
     return first != first.toLowerCase()
+}
+
+// with key are keywords only together, after the items of a list: for todo in todos with key todo.id
+func isWithKey(tokens any, i number) bool {
+    const text string = tokens[i].text
+    return text == "with" && tokens[i + 1].text == "key" ||
+        text == "key" && i > 0 && tokens[i - 1].text == "with"
 }
