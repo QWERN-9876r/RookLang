@@ -1,0 +1,24 @@
+// State at the top level of a module is shared by its components:
+// a change anywhere in the module updates every component that reads it
+state cart []string = []
+
+func add(fruit string) {
+    cart.push(fruit)
+}
+
+comp Shelf() {
+    return <div>
+        {for fruit in ["Mango", "Guava", "Lychee"] {
+            <button onClick={add(fruit)}>+ {fruit}</button>
+        }}
+    </div>
+}
+
+comp Basket() {
+    return <p class="card">
+        {cart.length == 0 ? "The basket is empty" : cart.join(", ")}
+        {" "}<button onClick={cart = []}>Empty</button>
+    </p>
+}
+
+document.body.append(<Shelf />, <Basket />)

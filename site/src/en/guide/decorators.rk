@@ -5,7 +5,7 @@ import { Example } from "../../example.rk"
 export comp Decorators() {
     return <>
         <p>
-            A decorator adds logic to components: state, functions and <code>mount()</code>. It is
+            A decorator adds logic to components: state, functions and <code>mount</code>. It is
             declared with <code>dec</code> and applied with <code>@name(arguments)</code> before
             {" "}<code>comp</code>. Like a component, it exists only at compile time: its code is
             inlined into every component it is applied to, and each of them gets its own state.
@@ -33,7 +33,7 @@ export comp Decorators() {
             </li>
             <li>
                 With several decorators, <code>@a @b comp X</code>, their bodies run from top to
-                bottom before the component's, and <code>mount()</code> runs from the inside out:
+                bottom before the component's, and <code>mount</code> runs from the inside out:
                 the component, <code>b</code>, <code>a</code>. <code>@html-tag</code> goes first.
             </li>
         </ul>

@@ -14,7 +14,8 @@ export comp Topics() {
         <p>
             A topic listens from its first receive on and keeps what comes until it is received.
             Two topics of the same name each get every value, and <code>close(cart)</code> stops
-            one, so a component closes its topic in the function that <code>mount()</code> returns.
+            one, so a component closes its topic with <code>defer close(cart)</code> in
+            {" "}<code>mount</code>.
             The values go to other tabs as copies, so they are data, as the arguments of
             {" "}<code>go</code> are; a goroutine that gets a topic sends to the tabs too.
         </p>

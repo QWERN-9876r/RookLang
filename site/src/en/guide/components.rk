@@ -27,6 +27,16 @@ export comp Components() {
         </p>
         <Example name="attrs" />
         <p>
+            Properties are read-only, except bound ones. A component that changes a value of the
+            parent, a panel that closes or tabs that switch, declares the property with
+            {" "}<code>bind</code>, <code>{"comp Panel(bind open bool)"}</code>, and changes it as
+            its state. The use writes the changes into its variable with
+            {" "}<code>{"bind:open={menu}"}</code>, as <code>bind:value</code> of an input does,
+            so it needs no pair of <code>open</code> and <code>onClose</code>. Without
+            {" "}<code>bind:</code> the property is the component's own state.
+        </p>
+        <Example name="component-bind" />
+        <p>
             A component can use itself, for a tree or nested comments. Such a component cannot be
             inlined, so it becomes a function, and every call of it has its own state. The recursion
             must end: the compiler accepts a use inside <code>{"{if ...}"}</code> or

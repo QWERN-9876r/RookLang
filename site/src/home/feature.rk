@@ -8,7 +8,7 @@ import styles from "./feature.module.css"
 type Span "one" | "two" | "row"
 
 export comp Feature(title string, body string, icon IconName, span Span = "one", children Content) {
-    return <article class={`${styles.card} ${styles[span]}`}>
+    return <article class={[styles.card, styles[span]]}>
         <span class={styles.icon}><Icon name={icon} size={18} /></span>
         <h3 class={styles.title}>{title}</h3>
         <p class={styles.text}>{body}</p>

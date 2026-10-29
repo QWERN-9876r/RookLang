@@ -176,81 +176,84 @@ let $$search1, $$mountNode2;
     $$updateFruits3();
   }
 
+  const $$cleanups5 = [];
   $$mount(() => $$mountNode2, () => {
     search("");
-    return () => current?.abort();
-  });
+    $$cleanups5.push(() => {
+      current?.abort();
+    });
+  }, $$cleanups5);
 
-  const $$div5 = $$element("div", { className: "search rook-search-1f2083n" });
-  const $$input6 = $$element("input", { className: "field rook-search-1f2083n", placeholder: "Search fruit: type p, then a" });
-  $$input6.addEventListener("input", (event) => {
+  const $$div6 = $$element("div", { className: "search rook-search-1f2083n" });
+  const $$input7 = $$element("input", { className: "field rook-search-1f2083n", placeholder: "Search fruit: type p, then a" });
+  $$input7.addEventListener("input", (event) => {
     search(event.currentTarget.value);
   });
-  const $$ul7 = $$element("ul", { className: `${asking ? "fruits waiting" : "fruits"} rook-search-1f2083n` });
-  const [$$for8, $$updateFor8] = $$list(() => fruits, (fruit) => {
-    const $$block9 = document.createDocumentFragment();
-    const $$li10 = $$element("li", { className: "rook-search-1f2083n" });
-    const $$text11 = document.createTextNode(fruit.name);
-    const $$span12 = $$element("span", { className: "price rook-search-1f2083n" });
-    const $$text13 = document.createTextNode(fruit.price.toFixed(2));
-    $$span12.append("€", $$text13);
-    $$li10.append($$text11, $$span12);
-    $$block9.append($$li10);
-    return [$$block9, () => {
-      $$text11.data = fruit.name;
-      $$text13.data = fruit.price.toFixed(2);
+  const $$ul8 = $$element("ul", { className: `${asking ? "fruits waiting" : "fruits"} rook-search-1f2083n` });
+  const [$$for9, $$updateFor9] = $$list(() => fruits, (fruit) => {
+    const $$block10 = document.createDocumentFragment();
+    const $$li11 = $$element("li", { className: "rook-search-1f2083n" });
+    const $$text12 = document.createTextNode(fruit.name);
+    const $$span13 = $$element("span", { className: "price rook-search-1f2083n" });
+    const $$text14 = document.createTextNode(fruit.price.toFixed(2));
+    $$span13.append("€", $$text14);
+    $$li11.append($$text12, $$span13);
+    $$block10.append($$li11);
+    return [$$block10, () => {
+      $$text12.data = fruit.name;
+      $$text14.data = fruit.price.toFixed(2);
     }];
   });
-  $$ul7.append($$for8);
-  const [$$if14, $$updateIf14] = $$branches(() => fruits.length === 0 && !asking ? 0 : -1, [() => {
-    const $$block15 = document.createDocumentFragment();
-    const $$p16 = $$element("p", { className: "empty rook-search-1f2083n" });
-    $$p16.append("Nothing found");
-    $$block15.append($$p16);
-    return [$$block15];
+  $$ul8.append($$for9);
+  const [$$if15, $$updateIf15] = $$branches(() => fruits.length === 0 && !asking ? 0 : -1, [() => {
+    const $$block16 = document.createDocumentFragment();
+    const $$p17 = $$element("p", { className: "empty rook-search-1f2083n" });
+    $$p17.append("Nothing found");
+    $$block16.append($$p17);
+    return [$$block16];
   }]);
-  const $$p17 = $$element("p", { className: "caption rook-search-1f2083n" });
-  $$p17.append("Requests, newest first");
-  const $$ol18 = $$element("ol", { className: "log rook-search-1f2083n" });
-  const [$$for19, $$updateFor19] = $$list(() => log, (r) => {
-    const $$block20 = document.createDocumentFragment();
-    const $$li21 = $$element("li", { className: "rook-search-1f2083n" }, { "data-status": r.status });
-    const $$span22 = $$element("span", { className: "rook-search-1f2083n" });
-    const $$text23 = document.createTextNode(r.query === "" ? "all" : `“${r.query}”`);
-    $$span22.append($$text23);
-    const $$span24 = $$element("span", { className: "rook-search-1f2083n" });
-    const $$text25 = document.createTextNode(r.status);
-    $$span24.append($$text25);
-    const $$span26 = $$element("span", { className: "ms rook-search-1f2083n" });
-    const $$text27 = document.createTextNode(r.status === "asking" ? "…" : `${r.ms} ms`);
-    $$span26.append($$text27);
-    $$li21.append($$span22, $$span24, $$span26);
-    $$block20.append($$li21);
-    return [$$block20, () => {
-      $$li21.setAttribute("data-status", r.status);
-      $$text23.data = r.query === "" ? "all" : `“${r.query}”`;
-      $$text25.data = r.status;
-      $$text27.data = r.status === "asking" ? "…" : `${r.ms} ms`;
+  const $$p18 = $$element("p", { className: "caption rook-search-1f2083n" });
+  $$p18.append("Requests, newest first");
+  const $$ol19 = $$element("ol", { className: "log rook-search-1f2083n" });
+  const [$$for20, $$updateFor20] = $$list(() => log, (r) => {
+    const $$block21 = document.createDocumentFragment();
+    const $$li22 = $$element("li", { className: "rook-search-1f2083n" }, { "data-status": r.status });
+    const $$span23 = $$element("span", { className: "rook-search-1f2083n" });
+    const $$text24 = document.createTextNode(r.query === "" ? "all" : `“${r.query}”`);
+    $$span23.append($$text24);
+    const $$span25 = $$element("span", { className: "rook-search-1f2083n" });
+    const $$text26 = document.createTextNode(r.status);
+    $$span25.append($$text26);
+    const $$span27 = $$element("span", { className: "ms rook-search-1f2083n" });
+    const $$text28 = document.createTextNode(r.status === "asking" ? "…" : `${r.ms} ms`);
+    $$span27.append($$text28);
+    $$li22.append($$span23, $$span25, $$span27);
+    $$block21.append($$li22);
+    return [$$block21, () => {
+      $$li22.setAttribute("data-status", r.status);
+      $$text24.data = r.query === "" ? "all" : `“${r.query}”`;
+      $$text26.data = r.status;
+      $$text28.data = r.status === "asking" ? "…" : `${r.ms} ms`;
     }];
   });
-  $$ol18.append($$for19);
-  $$div5.append($$input6, $$ul7, $$if14, $$p17, $$ol18);
+  $$ol19.append($$for20);
+  $$div6.append($$input7, $$ul8, $$if15, $$p18, $$ol19);
 
   function $$updateFruits3() {
     if (!$$search1) return;
-    $$updateFor8();
-    $$updateIf14();
+    $$updateFor9();
+    $$updateIf15();
   }
 
   function $$updateLog4() {
     asking = log.length > 0 && log[0].status === "asking";
     if (!$$search1) return;
-    $$ul7.className = `${asking ? "fruits waiting" : "fruits"} rook-search-1f2083n`;
-    $$updateIf14();
-    $$updateFor19();
+    $$ul8.className = `${asking ? "fruits waiting" : "fruits"} rook-search-1f2083n`;
+    $$updateIf15();
+    $$updateFor20();
   }
 
-  $$search1 = $$div5;
+  $$search1 = $$div6;
   $$mountNode2 = $$search1?.nodeType === 11 ? $$search1.firstChild : $$search1;
 }
 document.body.append($$search1);

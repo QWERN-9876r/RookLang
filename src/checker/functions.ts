@@ -55,7 +55,12 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
       // A generic function: its type parameters are types in its body.
       for (const typeParam of type.typeParams) this.scope.types.set(typeParam.name, typeParam);
       params.forEach((param, i) =>
-        this.declareValue(param.name, options.paramKind ?? 'param', type.params[i] ?? UNKNOWN),
+        // A bound property of a component, `bind active string`, changes as its state does.
+        this.declareValue(
+          param.name,
+          param.bind ? 'state' : (options.paramKind ?? 'param'),
+          type.params[i] ?? UNKNOWN,
+        ),
       );
       if (body.kind === 'BlockStatement') {
         this.checkStatementList(body.body, false);

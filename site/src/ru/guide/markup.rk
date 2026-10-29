@@ -22,6 +22,12 @@ export comp Markup() {
             {" "}<code>{"onClick={save()}"}</code> вызывает <code>save</code> по клику, а не при
             создании элемента. Внутри доступна переменная <code>event</code>.
         </p>
+        <p>
+            <code>class</code> принимает и список, из которого выпадают <code>null</code>:
+            {" "}<code>{'class={["tab", active ? "active" : null]}'}</code>. <code>bool</code> в
+            {" "}<code>aria-*</code> становится <code>"true"</code> или <code>"false"</code>, как
+            ждёт ARIA: <code>{"aria-selected={active}"}</code>.
+        </p>
         <Example name="markup" />
         <p>
             Внутри <code>{"{...}"}</code> можно писать обычные <code>if</code>, <code>for</code> и

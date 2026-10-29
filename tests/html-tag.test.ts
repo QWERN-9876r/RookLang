@@ -14,7 +14,7 @@ function errors(source: string): string[] {
   return check(program).diagnostics.map((d) => d.message);
 }
 
-/** Waits until the microtasks of `mount()` and of disconnection are done. */
+/** Waits until the microtasks of `mount` and of disconnection are done. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 const counter = `@html-tag
@@ -30,9 +30,9 @@ comp itemCounter(label string, count number = 1, big bool, children Content) {
 
 const timer = `@html-tag("app-timer")
 comp Timer(name string) {
-    mount() {
+    mount {
         console.log("start", name)
-        return () => console.log("stop", name)
+        defer console.log("stop", name)
     }
     return <p>{name}</p>
 }

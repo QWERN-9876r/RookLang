@@ -8,8 +8,8 @@ import { ComponentEmitter } from './components.ts';
  * have their values.
  *
  * The element renders the component into its shadow root when it is connected. When it is
- * disconnected and not put back in the same task, the component is removed: the functions
- * returned by `mount()` run. Moving the element keeps its markup.
+ * disconnected and not put back in the same task, the component is removed: what its
+ * `mount` deferred runs. Moving the element keeps its markup.
  *
  * Every property except `children` is a JS property of the element; its setter updates the markup.
  * Strings, numbers and bools also have attributes: `item-count="3"` sets `itemCount` to 3, and a

@@ -22,6 +22,12 @@ export comp Markup() {
             {" "}<code>{"onClick={save()}"}</code> calls <code>save</code> on a click, not when the
             element is created. The variable <code>event</code> is available inside.
         </p>
+        <p>
+            <code>class</code> also takes a list, which leaves out <code>null</code>s:
+            {" "}<code>{'class={["tab", active ? "active" : null]}'}</code>. A <code>bool</code> in
+            {" "}<code>aria-*</code> becomes <code>"true"</code> or <code>"false"</code>, as ARIA
+            expects: <code>{"aria-selected={active}"}</code>.
+        </p>
         <Example name="markup" />
         <p>
             Inside <code>{"{...}"}</code> you can write ordinary <code>if</code>, <code>for</code>

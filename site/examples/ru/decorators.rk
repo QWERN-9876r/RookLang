@@ -1,4 +1,4 @@
-// Декоратор добавляет компонентам логику: состояние, функции и mount(). Его код
+// Декоратор добавляет компонентам логику: состояние, функции и mount. Его код
 // встраивается в каждый компонент, к которому он применён, поэтому каждый тикает сам
 dec ticker(interval number = 1000) {
     public state ticks = 0
@@ -8,13 +8,13 @@ dec ticker(interval number = 1000) {
         running = !running
     }
 
-    mount() {
+    mount {
         const timer = setInterval(() => {
             if running {
                 ticks++
             }
         }, interval)
-        return () => clearInterval(timer)
+        defer clearInterval(timer)
     }
 }
 

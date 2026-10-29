@@ -7,10 +7,10 @@ export comp Reveal(children Content) {
     state shown = false
     ref host
 
-    mount() {
+    mount {
         if matchMedia("(prefers-reduced-motion: reduce)").matches {
             shown = true
-            return () => {}
+            return
         }
         const observer = new IntersectionObserver(entries => {
             if entries.some(entry => entry.isIntersecting) {
@@ -19,10 +19,10 @@ export comp Reveal(children Content) {
             }
         }, { rootMargin: "0px 0px -8% 0px" })
         observer.observe(host)
-        return () => observer.disconnect()
+        defer observer.disconnect()
     }
 
-    return <div ref={host} class={shown ? `${styles.reveal} ${styles.shown}` : styles.reveal}>
+    return <div ref={host} class={[styles.reveal, shown ? styles.shown : null]}>
         {children}
     </div>
 }

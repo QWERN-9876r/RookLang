@@ -16,57 +16,58 @@ function $$Greeting(name) {
 
 function $$Farewell(name) {
   let $$farewell6, $$mountNode7;
+  const $$cleanups8 = [];
   $$mount(() => $$mountNode7, () => {
     console.log("Farewell is shown");
-    return () => console.log("Farewell is removed");
-  });
-  const $$p8 = $$element("p");
-  const $$text9 = document.createTextNode(name);
-  $$p8.append("Goodbye, ", $$text9, ".");
-  $$farewell6 = $$p8;
+    $$cleanups8.push(() => console.log("Farewell is removed"));
+  }, $$cleanups8);
+  const $$p9 = $$element("p");
+  const $$text10 = document.createTextNode(name);
+  $$p9.append("Goodbye, ", $$text10, ".");
+  $$farewell6 = $$p9;
   $$mountNode7 = $$farewell6?.nodeType === 11 ? $$farewell6.firstChild : $$farewell6;
   return [$$farewell6, ($$name) => {
     name = $$name;
-    $$text9.data = name;
+    $$text10.data = name;
   }];
 }
 
 const TABS = [{ title: "Hello", content: $$Greeting }, { title: "Goodbye", content: $$Farewell }];
 
 // <Tabs>
-let $$tabs10;
+let $$tabs11;
 {
   let name = "Ann";
   let Current = $$Greeting;
-  const $$div13 = $$element("div");
-  const $$input14 = $$element("input");
-  $$input14.value = name;
-  $$input14.addEventListener("input", () => {
-    name = $$input14.value;
-    $$updateCurrent16();
+  const $$div14 = $$element("div");
+  const $$input15 = $$element("input");
+  $$input15.value = name;
+  $$input15.addEventListener("input", () => {
+    name = $$input15.value;
+    $$updateCurrent17();
   });
-  $$div13.append($$input14);
+  $$div14.append($$input15);
   for (const tab of TABS) {
-    const $$button15 = $$element("button");
-    $$button15.addEventListener("click", () => {
+    const $$button16 = $$element("button");
+    $$button16.addEventListener("click", () => {
       Current = tab.content;
-      $$updateCurrent16();
+      $$updateCurrent17();
     });
-    $$button15.append(tab.title);
-    $$div13.append($$button15);
+    $$button16.append(tab.title);
+    $$div14.append($$button16);
   }
-  const [$$current16, $$updateCurrent16] = $$dynamic(() => Current, ($$component16) => {
-    const $$block17 = document.createDocumentFragment();
-    const [$$current18, $$setCurrent18] = $$component16(name);
-    $$block17.append($$current18);
-    return [$$block17, () => {
-      $$setCurrent18(name);
+  const [$$current17, $$updateCurrent17] = $$dynamic(() => Current, ($$component17) => {
+    const $$block18 = document.createDocumentFragment();
+    const [$$current19, $$setCurrent19] = $$component17(name);
+    $$block18.append($$current19);
+    return [$$block18, () => {
+      $$setCurrent19(name);
     }];
   });
-  $$div13.append($$current16);
-  $$tabs10 = $$div13;
+  $$div14.append($$current17);
+  $$tabs11 = $$div14;
 }
-document.body.append($$tabs10);
+document.body.append($$tabs11);
 
 // component-values.d.ts
 

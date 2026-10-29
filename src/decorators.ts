@@ -109,7 +109,7 @@ interface AppliedWrapper {
  * The component with its decorators applied. Its body first declares the arguments of each
  * decorator and runs its body, from the top decorator down, then runs the component's own body.
  * The names of a decorator get its prefix, `$$visible$shown`, so they clash neither with each other
- * nor with the component's names, and `@visible.shown` reads that variable. The `mount()` of
+ * nor with the component's names, and `@visible.shown` reads that variable. The `mount` of
  * the decorators runs after the component's own, from the inside out, so it goes before every
  * `return` of the component's body.
  *

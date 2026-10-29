@@ -87,7 +87,7 @@ describe('inlined components', () => {
     const source = `${field}comp Form() {
     ref name
     console.log("body", name.className, name.childNodes.length)
-    mount() {
+    mount {
         console.log("mount", name.childNodes.length)
     }
     return <form><Field ref={name} label="Name" /></form>
@@ -182,7 +182,7 @@ document.body.append(<A />)
 }
 comp A() {
     ref input
-    mount() {
+    mount {
         console.log(input.isConnected, input.parentNode != null)
     }
     return <Modal><input ref={input} /></Modal>

@@ -15,7 +15,7 @@ import {
   type Type,
 } from './types.ts';
 
-// Statements: declarations of variables, blocks, `mount()`, `effect`. Assignments and `return`
+// Statements: declarations of variables, blocks, `mount`, `effect`. Assignments and `return`
 // are in assignments.ts.
 
 export abstract class StatementChecker extends AssignmentChecker {
@@ -132,43 +132,28 @@ export abstract class StatementChecker extends AssignmentChecker {
    * a handler. It cleans up with `defer`, so it returns nothing.
    */
   protected checkEffect(node: ast.EffectStatement): void {
-    for (const statement of ownStatements(node.body)) {
+    this.checkDeferring(node.body, 'an effect');
+  }
+
+  /**
+   * `mount { ... }`: a function that runs once the markup is in the document, like a handler. It
+   * cleans up with `defer`, as an effect does, so it returns nothing.
+   */
+  protected checkMount(node: ast.MountStatement): void {
+    this.checkDeferring(node.body, 'mount');
+  }
+
+  private checkDeferring(body: ast.BlockStatement, what: string): void {
+    for (const statement of ownStatements(body)) {
       if (statement.kind === 'ReturnStatement' && statement.values.length > 0) {
         this.error(
-          'an effect returns nothing; clean up with defer, e.g. defer clearInterval(timer)',
+          `${what} returns nothing; clean up with defer, e.g. defer clearInterval(timer)`,
           statement.values[0]!,
         );
       }
     }
 
-    this.checkFunction([], func([], []), null, node.body, { closure: true });
-  }
-
-  /**
-   * `mount() { ... }`: a function that runs once the markup is in the document, like a handler.
-   * It may return the function that cleans up, or nothing.
-   */
-  protected checkMount(node: ast.MountStatement): void {
-    const results = this.checkFunction([], func([], []), null, node.body, { closure: true });
-
-    if (results.length === 0) return;
-
-    const result = results.length === 1 ? nonNull(results[0]!) : null;
-    const cleans =
-      result !== null &&
-      (isUntyped(result) ||
-        result.kind === 'never' ||
-        (result.kind === 'function' && result.required === 0));
-
-    if (!cleans) {
-      const returned =
-        results.length === 1 ? typeToString(results[0]!) : `${results.length} values`;
-
-      this.error(
-        `mount() returns the function that cleans up, e.g. return () => clearInterval(timer), not ${returned}`,
-        { start: node.start, end: node.start + 'mount'.length },
-      );
-    }
+    this.checkFunction([], func([], []), null, body, { closure: true });
   }
 
   /**

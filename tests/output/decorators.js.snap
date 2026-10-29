@@ -17,36 +17,37 @@ let $$stopwatch1, $$mountNode2;
     $$updateTicker$running4();
   }
 
+  const $$cleanups5 = [];
   $$mount(() => $$mountNode2, () => {
     const timer = setInterval(() => {
       if ($$ticker$running) {
         $$ticker$ticks++;
-        $$text6.data = $$ticker$ticks;
+        $$text7.data = $$ticker$ticks;
       }
     }, $$ticker$interval);
-    return () => clearInterval(timer);
-  });
+    $$cleanups5.push(() => clearInterval(timer));
+  }, $$cleanups5);
 
-  const $$p5 = $$element("p", { className: "card" });
-  const $$text6 = document.createTextNode($$ticker$ticks);
-  const $$button7 = $$element("button");
-  $$button7.addEventListener("click", () => {
+  const $$p6 = $$element("p", { className: "card" });
+  const $$text7 = document.createTextNode($$ticker$ticks);
+  const $$button8 = $$element("button");
+  $$button8.addEventListener("click", () => {
     $$ticker$toggle();
   });
-  const $$text8 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
-  $$button7.append($$text8);
-  $$p5.append(label, ": ", $$text6, " s", $$button7);
+  const $$text9 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
+  $$button8.append($$text9);
+  $$p6.append(label, ": ", $$text7, " s", $$button8);
 
   function $$updateTicker$running4() {
     if (!$$stopwatch1) return;
-    $$text8.data = $$ticker$running ? "Pause" : "Go on";
+    $$text9.data = $$ticker$running ? "Pause" : "Go on";
   }
 
-  $$stopwatch1 = $$p5;
+  $$stopwatch1 = $$p6;
   $$mountNode2 = $$stopwatch1?.nodeType === 11 ? $$stopwatch1.firstChild : $$stopwatch1;
 }
 // <Stopwatch>
-let $$stopwatch9, $$mountNode10;
+let $$stopwatch10, $$mountNode11;
 {
   const label = "Eggs";
   const $$ticker$interval = 1000;
@@ -55,39 +56,40 @@ let $$stopwatch9, $$mountNode10;
 
   function $$ticker$toggle() {
     $$ticker$running = !$$ticker$running;
-    $$updateTicker$running12();
+    $$updateTicker$running13();
   }
 
-  $$mount(() => $$mountNode10, () => {
+  const $$cleanups14 = [];
+  $$mount(() => $$mountNode11, () => {
     const timer = setInterval(() => {
       if ($$ticker$running) {
         $$ticker$ticks++;
-        $$text14.data = $$ticker$ticks;
+        $$text16.data = $$ticker$ticks;
       }
     }, $$ticker$interval);
-    return () => clearInterval(timer);
-  });
+    $$cleanups14.push(() => clearInterval(timer));
+  }, $$cleanups14);
 
-  const $$p13 = $$element("p", { className: "card" });
-  const $$text14 = document.createTextNode($$ticker$ticks);
-  const $$button15 = $$element("button");
-  $$button15.addEventListener("click", () => {
+  const $$p15 = $$element("p", { className: "card" });
+  const $$text16 = document.createTextNode($$ticker$ticks);
+  const $$button17 = $$element("button");
+  $$button17.addEventListener("click", () => {
     $$ticker$toggle();
   });
-  const $$text16 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
-  $$button15.append($$text16);
-  $$p13.append(label, ": ", $$text14, " s", $$button15);
+  const $$text18 = document.createTextNode($$ticker$running ? "Pause" : "Go on");
+  $$button17.append($$text18);
+  $$p15.append(label, ": ", $$text16, " s", $$button17);
 
-  function $$updateTicker$running12() {
-    if (!$$stopwatch9) return;
-    $$text16.data = $$ticker$running ? "Pause" : "Go on";
+  function $$updateTicker$running13() {
+    if (!$$stopwatch10) return;
+    $$text18.data = $$ticker$running ? "Pause" : "Go on";
   }
 
-  $$stopwatch9 = $$p13;
-  $$mountNode10 = $$stopwatch9?.nodeType === 11 ? $$stopwatch9.firstChild : $$stopwatch9;
+  $$stopwatch10 = $$p15;
+  $$mountNode11 = $$stopwatch10?.nodeType === 11 ? $$stopwatch10.firstChild : $$stopwatch10;
 }
 // <Spinner>
-let $$spinner17, $$mountNode18;
+let $$spinner19, $$mountNode20;
 {
   const $$ticker$interval = 150;
   let $$ticker$ticks = 0;
@@ -97,23 +99,24 @@ let $$spinner17, $$mountNode18;
     $$ticker$running = !$$ticker$running;
   }
 
-  $$mount(() => $$mountNode18, () => {
+  const $$cleanups23 = [];
+  $$mount(() => $$mountNode20, () => {
     const timer = setInterval(() => {
       if ($$ticker$running) {
         $$ticker$ticks++;
-        $$text22.data = FRAMES[$$ticker$ticks % FRAMES.length];
+        $$text25.data = FRAMES[$$ticker$ticks % FRAMES.length];
       }
     }, $$ticker$interval);
-    return () => clearInterval(timer);
-  });
+    $$cleanups23.push(() => clearInterval(timer));
+  }, $$cleanups23);
 
-  const $$p21 = $$element("p", { className: "card" });
-  const $$text22 = document.createTextNode(FRAMES[$$ticker$ticks % FRAMES.length]);
-  $$p21.append($$text22);
-  $$spinner17 = $$p21;
-  $$mountNode18 = $$spinner17?.nodeType === 11 ? $$spinner17.firstChild : $$spinner17;
+  const $$p24 = $$element("p", { className: "card" });
+  const $$text25 = document.createTextNode(FRAMES[$$ticker$ticks % FRAMES.length]);
+  $$p24.append($$text25);
+  $$spinner19 = $$p24;
+  $$mountNode20 = $$spinner19?.nodeType === 11 ? $$spinner19.firstChild : $$spinner19;
 }
-document.body.append($$stopwatch1, $$stopwatch9, $$spinner17);
+document.body.append($$stopwatch1, $$stopwatch10, $$spinner19);
 
 // decorators.d.ts
 

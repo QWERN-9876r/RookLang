@@ -1,13 +1,13 @@
-// mount() runs once the component's markup is on the page. The function it returns
-// runs when {if} removes the component, so the timer does not keep running for nothing
+// mount runs once the component's markup is on the page. What it defers runs when
+// {if} removes the component, so the timer does not keep running for nothing
 comp Clock() {
     state time = new Date().toLocaleTimeString()
 
-    mount() {
+    mount {
         const timer = setInterval(() => {
             time = new Date().toLocaleTimeString()
         }, 1000)
-        return () => clearInterval(timer)
+        defer clearInterval(timer)
     }
 
     return <p class="card">It is {time}</p>

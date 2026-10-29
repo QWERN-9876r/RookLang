@@ -1,0 +1,50 @@
+// shared-state.js
+
+import { $$changed, $$element, $$watch } from "rooklang/runtime";
+
+let cart = [];
+const $$listeners$cart = new Set();
+
+function add(fruit) {
+  cart.push(fruit);
+  $$changed($$listeners$cart);
+}
+
+// <Shelf>
+let $$shelf1;
+{
+  $$shelf1 = $$element("div");
+  for (const fruit of ["Mango", "Guava", "Lychee"]) {
+    const $$button2 = $$element("button");
+    $$button2.addEventListener("click", () => {
+      add(fruit);
+    });
+    $$button2.append("+ ", fruit);
+    $$shelf1.append($$button2);
+  }
+}
+// <Basket>
+let $$basket3;
+{
+  const $$p5 = $$element("p", { className: "card" });
+  const $$text6 = document.createTextNode(cart.length === 0 ? "The basket is empty" : cart.join(", "));
+  const $$button7 = $$element("button");
+  $$button7.addEventListener("click", () => {
+    cart = [];
+    $$changed($$listeners$cart);
+  });
+  $$button7.append("Empty");
+  $$p5.append($$text6, " ", $$button7);
+
+  function $$updateCart4() {
+    $$text6.data = cart.length === 0 ? "The basket is empty" : cart.join(", ");
+  }
+
+  $$basket3 = $$p5;
+  $$watch($$listeners$cart, $$updateCart4);
+}
+document.body.append($$shelf1, $$basket3);
+
+// shared-state.d.ts
+
+export {};

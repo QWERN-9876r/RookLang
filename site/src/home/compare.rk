@@ -30,10 +30,10 @@ export comp Compare() {
                 <div class={styles.switch} role="tablist">
                     {for comparison in COMPARISONS {
                         <button
-                            class={comparison.id == active ? `${styles.option} ${styles.active}` : styles.option}
+                            class={[styles.option, comparison.id == active ? styles.active : null]}
                             type="button"
                             role="tab"
-                            aria-selected={comparison.id == active ? "true" : "false"}
+                            aria-selected={comparison.id == active}
                             onClick={active = comparison.id}
                         >
                             {labels[comparison.id]}

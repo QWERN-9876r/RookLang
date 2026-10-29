@@ -8,9 +8,9 @@ comp Greeting(name string) {
 }
 
 comp Farewell(name string) {
-    mount() {
+    mount {
         console.log("Farewell is shown")
-        return () => console.log("Farewell is removed")
+        defer console.log("Farewell is removed")
     }
     return <p>Goodbye, {name}.</p>
 }

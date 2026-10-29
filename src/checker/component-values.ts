@@ -94,6 +94,18 @@ export abstract class ComponentValueChecker extends ComponentChecker {
         continue;
       }
 
+      // The type of the value does not say which properties are bound.
+      if (attributeName.startsWith('bind:')) {
+        const { value } = attribute;
+
+        if (value && value.kind !== 'EventHandler') this.checkValue(value);
+        this.error(
+          `<${name}> takes its component from a value, so it cannot bind its properties; pass a function, e.g. onChange={...}`,
+          attribute.name,
+        );
+        continue;
+      }
+
       if (given.has(attributeName)) {
         this.error(`duplicate property "${attributeName}"`, attribute.name);
       }

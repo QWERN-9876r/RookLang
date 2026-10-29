@@ -124,70 +124,71 @@ let $$filters1, $$mountNode2;
     $$updateBusy5();
   }
 
+  const $$cleanups7 = [];
   $$mount(() => $$mountNode2, () => {
     draw(source);
     const timer = setInterval(() => {
       turn = (turn + 1) % 8;
-      $$text18.data = "◐◓◑◒◐◓◑◒"[turn];
+      $$text19.data = "◐◓◑◒◐◓◑◒"[turn];
     }, 100);
-    return () => clearInterval(timer);
-  });
+    $$cleanups7.push(() => clearInterval(timer));
+  }, $$cleanups7);
 
-  const $$div7 = $$element("div");
+  const $$div8 = $$element("div");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
-  const $$p8 = $$element("p");
-  const [$$for9, $$updateFor9] = $$list(() => FILTERS, (each) => {
-    const $$block10 = document.createDocumentFragment();
-    const $$label11 = $$element("label");
-    const $$input12 = $$element("input", { type: "radio", name: "filter", checked: each === filter });
-    $$input12.addEventListener("change", () => {
+  const $$p9 = $$element("p");
+  const [$$for10, $$updateFor10] = $$list(() => FILTERS, (each) => {
+    const $$block11 = document.createDocumentFragment();
+    const $$label12 = $$element("label");
+    const $$input13 = $$element("input", { type: "radio", name: "filter", checked: each === filter });
+    $$input13.addEventListener("change", () => {
       filter = each;
-      $$updateFor9();
+      $$updateFor10();
     });
-    $$label11.append($$input12, each.name);
-    $$block10.append($$label11);
-    return [$$block10, () => {
-      $$input12.checked = each === filter;
+    $$label12.append($$input13, each.name);
+    $$block11.append($$label12);
+    return [$$block11, () => {
+      $$input13.checked = each === filter;
     }];
   });
-  $$p8.append($$for9);
-  const $$p13 = $$element("p");
-  const $$button14 = $$element("button", { disabled: busy });
-  $$button14.addEventListener("click", () => {
-    apply(false);
-  });
-  $$button14.append("One thread");
+  $$p9.append($$for10);
+  const $$p14 = $$element("p");
   const $$button15 = $$element("button", { disabled: busy });
   $$button15.addEventListener("click", () => {
-    apply(true);
+    apply(false);
   });
-  $$button15.append("Every processor");
+  $$button15.append("One thread");
   const $$button16 = $$element("button", { disabled: busy });
   $$button16.addEventListener("click", () => {
+    apply(true);
+  });
+  $$button16.append("Every processor");
+  const $$button17 = $$element("button", { disabled: busy });
+  $$button17.addEventListener("click", () => {
     draw(source);
   });
-  $$button16.append("Original");
-  $$p13.append($$button14, $$button15, $$button16);
-  const $$p17 = $$element("p");
-  const $$text18 = document.createTextNode("◐◓◑◒◐◓◑◒"[turn]);
-  const $$text19 = document.createTextNode(report);
-  $$p17.append($$text18, " ", $$text19);
-  $$div7.append(canvas, $$p8, $$p13, $$p17);
+  $$button17.append("Original");
+  $$p14.append($$button15, $$button16, $$button17);
+  const $$p18 = $$element("p");
+  const $$text19 = document.createTextNode("◐◓◑◒◐◓◑◒"[turn]);
+  const $$text20 = document.createTextNode(report);
+  $$p18.append($$text19, " ", $$text20);
+  $$div8.append(canvas, $$p9, $$p14, $$p18);
 
   function $$updateReport4() {
     if (!$$filters1) return;
-    $$text19.data = report;
+    $$text20.data = report;
   }
 
   function $$updateBusy5() {
     if (!$$filters1) return;
-    $$button14.disabled = busy;
     $$button15.disabled = busy;
     $$button16.disabled = busy;
+    $$button17.disabled = busy;
   }
 
-  $$filters1 = $$div7;
+  $$filters1 = $$div8;
   $$mountNode2 = $$filters1?.nodeType === 11 ? $$filters1.firstChild : $$filters1;
 }
 document.body.append($$filters1);

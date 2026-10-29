@@ -253,6 +253,7 @@ export abstract class ClassChecker extends ClassMemberChecker {
       types: new Map(),
       decorators: new Map(),
       components: new Map(),
+      shared: new Set(),
     };
     const declarations: ModuleExports = { values: new Map(), types: new Map() };
     const valueOf = (name: string) => this.moduleScope.values.get(name)?.type ?? UNKNOWN;
@@ -277,6 +278,7 @@ export abstract class ClassChecker extends ClassMemberChecker {
         case 'VariableDeclaration':
           for (const name of statement.names) {
             add(statement.exported, 'values', name.name, valueOf(name.name));
+            if (statement.exported && statement.keyword === 'state') exports.shared!.add(name.name);
           }
 
           break;
@@ -295,7 +297,13 @@ export abstract class ClassChecker extends ClassMemberChecker {
           const info = this.moduleScope.values.get(statement.name.name)?.component;
 
           if (statement.exported && info?.node === statement) {
-            info.inline = this.modulePackages().components.get(info.node.name.name) ?? null;
+            const found = this.modulePackages().components.get(info.node.name.name) ?? null;
+            // Code that reads state another module shares listens to it here, so it stays here.
+            const shared = found?.moduleNames.some(
+              (name) => this.moduleScope.values.get(name)?.shared !== undefined,
+            );
+
+            info.inline = shared ? null : found;
             info.expressionTypes = this.checkedTypes;
             exports.components!.set(statement.name.name, info);
           }

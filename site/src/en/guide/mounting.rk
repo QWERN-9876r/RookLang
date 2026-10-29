@@ -6,7 +6,7 @@ import { Markup } from "./markup.rk"
 export comp Mounting() {
     return <>
         <p>
-            <code>{"mount() { ... }"}</code> in a component's body is code that needs the markup on
+            <code>{"mount { ... }"}</code> in a component's body is code that needs the markup on
             the page: starting a timer, listening to window events, setting the focus, measuring an
             element, loading data.
         </p>
@@ -21,9 +21,10 @@ export comp Mounting() {
         </p>
         <Example name="mount" />
         <p>
-            If <code>mount</code> returns a function, it runs when <code>{"{if}"}</code>,
-            {" "}<code>{"{switch}"}</code>, <code>{"{for}"}</code> or a <code>?:</code> branch in
-            markup removes the component: that is where you stop what <code>mount</code> started.
+            What <code>mount</code> defers with <code>defer</code>, as an effect does, runs when
+            {" "}<code>{"{if}"}</code>, <code>{"{switch}"}</code>, <code>{"{for}"}</code> or a
+            {" "}<code>?:</code> branch in markup removes the component: that is where you stop
+            what <code>mount</code> started.
             Press "Run", then hide the clock: the timer stops.
         </p>
         <Example name="mount-cleanup" />
@@ -34,8 +35,10 @@ export comp Mounting() {
                 {" "}<code>return</code> returns from it, not from the component.
             </li>
             <li>
-                It can return a function without parameters, <code>null</code> when there is
-                nothing to stop, or nothing.
+                <code>mount</code> returns nothing. <code>defer f(x)</code> takes
+                {" "}<code>x</code> at once, and <code>{"defer { ... }"}</code> reads the values when
+                it runs: that is how to clean up what comes later, e.g.
+                {" "}<code>{"defer { editor?.dispose() }"}</code>.
             </li>
             <li>
                 <code>mount</code> is written at the top level of a component's body; there can be

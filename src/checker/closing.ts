@@ -30,7 +30,7 @@ const MESSAGES: Readonly<Record<Made, (name: string) => string>> = {
   chan: (name) =>
     `"${name}" is never closed: close it when nothing more is sent, e.g. close(${name})`,
   topic: (name) =>
-    `"${name}" is never closed, and a topic listens until it is closed: close it when it is no longer needed, e.g. close(${name}), in a component in the function that mount() returns`,
+    `"${name}" is never closed, and a topic listens until it is closed: close it when it is no longer needed, e.g. close(${name}); a component closes it with defer close(${name}) in mount`,
   tick: (name) =>
     `"${name}" is never closed, and a tick runs until it is closed: e.g. close(${name})`,
   signal: (name) =>

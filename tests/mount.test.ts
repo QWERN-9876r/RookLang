@@ -3,8 +3,8 @@ import { check } from '../src/checker/checker.ts';
 import { parse } from '../src/parser/parser.ts';
 import { mountWithDom } from './fake-dom.ts';
 
-// `mount() { ... }` in components: it runs once the markup is in the document, and the function it
-// returns runs when `{if}`, `{switch}` or `{for}` removes the markup.
+// `mount { ... }` in components: it runs once the markup is in the document, and what it defers
+// runs when `{if}`, `{switch}` or `{for}` removes the markup.
 
 function errors(source: string): string[] {
   const { program, diagnostics } = parse(source);
@@ -14,13 +14,13 @@ function errors(source: string): string[] {
   return check(program).diagnostics.map((d) => d.message);
 }
 
-/** Waits until the microtasks that run `mount()` are done. */
+/** Waits until the microtasks that run `mount` are done. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 const timer = `comp Timer(name string) {
-    mount() {
+    mount {
         console.log("start", name)
-        return () => console.log("stop", name)
+        defer console.log("stop", name)
     }
     return <p>{name}</p>
 }
@@ -28,13 +28,17 @@ const timer = `comp Timer(name string) {
 
 describe('syntax', () => {
   it.each([
-    ['mount() {\n}', 'mount() can only be declared inside a component'],
+    ['mount {\n}', 'mount can only be declared inside a component'],
     [
-      'comp A() {\n    if true {\n        mount() {\n        }\n    }\n    return <p />\n}',
-      'mount() is declared at the top level of a component, not inside blocks or functions',
+      'comp A() {\n    mount() {\n    }\n    return <p />\n}',
+      'mount has no parentheses, like effect: write mount { ... }',
     ],
     [
-      'comp A() {\n    mount() {\n        state x = 1\n    }\n    return <p />\n}',
+      'comp A() {\n    if true {\n        mount {\n        }\n    }\n    return <p />\n}',
+      'mount is declared at the top level of a component, not inside blocks or functions',
+    ],
+    [
+      'comp A() {\n    mount {\n        state x = 1\n    }\n    return <p />\n}',
       'state is declared at the top level of a component, not inside blocks or functions',
     ],
   ])('reports %j', (source, message) => {
@@ -50,17 +54,15 @@ describe('types', () => {
   it('checks the body and what it returns', () => {
     expect(
       errors(`comp A() {
-    mount() {
+    mount {
         return 1
     }
     return <p />
 }`),
-    ).toEqual([
-      'mount() returns the function that cleans up, e.g. return () => clearInterval(timer), not number',
-    ]);
+    ).toEqual(['mount returns nothing; clean up with defer, e.g. defer clearInterval(timer)']);
     expect(
       errors(`comp A() {
-    mount() {
+    mount {
         const n number = "one"
     }
     return <p />
@@ -71,17 +73,17 @@ describe('types', () => {
   it('allows no cleanup, a cleanup, or a cleanup only sometimes', () => {
     expect(
       errors(`comp A(on bool) {
-    mount() {
+    mount {
         console.log("no cleanup")
     }
-    mount() {
-        return () => console.log("cleanup")
+    mount {
+        defer console.log("cleanup")
     }
-    mount() {
+    mount {
         if !on {
-            return null
+            return
         }
-        return () => console.log("cleanup")
+        defer console.log("cleanup")
     }
     return <p />
 }`),
@@ -93,7 +95,7 @@ describe('running', () => {
   it('runs once the markup is in the document', async () => {
     const { output } = mountWithDom(`comp Box() {
     const box = <p>box</p>
-    mount() {
+    mount {
         console.log("mounted", box.parentNode != null)
     }
     return box
@@ -122,7 +124,7 @@ document.body.append(<button onClick={document.body.append(later)}>insert</butto
 
   it('waits for the parent that holds the component to be inserted', async () => {
     const { output, body } = mountWithDom(`${timer}comp Pair() {
-    mount() {
+    mount {
         console.log("pair")
     }
     return <>
@@ -173,7 +175,7 @@ document.body.append(<Root />)
   it('updates the markup when it changes state', async () => {
     const { body } = mountWithDom(`comp Status() {
     state text = "загрузка"
-    mount() {
+    mount {
         text = "готово"
     }
     return <p>{text}</p>
@@ -280,9 +282,9 @@ document.body.append(<App />)
 
 comp Tree(node Node) {
     state open = true
-    mount() {
+    mount {
         console.log("start", node.name)
-        return () => console.log("stop", node.name)
+        defer console.log("stop", node.name)
     }
     return <div>
         <button onClick={open = !open}>{node.name}</button>

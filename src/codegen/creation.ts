@@ -122,11 +122,15 @@ export abstract class CreationEmitter extends AttributeEmitter {
         return { attribute: svg, key, value: JSON.stringify(classes) };
       }
 
-      const nullable = this.typeOf(value)?.kind !== 'string';
-
       return this.valueEntry(element, svg, key, value, live, (text) => {
-        return `\`\${${nullable ? `${text} ?? ""` : text}} ${scope}\``;
+        return `\`\${${this.classText(value, text)}} ${scope}\``;
       });
+    }
+
+    if (name === 'class' && value !== null && this.isClassList(value)) {
+      const key = svg ? 'class' : 'className';
+
+      return this.valueEntry(element, svg, key, value, live, (text) => `$$classes(${text})`);
     }
 
     // SVG attributes are set with setAttribute: their properties are objects.

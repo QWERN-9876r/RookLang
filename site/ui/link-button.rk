@@ -13,7 +13,7 @@ export comp LinkButton(
     children Content,
     ...attrs
 ) {
-    return <a class={`${styles.button} ${styles[kind]} ${styles[size]}`} href={href} {...attrs}>
+    return <a class={[styles.button, styles[kind], styles[size]]} href={href} {...attrs}>
         {icon != null ? <Icon name={icon} /> : null}
         {children}
     </a>

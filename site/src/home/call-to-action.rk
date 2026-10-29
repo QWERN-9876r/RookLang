@@ -13,10 +13,10 @@ import styles from "./call-to-action.module.css"
 export comp CallToAction() {
     const t = text()
     const h = t.home
-    return <section class={`${common.section} ${styles.cta}`}>
+    return <section class={[common.section, styles.cta]}>
         <div class={board.board} aria-hidden="true" />
         <Reveal>
-            <div class={`${common.container} ${styles.ctaContent}`}>
+            <div class={[common.container, styles.ctaContent]}>
                 <img class={styles.logo} src={logo} alt="" width={64} height={64} />
                 <div class={common.heading}>
                     <h2>{h.ctaTitle}</h2>

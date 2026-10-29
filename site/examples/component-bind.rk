@@ -1,0 +1,20 @@
+// A bound property is one the component changes itself: bind:open
+// writes its changes into the parent's variable, as bind:value does
+comp Panel(bind open bool = false, title string, children Content) {
+    return <section class="card" hidden={!open}>
+        <h4>{title} <button onClick={open = false}>×</button></h4>
+        {children}
+    </section>
+}
+
+comp Page() {
+    state menu = false
+    return <div>
+        <button onClick={menu = !menu}>{menu ? "Hide" : "Show"} the menu</button>
+        <Panel bind:open={menu} title="Menu">Close it with ×: the button above knows.</Panel>
+        {/* Without bind: the property is the panel's own state */}
+        <Panel open={true} title="Note">This one keeps its state to itself.</Panel>
+    </div>
+}
+
+document.body.append(<Page />)

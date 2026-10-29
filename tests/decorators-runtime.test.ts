@@ -4,7 +4,7 @@ import { mountWithDom } from './fake-dom.ts';
 
 // Decorators at runtime: their code is inlined into each component they are applied to.
 
-/** Waits until the microtasks that run `mount()` are done. */
+/** Waits until the microtasks that run `mount` are done. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 const counter = `dec counter(start number = 0) {
@@ -19,9 +19,9 @@ const counter = `dec counter(start number = 0) {
 `;
 
 const logged = (name: string) => `dec ${name}() {
-    mount() {
+    mount {
         console.log("mount ${name}")
-        return () => console.log("cleanup ${name}")
+        defer console.log("cleanup ${name}")
     }
 }
 `;
@@ -105,9 +105,9 @@ document.body.append(<Clicker />)
     const { output, body } = mountWithDom(`${logged('outer')}${logged('inner')}@outer
 @inner
 comp Box() {
-    mount() {
+    mount {
         console.log("mount box")
-        return () => console.log("cleanup box")
+        defer console.log("cleanup box")
     }
     return <p>box</p>
 }

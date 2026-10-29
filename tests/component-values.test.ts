@@ -211,9 +211,12 @@ comp Intro() {
 
 comp Counter(title string, kind ?string) {
     state clicks = 0
-    mount() {
+    mount {
         console.log("mount " + title)
-        return () => console.log("unmount " + title)
+        // A block reads the title when it runs: the component may have got another by then.
+        defer {
+            console.log("unmount " + title)
+        }
     }
     return <button onClick={clicks++}>{title}:{kind ?? "-"}:{clicks}</button>
 }

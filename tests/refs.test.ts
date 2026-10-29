@@ -23,7 +23,7 @@ function js(source: string): string {
   return code;
 }
 
-/** Waits until the microtasks that run `mount()` are done. */
+/** Waits until the microtasks that run `mount` are done. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /** A component with `body` before `return <main>{markup}</main>`. */
@@ -191,7 +191,7 @@ describe('running', () => {
     ref box
     ref input
     console.log("body", box.className, box.childNodes.length)
-    mount() {
+    mount {
         console.log("mount", box.className, box.childNodes.length, input.parentNode == box)
     }
     return <div class="root" ref={box}>
@@ -229,7 +229,7 @@ document.body.append(<A early={true} />, <A early={false} />)
 describe('decorators', () => {
   const measured = `dec measured() {
     ref frame
-    mount() {
+    mount {
         console.log("frame", frame.className, frame.childNodes.length)
     }
     return (content Element) => <div class="measured" ref={frame}>{content}</div>

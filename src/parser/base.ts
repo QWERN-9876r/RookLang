@@ -4,7 +4,7 @@ import type { StringToken, Token, TokenKind } from '../lexer/token.ts';
 import { STATEMENT_KEYWORDS, BRACKETS, type Context, ParseError, describe } from './syntax.ts';
 
 // The parser is a chain of layers, one per area: base → simple statements → statements → control
-// flow → jumps → declarations → decorators → classes → types → expressions → literals → markup → Parser
+// flow → jumps → params → declarations → decorators → classes → types → expressions → literals → markup → Parser
 // (parser.ts). Statements, expressions and markup contain each other, so methods of later layers
 // that earlier ones call are declared here as abstract.
 //

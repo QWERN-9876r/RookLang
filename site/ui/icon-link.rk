@@ -14,7 +14,7 @@ export comp IconLink(
     ...attrs
 ) {
     return <a
-        class={`${styles.button} ${styles.icon} ${styles[kind]} ${styles[size]}`}
+        class={[styles.button, styles.icon, styles[kind], styles[size]]}
         href={href}
         aria-label={label}
         title={label}

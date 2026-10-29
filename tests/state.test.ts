@@ -41,7 +41,10 @@ describe('syntax', () => {
   });
 
   it.each([
-    ['state count = 0', 'state can only be declared inside a component'],
+    [
+      'func f() {\n    state count = 0\n}',
+      'state can only be declared inside a component or at the top level of a module',
+    ],
     [
       `comp A(ok bool) {\n    if ok {\n        state x = 1\n    }\n    return <p />\n}`,
       'state is declared at the top level of a component, not inside blocks or functions',
@@ -84,7 +87,7 @@ comp Form(user User) {
   it.each([
     [
       `comp A(n number) {\n    return <button onClick={n++}>{n}</button>\n}`,
-      `cannot assign to "n": component properties are read-only; to change the parent's state, pass a function`,
+      'cannot assign to "n": component properties are read-only; to change it, declare it with bind, e.g. comp A(bind n ...)',
     ],
     [
       `comp A() {\n    state n = 0\n    return <button onClick={n = "x"}>{n}</button>\n}`,
@@ -96,7 +99,7 @@ comp Form(user User) {
     ],
     [
       `comp A(name string) {\n    return <input bind:value={name} />\n}`,
-      `cannot assign to "name": component properties are read-only; to change the parent's state, pass a function`,
+      'cannot assign to "name": component properties are read-only; to change it, declare it with bind, e.g. comp A(bind name ...)',
     ],
     [
       `comp A() {\n    state ok = false\n    return <input type="checkbox" bind:checked={ok} bind:value={ok} />\n}`,

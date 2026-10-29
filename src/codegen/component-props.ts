@@ -4,6 +4,7 @@ import { declaredNames } from '../names.ts';
 import { isConstant, isSimple, rootName } from './analysis.ts';
 import { ControlFlowEmitter } from './control-flow.ts';
 import { Reactive, type Live, type Source, updatesOf } from './reactive.ts';
+import { rootsOf } from './shared.ts';
 import { ARROW, indentMore, lowerFirst, POSTFIX, upperFirst } from './syntax.ts';
 import { type EarlyReturns, withoutTrailingUndefined } from './component-helpers.ts';
 
@@ -18,7 +19,7 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
   protected readonly pendingSetters = new Map<string, string[]>();
 
   /**
-   * In a component with `mount()`: the variable that gets its first node once the markup is
+   * In a component with `mount`: the variable that gets its first node once the markup is
    * created, so that `$$mount` can wait until that node is in the document.
    */
   protected mountNode: string | null = null;
@@ -33,6 +34,7 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
     reactiveProps: ReadonlyMap<string, [string, Set<Source>]>,
     live: Live | null,
     root?: string,
+    binders: ReadonlyMap<string, string> = new Map(),
   ): string {
     const name = component.name.name;
     const id = this.nextId();
@@ -40,9 +42,11 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
     // A missing property with a default value is left undefined, so that the default applies.
     const argument = (param: ast.Parameter) =>
       values.get(param.name.name) ?? (param.defaultValue ? 'undefined' : 'null');
-    // The element a ref created for it goes last, as `$$root`.
+    // The functions that write bound properties into the caller come next, then the element a ref
+    // created for it, as `$$root`.
     const args = withoutTrailingUndefined([
       ...component.params.map(argument),
+      ...boundParams(component).map((param) => binders.get(param.name.name) ?? 'undefined'),
       ...(root === undefined ? [] : [root]),
     ]);
     const fn = this.functionNames.get(component) ?? `$$${name}`;
@@ -76,14 +80,67 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
     return result;
   }
 
-  protected reactiveOf(component: ast.ComponentDeclaration, props: Iterable<string>): Reactive {
-    return new Reactive(component, this.fn, props, (sourceName, kind) => {
-      const id = this.nextId();
-      // `$$card$price`, an argument of a decorator, is updated by `$$updateCard$price3`.
-      const update = `$$update${upperFirst(sourceName.replace(/^\$\$/, ''))}${id}`;
+  /**
+   * `bind:active={tab}`: the function that the component calls with the new value of `active`. It
+   * is written in the caller, so it writes the caller's `tab` and updates what reads it there.
+   */
+  protected binder(target: ast.Expression): string {
+    const name = `$$bind${this.nextId()}`;
+    const text = this.liveExpression(target);
+    // `todos` of `bind:todos={todos}`, or the state that `bind:open={menu.open}` writes into.
+    const written = [...(this.reactive?.rootSources(target) ?? [])].filter(
+      (source) => source.kind === 'state',
+    );
+    const body = this.block(() => {
+      this.line(`${text} = $$value;`);
+      for (const name of rootsOf(target, this.shared)) {
+        this.line(`$$changed(${this.shared.listeners.get(name)!});`);
+      }
 
-      return { id, name: sourceName, kind, update, computations: [], dependents: [], writes: [] };
+      for (const source of written) this.line(`${this.write(source)};`);
     });
+
+    this.line(`const ${name} = ($$value) => ${body};`);
+
+    return name;
+  }
+
+  /** `$$bindActive?.(active);` in a function component, which gets the binders as arguments. */
+  protected bindersOf(component: ast.ComponentDeclaration, reactive: Reactive): string[] {
+    return boundParams(component).map((param) => {
+      const binder = `$$bind${upperFirst(param.name.name)}`;
+
+      reactive.sources.get(param.name.name)!.bound = `${binder}?.(${this.name(param.name.name)});`;
+
+      return binder;
+    });
+  }
+
+  protected reactiveOf(component: ast.ComponentDeclaration, props: Iterable<string>): Reactive {
+    const shared = new Set(this.shared.listeners.keys());
+
+    return new Reactive(
+      component,
+      this.fn,
+      props,
+      (sourceName, kind) => {
+        const id = this.nextId();
+        // `$$card$price`, an argument of a decorator, is updated by `$$updateCard$price3`.
+        const update = `$$update${upperFirst(sourceName.replace(/^\$\$/, ''))}${id}`;
+
+        return {
+          id,
+          name: sourceName,
+          kind,
+          update,
+          computations: [],
+          dependents: [],
+          writes: [],
+          bound: null,
+        };
+      },
+      shared,
+    );
   }
 
   /**
@@ -235,4 +292,9 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
       else reactiveProps.delete(name);
     }
   }
+}
+
+/** The bound properties of a component, `bind active string`, in their order. */
+export function boundParams(component: ast.ComponentDeclaration): ast.Parameter[] {
+  return component.params.filter((param) => param.bind);
 }

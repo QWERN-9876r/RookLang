@@ -45,7 +45,7 @@ export comp CaseView(name string, preview HTMLElement) {
         })
     }
 
-    mount() {
+    mount {
         run()
     }
 
@@ -86,7 +86,7 @@ export comp CaseView(name string, preview HTMLElement) {
                 <button
                     class={styles.option}
                     type="button"
-                    aria-pressed={each.id == panes ? "true" : "false"}
+                    aria-pressed={each.id == panes}
                     onClick={panes = each.id}
                 >
                     {each.label}

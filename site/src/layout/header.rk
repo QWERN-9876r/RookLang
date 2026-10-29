@@ -35,7 +35,7 @@ export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content =
 
     return <>
         <header class={styles.header}>
-            <div class={wide ? `${styles.inner} ${styles.wide}` : styles.inner}>
+            <div class={[styles.inner, wide ? styles.wide : null]}>
                 <Brand />
                 <nav class={styles.links} aria-label={t.sections}>
                     <PageLink target="docs" label={t.docs} />
@@ -68,7 +68,7 @@ export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content =
                 </div>
             </div>
         </header>
-        <Drawer open={open} onClose={open = false} label={t.menu} closeLabel={t.closeMenu}>
+        <Drawer bind:open={open} label={t.menu} closeLabel={t.closeMenu}>
             <div class={styles.menu} onClick={closeOnLink(event)}>
                 <nav class={styles.menuLinks} aria-label={t.sections}>
                     <PageLink target="home" label="Rook" />

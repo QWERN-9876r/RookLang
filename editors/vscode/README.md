@@ -36,7 +36,7 @@ Markup and components are errors unless the nearest `package.json` turns them on
 
 It highlights:
 
-- keywords, the declarations `func`, `comp`, `class`, `interface`, `type`, `state` and `mount()`;
+- keywords, the declarations `func`, `comp`, `class`, `interface`, `type`, `state` and `mount`;
 - Go-style types: `number`, `[]Todo`, `?User`, names of classes and interfaces;
 - strings, template strings with `${...}`, numbers, comments;
 - markup: tags, components, attributes, `on*`, `bind:value`, expressions in `{...}`, and `if`,
@@ -66,7 +66,7 @@ the errors of the same version that `rook build` runs, and a new version is used
 installed, without reloading the window. Without an installed `rooklang`, the extension uses its
 own copy.
 
-The status bar shows which compiler checked the file being edited: `Rook 0.3.4` for the installed
+The status bar shows which compiler checked the file being edited: `Rook 0.4.0` for the installed
 one, `Rook (built-in)` for the copy of the extension; its tooltip says where it is. The output
 panel "Rook" says which version was loaded, or why it could not be, in which case the extension
 uses its own copy.

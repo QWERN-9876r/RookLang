@@ -80,7 +80,7 @@ interface Owner {
 }
 
 // The program runs as the owner of its components, with the same key as {if} and {for} in
-// compiled code ($$owned in src/runtime/markup.js). Before the next run, what the mount() of the
+// compiled code ($$owned in src/runtime/markup.js). Before the next run, what the mount of the
 // previous one returned runs, so its timers stop.
 const OWNER = Symbol.for("rook.owner")
 let owners Map<HTMLElement, Owner> = new Map()
@@ -164,7 +164,7 @@ func runCompiled(code string, channel ?string, preview HTMLElement, output func(
     const run = (runs.get(preview) ?? 0) + 1
     runs.set(preview, run)
     const lines []string = []
-    // Output after the run, from mount() and timers, is shown right away, line by line.
+    // Output after the run, from mount and timers, is shown right away, line by line.
     let finished = false
     const addLine = (line string) => {
         if runs.get(preview) != run {

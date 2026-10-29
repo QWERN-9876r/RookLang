@@ -5,9 +5,12 @@ import { domProperty, elementType } from './dom.ts';
 import { svgElementType } from './dom-svg.ts';
 import { isContent, isAttributeValue, isUntyped } from './helpers.ts';
 import { OperatorChecker } from './operators.ts';
-import { BOOL, func, STRING, typeToString, type Type } from './types.ts';
+import { arrayOf, BOOL, func, nullable, STRING, typeToString, type Type } from './types.ts';
 
 // Markup: elements, their children and attributes, `bind:` and event handlers.
+
+/** The type of a list of classes, `class={[styles.tab, active ? styles.active : null]}`. */
+const CLASS_LIST = arrayOf(nullable(STRING));
 
 export abstract class MarkupChecker extends OperatorChecker {
   /** A tag that takes its component from a value; implemented by ComponentValueChecker. */
@@ -137,8 +140,20 @@ export abstract class MarkupChecker extends OperatorChecker {
 
     if (value?.kind === 'EventHandler') return;
 
+    const list = name === 'class' && value?.kind === 'ArrayLiteral' ? CLASS_LIST : null;
     const valueType =
-      value === null ? BOOL : value.kind === 'StringLiteral' ? STRING : this.checkValue(value);
+      value === null
+        ? BOOL
+        : value.kind === 'StringLiteral'
+          ? STRING
+          : this.checkValue(value, list);
+
+    // `class={[styles.tab, active ? styles.active : null]}`: the classes that are not null.
+    if (name === 'class' && valueType.kind === 'array') {
+      this.expectAssignable(valueType, CLASS_LIST, value!, ' for attribute "class"');
+
+      return;
+    }
 
     if (name === 'style') {
       if (!isUntyped(valueType) && valueType.kind !== 'string' && valueType.kind !== 'object') {

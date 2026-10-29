@@ -92,7 +92,7 @@ describe('syntax', () => {
       'a decorator has no "public let": a value that changes and is read outside is a state, one that does not change is a const',
     ],
     [
-      'dec a() {\n    public mount() {\n    }\n}',
+      'dec a() {\n    public mount {\n    }\n}',
       'only state, derived, const, ref and func can be public, not "mount"',
     ],
     ['@a(...xs) comp B() {\n    return <p />\n}', 'arguments of a decorator cannot be spread'],
@@ -220,8 +220,8 @@ ${body}
     expect(errors('dec a() {\n    defer console.log(1)\n}')).toEqual([
       'defer is not supported in decorators yet',
     ]);
-    expect(errors('dec a() {\n    mount() {\n        return 1\n    }\n}')).toEqual([
-      'mount() returns the function that cleans up, e.g. return () => clearInterval(timer), not number',
+    expect(errors('dec a() {\n    mount {\n        return 1\n    }\n}')).toEqual([
+      'mount returns nothing; clean up with defer, e.g. defer clearInterval(timer)',
     ]);
   });
 

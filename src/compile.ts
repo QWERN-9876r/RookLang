@@ -196,7 +196,7 @@ export function prepareCheck(
 
 /**
  * What the module imports from other `.rk` modules for the generator: decorators, whose code is
- * inlined, and components, which are called or inlined.
+ * inlined, components, which are called or inlined, and state, whose changes it listens to.
  */
 function importedCode(
   program: ast.Program,
@@ -204,9 +204,11 @@ function importedCode(
 ): {
   decorators: Map<string, ImportedDecorator>;
   components: Map<string, ImportedComponent>;
+  shared: Map<string, string>;
 } {
   const found = new Map<string, ImportedDecorator>();
   const components = new Map<string, ImportedComponent>();
+  const shared = new Map<string, string>();
 
   for (const statement of program.body) {
     if (statement.kind !== 'ImportDeclaration' || !statement.source.value.endsWith('.rk')) {
@@ -219,6 +221,10 @@ function importedCode(
 
     for (const specifier of statement.namedImports) {
       const component = exports?.components?.get(specifier.imported.name);
+
+      if (exports?.shared?.has(specifier.imported.name)) {
+        shared.set(specifier.local.name, specifier.imported.name);
+      }
 
       if (component) {
         components.set(specifier.local.name, {
@@ -241,7 +247,7 @@ function importedCode(
     }
   }
 
-  return { decorators: found, components };
+  return { decorators: found, components, shared };
 }
 
 /** The CSS modules that the program imports, read and parsed, or what is wrong with them. */

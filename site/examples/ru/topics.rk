@@ -30,9 +30,9 @@ comp Cart() {
         }
     }
 
-    mount() {
+    mount {
         follow()
-        return () => close(cart)
+        defer close(cart)
     }
 
     return <div class="card">

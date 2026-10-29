@@ -4,85 +4,14 @@ import type { Type } from '../checker/types.ts';
 import { wrappedMarkup } from '../decorators.ts';
 import { containsReturn, returnedMarkup } from '../recursion.ts';
 import { forEachChild } from '../walk.ts';
-import { mayChange } from '../methods.ts';
-import { readNames, rootName } from './mutations.ts';
+import type { Live, Source } from './live.ts';
+import { readNames, rootName, writeTargets } from './mutations.ts';
 
 // Reactivity of components: which markup depends on which state, and which code changes it.
 
-/** What markup can depend on: a `state` variable, or a property that gets the parent's state. */
-export interface Source {
-  /** Unique in the module; marks the places that change the source in the generated code. */
-  readonly id: number;
-  readonly name: string;
-  readonly kind: 'state' | 'prop';
-  /** The function that brings dependent nodes up to date, e.g. `$$updateCount3`. */
-  readonly update: string;
-  /**
-   * Statements that compute again the `derived` values that read it: `double = count * 2`. They
-   * run first, also before the markup exists, so that the values are right whenever they are read.
-   */
-  readonly computations: string[];
-  /** Statements that bring the nodes depending on it up to date. */
-  readonly dependents: string[];
-  /** Places that change it. */
-  readonly writes: Write[];
-}
-
-export interface Write {
-  /** Whether it may run before the markup exists: in a function of the body, not in a handler. */
-  early: boolean;
-  /** A dependent it does not need: `bind:` does not update its own element. */
-  skip: number | null;
-}
+export { Block, type Live, type Source, type Write, updatesOf } from './live.ts';
 
 const EMPTY: ReadonlySet<Source> = new Set();
-
-/** Everything a change of the source runs: the computations, then the updates of the nodes. */
-export function updatesOf(source: Source): string[] {
-  return [...source.computations, ...source.dependents];
-}
-
-/**
- * Where the updates of live markup go: the update functions of a component's state, or the update
- * of a block of `{if ...}` / `{for ...}`.
- */
-export interface Live {
-  /** Sources whose values an expression reads. */
-  dependencies(node: ast.Node): Set<Source>;
-  /** Adds a statement that brings a part of the markup up to date when the sources change. */
-  depend(sources: ReadonlySet<Source>, statement: string): void;
-  /** The index that the next statement for a source gets, for `bind:` to skip its own update. */
-  ownIndex(source: Source): number | null;
-}
-
-/**
- * A block of markup control flow: a branch of `{if ...}` or the content for one item of
- * `{for ...}`. It is created again when needed, so its updates go into a function of its own,
- * which runs when any source that the block reads changes.
- */
-export class Block implements Live {
-  readonly statements: string[] = [];
-  /** Sources that any statement depends on. */
-  readonly sources = new Set<Source>();
-  private readonly parent: Live;
-
-  constructor(parent: Live) {
-    this.parent = parent;
-  }
-
-  dependencies(node: ast.Node): Set<Source> {
-    return this.parent.dependencies(node);
-  }
-
-  depend(sources: ReadonlySet<Source>, statement: string): void {
-    this.statements.push(statement);
-    for (const source of sources) this.sources.add(source);
-  }
-
-  ownIndex(): null {
-    return null;
-  }
-}
 
 /**
  * The reactivity of one inlined component. The analysis goes by names: a local variable that
@@ -106,9 +35,23 @@ export class Reactive implements Live {
     setup: unknown,
     props: Iterable<string>,
     createSource: (name: string, kind: Source['kind']) => Source,
+    shared: ReadonlySet<string> = new Set(),
   ) {
     this.setup = setup;
+
+    // State of the module that the component reads; its own names, set after, hide it.
+    const read = new Set<string>();
+
+    readNames(component, read);
+    for (const name of read) {
+      if (shared.has(name)) this.sources.set(name, createSource(name, 'shared'));
+    }
+
     for (const name of props) this.sources.set(name, createSource(name, 'prop'));
+    // A bound property changes as state does, whether the parent sets it or not.
+    for (const param of component.params) {
+      if (param.bind) this.sources.set(param.name.name, createSource(param.name.name, 'state'));
+    }
 
     // Markup declared after an early return may never be created, so it is not updated.
     let returned = false;
@@ -221,63 +164,15 @@ export class Reactive implements Live {
     return found;
   }
 
-  /**
-   * `state` variables that a statement (or an expression body) changes: by assignment, `++`,
-   * or a method that may change the value, such as `push`. Nested blocks and functions are not
-   * included: their statements are handled on their own.
-   */
+  /** `state` variables that a statement changes, by assignment, `++` or a method like `push`. */
   writtenBy(node: ast.Node, typeOf: (node: ast.Expression) => Type | undefined): Set<Source> {
     const found = new Set<Source>();
-    const write = (target: ast.Expression) => {
+
+    for (const target of writeTargets(node, typeOf)) {
       for (const source of this.rootSources(target)) {
         if (source.kind === 'state') found.add(source);
       }
-    };
-    const visit = (node: ast.Node): void => {
-      switch (node.kind) {
-        case 'BlockStatement':
-        case 'EventHandler':
-        case 'FuncDeclaration':
-        case 'FuncExpression':
-        case 'ArrowFunction':
-        case 'ClassDeclaration':
-          return;
-
-        case 'SwitchCase':
-          node.tests.forEach(visit);
-
-          return;
-
-        case 'AssignmentStatement':
-          node.targets.forEach(write);
-          break;
-
-        case 'IncDecStatement':
-        case 'DeleteStatement':
-          write(node.target);
-          break;
-
-        case 'CallExpression': {
-          const { callee } = node;
-
-          if (
-            callee.kind === 'MemberExpression' &&
-            mayChange(typeOf(callee.object), callee.property.name)
-          ) {
-            write(callee.object);
-          }
-
-          break;
-        }
-
-        default:
-          break;
-      }
-
-      forEachChild(node, visit);
-    };
-
-    visit(node);
+    }
 
     return found;
   }

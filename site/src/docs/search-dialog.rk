@@ -66,7 +66,7 @@ func find(entries []Entry, query string) []Found {
     return [...titled, ...found]
 }
 
-export comp SearchDialog(open bool, sections []Section, onClose func()) {
+export comp SearchDialog(bind open bool, sections []Section) {
     const t = text()
     state query = ""
     state selected = 0
@@ -89,12 +89,12 @@ export comp SearchDialog(open bool, sections []Section, onClose func()) {
         // The page shows the section of the new address when it hears popstate (sections.rk).
         history.pushState(null, "", `../${found.entry.id}/`)
         window.dispatchEvent(new PopStateEvent("popstate"))
-        onClose()
+        open = false
     }
 
     func onKey(event KeyboardEvent) {
         if event.key == "Escape" {
-            onClose()
+            open = false
         } else if event.key == "ArrowDown" {
             event.preventDefault()
             selected = Math.min(results.length - 1, selected + 1)
@@ -106,8 +106,8 @@ export comp SearchDialog(open bool, sections []Section, onClose func()) {
         }
     }
 
-    return <div class={open ? `${styles.dialog} ${styles.open}` : styles.dialog}>
-        <div class={styles.backdrop} onClick={onClose()} />
+    return <div class={[styles.dialog, open ? styles.open : null]}>
+        <div class={styles.backdrop} onClick={open = false} />
         <div class={styles.panel} role="dialog" aria-modal="true" aria-label={t.search}>
             <div class={styles.field}>
                 <Icon name="search" size={18} />
@@ -126,12 +126,12 @@ export comp SearchDialog(open bool, sections []Section, onClose func()) {
             <div class={styles.results} role="listbox" aria-label={t.search}>
                 {for i, found in results {
                     <a
-                        class={i == selected ? `${styles.result} ${styles.selected}` : styles.result}
+                        class={[styles.result, i == selected ? styles.selected : null]}
                         href={`../${found.entry.id}/`}
                         role="option"
-                        aria-selected={i == selected ? "true" : "false"}
+                        aria-selected={i == selected}
                         onMouseMove={selected = i}
-                        onClick={onClose()}
+                        onClick={open = false}
                     >
                         <span class={styles.where}>{found.entry.group}</span>
                         <span class={styles.title}>{found.entry.title}</span>

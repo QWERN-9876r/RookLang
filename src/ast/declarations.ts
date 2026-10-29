@@ -70,6 +70,11 @@ export interface Parameter extends NodeBase {
    */
   rest?: true;
   /**
+   * `bind active string`: a property of a component that it may change. `bind:active={tab}`
+   * writes the changes into the parent's `tab`; without it the property is the component's state.
+   */
+  bind?: true;
+  /**
    * `constructor(private name string)`: the parameter is a property too, which the constructor
    * assigns, as in TypeScript.
    */

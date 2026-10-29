@@ -113,7 +113,7 @@ comp Uploads() {
         running = false
     }
 
-    mount() {
+    mount {
         start()
     }
 

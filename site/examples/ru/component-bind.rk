@@ -1,0 +1,20 @@
+// Связанное свойство компонент меняет сам: bind:open записывает
+// его изменения в переменную родителя, как bind:value
+comp Panel(bind open bool = false, title string, children Content) {
+    return <section class="card" hidden={!open}>
+        <h4>{title} <button onClick={open = false}>×</button></h4>
+        {children}
+    </section>
+}
+
+comp Page() {
+    state menu = false
+    return <div>
+        <button onClick={menu = !menu}>{menu ? "Скрыть" : "Показать"} меню</button>
+        <Panel bind:open={menu} title="Меню">Закройте его ×: кнопка выше это узнает.</Panel>
+        {/* Без bind: свойство — собственное состояние панели */}
+        <Panel open={true} title="Заметка">Эта панель хранит состояние у себя.</Panel>
+    </div>
+}
+
+document.body.append(<Page />)

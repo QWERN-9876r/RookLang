@@ -5,7 +5,8 @@ import { endlessRecursion } from '../recursion.ts';
 import type { ComponentInfo } from './context.ts';
 import { CONTENT } from './dom.ts';
 import { lookupIn, ownStatements, isUntyped, callSignature } from './helpers.ts';
-import { ATTRIBUTES, ForwardingChecker } from './forwarding.ts';
+import { ComponentBindingChecker } from './component-bindings.ts';
+import { ATTRIBUTES } from './forwarding.ts';
 import {
   BOOL,
   func,
@@ -22,7 +23,7 @@ import {
 
 // Components: their bodies and uses, properties and spread, names they use from the module, recursion.
 
-export abstract class ComponentChecker extends ForwardingChecker {
+export abstract class ComponentChecker extends ComponentBindingChecker {
   protected override resolveProps(info: ComponentInfo): void {
     for (const param of info.node.params) {
       // `...attrs` takes the attributes that are not properties.
@@ -39,7 +40,7 @@ export abstract class ComponentChecker extends ForwardingChecker {
 
       const optional = param.defaultValue !== null || isNullable(type) || name === 'children';
 
-      info.props.set(name, { type, optional });
+      info.props.set(name, { type, optional, ...(param.bind ? { bind: true as const } : {}) });
     }
   }
 
@@ -138,6 +139,11 @@ export abstract class ComponentChecker extends ForwardingChecker {
 
       if (name === 'ref') {
         this.checkRefAttribute(attribute, node);
+        continue;
+      }
+
+      if (name.startsWith('bind:')) {
+        this.checkPropBinding(attribute, info, tag.name, given);
         continue;
       }
 

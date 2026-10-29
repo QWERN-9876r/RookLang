@@ -8,15 +8,34 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
-## Unreleased
+## 0.4.0 — 2026-10-29
 
 ### Breaking
+
+- `mount` is written without parentheses, like `effect`: `mount { ... }`. `mount() { ... }` is an
+  error that shows the new form.
+- `mount` cleans up with `defer`, as an effect does, and returns nothing: write
+  `defer clearInterval(timer)` instead of `return () => clearInterval(timer)`. `defer f(x)` takes
+  `x` at once; for a value that comes later, `defer { editor?.dispose() }` reads it when it runs.
 
 - A public member of a decorator is read as `@visible.shown`, without `get`: `get(@visible.shown)`
   is now an error that shows the new form. Decorators are experimental, so the old form is not kept.
   Write `@visible.shown` everywhere, in markup too: `{if @visible.shown { ... }}`.
 
 ### Added
+
+- State of a module (experimental): `state items []Item = []` or `export state` at the top level
+  of a module is shared by its components. The components that read it are updated when it changes
+  anywhere in the module, through names that refer into it too (`for item in items`); they listen
+  while they are on the page. Other modules read it and change it only with the functions of its
+  module: `items.push(x)` there is an error that says so.
+- Bound properties (experimental): `comp Drawer(bind open bool = false)` changes `open` as its
+  state, and `<Drawer bind:open={menu} />` writes the changes, in place ones too, into the parent's
+  `menu`. Without `bind:` the property is the component's own state.
+- `class` takes a list of classes, `class={[styles.tab, active ? styles.active : null]}`: `null`s
+  and empty strings are left out.
+- A `bool` in `aria-*` and other attributes without a DOM property is written as `"true"` or
+  `"false"`, as ARIA expects; this is now documented and tested.
 
 - A decorator can include others: `dec card(title string) includes framed(title), likes { ... }`
   applies them with it, above its own body, and their arguments see its parameters. The component

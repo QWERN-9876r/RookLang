@@ -7,8 +7,13 @@ const CSS_MODULE = `import styles from "./button.module.css"
 
 type Kind "primary" | "ghost"
 
-export comp Button(kind Kind = "primary", children Content) {
-    return <button class={\`\${styles.button} \${styles[kind]}\`}>{children}</button>
+export comp Button(kind Kind = "primary", pressed bool = false, children Content) {
+    return <button
+        class={[styles.button, styles[kind], pressed ? styles.pressed : null]}
+        aria-pressed={pressed}
+    >
+        {children}
+    </button>
 }`
 
 export comp Styles() {
@@ -49,5 +54,10 @@ export comp Styles() {
             code is shown here:
         </p>
         <pre class="code">{highlight(CSS_MODULE, "rook")}</pre>
+        <p>
+            Several classes are a list: the <code>null</code>s and empty strings of it are left
+            out, so a class that depends on a condition is
+            {" "}<code>{"pressed ? styles.pressed : null"}</code>.
+        </p>
     </>
 }

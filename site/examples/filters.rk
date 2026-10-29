@@ -123,12 +123,12 @@ comp Filters() {
         busy = false
     }
 
-    mount() {
+    mount {
         draw(source)
         const timer = setInterval(() => {
             turn = (turn + 1) % 8
         }, 100)
-        return () => clearInterval(timer)
+        defer clearInterval(timer)
     }
 
     return <div>

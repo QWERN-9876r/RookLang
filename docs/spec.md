@@ -734,7 +734,7 @@ const [text, err] = await loadText("/hello.txt");
 - **Where `await` is allowed:** in async functions and at the top level of a module, since
   modules are ES modules. Not in `defer`: deferred code runs when the function ends and cannot
   wait. Not in markup: its code runs again on updates. A component cannot be async: load the data
-  in `mount()` or in an event handler.
+  in `mount` or in an event handler.
 - **An event handler may be async:** `onClick={async () => { user = await load() }}`. A change of
   state after `await` updates the markup like any other.
 - A `defer` of an async function runs when it ends, after everything it has waited for.
@@ -1200,8 +1200,8 @@ listen and its sender waits for nobody.
   need every value make a topic each.
 - **`close(t)`** stops the topic: it listens and sends no more, `for v in t` ends after the values it
   has, and then `<-t` gives the zero value of `T` and `ok` is `false`. A send to a closed topic or
-  a second `close` throws. A component that listens closes its topic when it is removed, in the
-  function that `mount()` returns.
+  a second `close` throws. A component that listens closes its topic when it is removed, with a
+  `defer` in `mount`: `defer close(cart)`.
 - **Copies:** the values go to other tabs as copies, so they are data, as the arguments of `go`
   are, and without channels: the id of a channel means something only to the workers of the tab
   that made it. Each tab checks its own program, so the tabs that share a name must agree on its
@@ -2198,6 +2198,9 @@ link.append("Link ", name);
 - **Types:** `<input>` is an `HTMLInputElement`, `<a>` an `HTMLAnchorElement` and so on. Attributes
   that match DOM properties are checked against the property's type. Children are strings, numbers,
   nodes, arrays of them or `?T`; `null` shows nothing.
+- **Classes and ARIA:** `class` also takes a list, whose `null`s and empty strings are left out:
+  `class={[styles.tab, active ? styles.active : null]}`. A `bool` in an attribute without a
+  property, such as `aria-pressed={on}`, is written as `"true"` or `"false"`.
 - **SVG:** `<svg>`, the elements inside it and the tags that only SVG has (`<path>`, `<circle>`,
   `<g>`...) are created in the SVG namespace, with `createElementNS`, and their attributes are set
   with `setAttribute`. `<a>`, `<title>` and the other tags HTML has too are SVG only inside `<svg>`;
@@ -2255,7 +2258,11 @@ document.body.append(<Card title="Profile"><p>Text</p></Card>)
 - **Spread** `<Product {...product} />` passes the object's fields named like the properties; other
   fields are ignored, and attributes after the spread override it.
 - **Function properties** (`onPress func()`) take code by the same rule as `on*` of elements.
-- **Properties are read-only.** To change the parent's state, pass a function property.
+- **Properties are read-only,** except bound ones. To change the parent's state, pass a function
+  property, or declare the property with `bind`, `comp Drawer(bind open bool)`: the component
+  changes it as its state, and `<Drawer bind:open={menu} />` writes the changes into the parent's
+  `menu`. Without `bind:` a bound property is the component's own state, starting from the value
+  given ([components.md](components.md)).
 - **`...attrs`,** the last property, takes the attributes of a use that are not properties;
   `{...attrs}` puts them on one element of the component's markup, created once, and the use is
   checked as if they were written on that element. A class or a style is added to the element's.
@@ -2333,6 +2340,13 @@ $$button3.append("Clicked ", $$text4, " times");
 Inside a component, `{if ...}`, `{for ...}` and `{switch ...}` that depend on state update too: a
 branch is created again only when the choice changes, and the blocks of a list are found by the
 array item itself and moved on changes, not created again.
+
+**State of a module.** `state` at the top level of a module is state that its components share:
+the components that read it are updated when it changes anywhere in the module, in a function, a
+handler or a timer. Other modules import it, `import { items } from "./cart.rk"`, and read it;
+changing it there is an error that says to call a function of its module. A component listens while
+it is on the page, so its module keeps a set of the updates of the components that read the state,
+`$$listeners$items`, and a change runs them ([components.md](components.md)).
 
 **Derived values.** `derived double = count * 2` at the top level of a component's body is a value
 computed from state and properties. It is read like a constant, and assigning it is an error. When
@@ -2426,7 +2440,7 @@ comp Todos() {
 }
 ```
 
-- An effect returns nothing. Unlike `mount()`, it does not wait for the markup to be in the
+- An effect returns nothing. Unlike `mount`, it does not wait for the markup to be in the
   document, and it runs again.
 - An effect after an early `return` of the component may not be created, so, like the markup
   there, it does not run again on changes.
@@ -2436,18 +2450,18 @@ comp Todos() {
 it. Anything assignable can be bound: a variable or a field. The type is `string`, `number` (only
 for `<input type="number">` and `type="range"`) or `bool` for `checked`.
 
-**Mounting.** `mount() { ... }` at the top level of a component's body runs once its markup is on
-the page. The function it returns runs when `{if}`, `{switch}`, `{for}` or a branch of `?:` in
-markup removes the markup:
+**Mounting.** `mount { ... }` at the top level of a component's body runs once its markup is on
+the page. What it defers with `defer`, as an effect does, runs when `{if}`, `{switch}`, `{for}` or
+a branch of `?:` in markup removes the markup:
 
 ```go
 comp Clock() {
     state time = new Date().toLocaleTimeString()
-    mount() {
+    mount {
         const timer = setInterval(() => {
             time = new Date().toLocaleTimeString()
         }, 1000)
-        return () => clearInterval(timer)
+        defer clearInterval(timer)
     }
     return <p>It is {time}</p>
 }
@@ -2465,8 +2479,11 @@ comp Clock() {
   before that, `mount` does not run.
 - **The body of `mount`** is a function that runs later, like an event handler: changes of state in
   it update the markup, and `return` belongs to it, not to the component.
-- **What it returns:** nothing, a function without parameters that stops everything, or `null` if
-  there is nothing to stop.
+- **Cleaning up is `defer`,** as in an effect, and `mount` returns nothing:
+  `mount returns nothing; clean up with defer, e.g. defer clearInterval(timer)`. As everywhere,
+  `defer f(x)` takes `x` at the `defer`; `defer { ... }` reads what it uses when it runs, which
+  matters for a value that changes later: `defer { editor?.dispose() }`. A `defer` inside an `if`
+  cleans up only when it ran.
 - **Who runs the cleanup.** `{if}`, `{switch}` and `{for}` blocks know which components were
   created in them, nested blocks included, and run their cleanup when they remove them. Markup that
   the program inserted by itself (`document.body.append`) and removes by itself does not: its
@@ -2476,10 +2493,11 @@ comp Clock() {
   `mount` elsewhere is an ordinary function.
 
 ```js
-$$mount(() => {
+const $$cleanups3 = [];
+$$mount(() => $$mountNode2, () => {
   const timer = setInterval(() => { ... }, 1000);
-  return () => clearInterval(timer);
-});
+  $$cleanups3.push(() => clearInterval(timer));
+}, $$cleanups3);
 ```
 
 **References.** `ref name` at the top level of the body of a component or a decorator names an
@@ -2488,7 +2506,7 @@ element of its markup, which `ref={name}` gives:
 ```go
 comp Search() {
     ref input
-    mount() {
+    mount {
         input.focus()
     }
     return <form class="search">
@@ -2569,7 +2587,7 @@ or the one given in the decorator:
   the decorator, the component may start with a lowercase letter: `@html-tag comp mainPage()`.
 - **Rendering.** The element creates the component's markup in its shadow root when it is connected
   to the document. When it is disconnected and not inserted back in the same task, the markup is
-  removed and the functions returned by `mount()` run; moving the element keeps its markup and
+  removed and what `mount` deferred runs; moving the element keeps its markup and
   state. `children` is a `<slot>`.
 - **Properties.** Every property except `children` is a JS property of the element; setting it
   updates the markup. Properties of type `string`, `number` or `bool` (also nullable, literal
@@ -2591,7 +2609,7 @@ or the one given in the decorator:
 class $$CardElement extends HTMLElement {
   static observedAttributes = ["title"];
   connectedCallback() { /* $$Card(...) into this.shadowRoot */ }
-  disconnectedCallback() { /* the cleanup of mount() */ }
+  disconnectedCallback() { /* the cleanup of mount */ }
   attributeChangedCallback(name, old, value) { /* this.title = value ?? undefined */ }
   set title(value) { /* updates the markup */ }
 }
@@ -2599,7 +2617,7 @@ customElements.define("app-card", $$CardElement);
 ```
 
 **Decorators.** `dec name(parameters) { ... }` declares logic that is added to the components it
-is applied to: state, functions, `mount()` and a wrapper around what the component returns. A
+is applied to: state, functions, `mount` and a wrapper around what the component returns. A
 decorator is applied with `@name(arguments)`
 before `comp`; like a component, it exists only at compile time, and its code is inlined into each
 component.
@@ -2614,7 +2632,7 @@ dec counter(start number = 0) {
         clicks++
     }
 
-    mount() {
+    mount {
         console.log("counting from", start)
     }
 }
@@ -2630,7 +2648,7 @@ comp Clicker(label string) {
   are evaluated for every instance with the component's properties in scope, so
   `@counter(label.length)` works; when a property changes, the argument is computed again. In the
   decorator its parameters are read-only.
-- **The body** may hold `state`, `const`, `let`, `ref`, `style`, functions, `mount()` and, at the end, the
+- **The body** may hold `state`, `const`, `let`, `ref`, `style`, functions, `mount` and, at the end, the
   `return` of a wrapper; its refs are bound in the markup of the wrapper. Its own names are used in
   it as usual; the component does not see them unless they are `public`.
 - **Public members** are `public state`, `public derived`, `public const` and `public func`;
@@ -2657,7 +2675,7 @@ comp Clicker(label string) {
   read as `@framed.box`: the ref is read-only, its element is not.
 - **Several decorators**, `@a @b comp X`: the bodies run from top to bottom, then the body of the
   component; the wrappers apply from the bottom up (the result of the component goes to `b`, the
-  result of `b` to `a`); `mount()` runs from the inside out (the component, `b`, `a`), the
+  result of `b` to `a`); `mount` runs from the inside out (the component, `b`, `a`), the
   cleanup in the reverse order. A decorator applied twice is an error, and `@html-tag` must be the
   first one.
 - **The names of the module** that a decorator and its arguments use must not be declared in the

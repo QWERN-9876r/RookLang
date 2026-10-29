@@ -37,7 +37,7 @@ dec counter() {
         clicks++
     }
 
-    mount() {
+    mount {
         console.log(MOUNTED)
     }
 }

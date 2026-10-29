@@ -16,7 +16,7 @@ function errors(source: string): string[] {
   return check(program).diagnostics.map((d) => d.message);
 }
 
-/** Waits until the microtasks that run `mount()` are done. */
+/** Waits until the microtasks that run `mount` are done. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 const counter = `dec counter(start number = 0) {
@@ -36,7 +36,7 @@ const framed = `dec framed(title string = "") {
 
 const logged = (name: string, rest = '') => `dec ${name}()${rest} {
     console.log("body ${name}")
-    mount() {
+    mount {
         console.log("mount ${name}")
     }
     return (content Element) => <div class="${name}">{content}</div>
@@ -148,7 +148,7 @@ ${card('@shop(1)', '<p onClick={@shop.addTwice(); @shop.add()}>{@shop.count}</p>
     expect(
       errors(`${framed}@framed
 comp Card() {
-    mount() {
+    mount {
         const box HTMLElement = @framed.box
     }
     func f() {
@@ -222,7 +222,7 @@ document.body.append(<App />)
 }
 @shop
 comp Card() {
-    mount() {
+    mount {
         console.log(@shop.box.tagName)
     }
     return <p>card</p>

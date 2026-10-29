@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { SimpleStatementParser } from './simple-statements.ts';
 import { FOREIGN_KEYWORDS, FUNCTION_BODY, describe } from './syntax.ts';
 
-// Statements: blocks, `mount()`, and which statement a token starts.
+// Statements: blocks, `mount`, and which statement a token starts.
 
 export abstract class StatementParser extends SimpleStatementParser {
   protected parseStatements(isEnd: () => boolean): ast.Statement[] {
@@ -140,7 +140,7 @@ export abstract class StatementParser extends SimpleStatementParser {
       this.isStateDeclaration() || this.isRefDeclaration()
         ? this.peek().text
         : this.isMountDeclaration()
-          ? 'mount()'
+          ? 'mount'
           : this.isEffectDeclaration()
             ? 'effect'
             : null;
@@ -149,7 +149,9 @@ export abstract class StatementParser extends SimpleStatementParser {
       this.fail(
         this.context.inComponent
           ? `${misplaced} is declared at the top level of a component, not inside blocks or functions`
-          : `${misplaced} can only be declared inside a component`,
+          : misplaced === 'state'
+            ? 'state can only be declared inside a component or at the top level of a module'
+            : `${misplaced} can only be declared inside a component`,
       );
     }
 
@@ -198,7 +200,7 @@ export abstract class StatementParser extends SimpleStatementParser {
 
       case 'async':
         if (this.peek(1).kind === 'comp') {
-          this.fail('a component cannot be async: load the data in mount() or in an async func');
+          this.fail('a component cannot be async: load the data in mount or in an async func');
         }
 
         if (this.peek(1).kind !== 'func' || this.peek(2).kind !== 'Identifier') return undefined;
@@ -315,22 +317,32 @@ export abstract class StatementParser extends SimpleStatementParser {
     return this.checkWord('effect') && this.peek(1).kind === '{';
   }
 
-  /** `mount() {`: like `state`, a keyword only at the start of a statement in a component. */
+  /**
+   * `mount {`: like `state`, a keyword only at the start of a statement in a component. The old
+   * form `mount() {` is recognized too, so that parseMount can say how to write it now.
+   */
   protected isMountDeclaration(): boolean {
     return (
       this.checkWord('mount') &&
-      this.peek(1).kind === '(' &&
-      this.peek(2).kind === ')' &&
-      this.peek(3).kind === '{'
+      (this.peek(1).kind === '{' ||
+        (this.peek(1).kind === '(' && this.peek(2).kind === ')' && this.peek(3).kind === '{'))
     );
   }
 
-  /** `mount() { ... }`; its body is a function that runs later, so `return` is its own. */
+  /** `mount { ... }`; its body is a function that runs later, so `return` is its own. */
   protected parseMount(): ast.MountStatement {
     const { start } = this.next();
 
-    this.expect('(');
-    this.expect(')');
+    if (this.check('(')) {
+      const open = this.next();
+      const close = this.next();
+
+      this.error(
+        'mount has no parentheses, like effect: write mount { ... }',
+        open.start,
+        close.end,
+      );
+    }
 
     const body = this.withContext({ ...FUNCTION_BODY, inComponent: true }, () => this.parseBlock());
 

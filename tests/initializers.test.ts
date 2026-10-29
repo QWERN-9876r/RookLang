@@ -59,12 +59,12 @@ describe('variables in their own initializer', () => {
       'state in a component',
       `${TIMER}comp Clock() {
     state ticks = 0
-    mount() {
+    mount {
         const timer = every(1000, () => {
             ticks++
             if ticks > 3 { timer.stop() }
         })
-        return () => timer.stop()
+        defer timer.stop()
     }
     return <p>{ticks}</p>
 }`,

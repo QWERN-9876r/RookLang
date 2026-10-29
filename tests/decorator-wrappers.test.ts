@@ -15,7 +15,7 @@ function errors(source: string): string[] {
   return check(program).diagnostics.map((d) => d.message);
 }
 
-/** Waits until the microtasks that run `mount()` are done. */
+/** Waits until the microtasks that run `mount` are done. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 const notFound = `dec notFound() {
@@ -202,7 +202,7 @@ document.body.append(<Item empty={true} />, <Item empty={false} />)
     const { output } = mountWithDom(`dec watched() {
     let node ?Element = null
 
-    mount() {
+    mount {
         console.log(node?.tagName ?? "none")
     }
 
@@ -213,7 +213,7 @@ document.body.append(<Item empty={true} />, <Item empty={false} />)
 }
 @watched
 comp Page() {
-    mount() {
+    mount {
         console.log("page")
     }
     return <p />

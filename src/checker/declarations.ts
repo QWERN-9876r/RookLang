@@ -4,7 +4,7 @@ import { isIterator } from '../iterators.ts';
 import { collectValueNames } from '../names.ts';
 import { recursiveComponents } from '../recursion.ts';
 import { type Binding, type ComponentInfo, type DecoratorInfo, Scope } from './context.ts';
-import { ImportChecker } from './imports.ts';
+import { SharedStateChecker } from './shared-state.ts';
 import { awaited, isPromise, promiseOf } from './promise.ts';
 import {
   createClass,
@@ -21,7 +21,7 @@ import {
 // Declarations of a list of statements: imports, types, functions, components, decorators and
 // classes, declared before the statements are checked, so that they can refer to each other.
 
-export abstract class DeclarationChecker extends ImportChecker {
+export abstract class DeclarationChecker extends SharedStateChecker {
   /**
    * Declares the names of a statement list first (so functions, classes and types can be used
    * before their declaration), then checks the statements in order. Function and method bodies are

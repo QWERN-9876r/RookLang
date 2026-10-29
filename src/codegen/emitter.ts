@@ -8,6 +8,7 @@ import type { Root } from '../refs.ts';
 import { forEachChild } from '../walk.ts';
 import type { BindingKind } from './analysis.ts';
 import type { JsOptions } from './options.ts';
+import { sharedState, type SharedState } from './shared.ts';
 import { JS_RESERVED, JS_UNDECLARABLE } from './syntax.ts';
 
 /** How a function implements its `defer` statements. */
@@ -46,6 +47,8 @@ interface FunctionContext {
 export abstract class Emitter {
   protected readonly program: ast.Program;
   protected readonly options: JsOptions;
+  /** The state of the module that its components share, and that of other modules it reads. */
+  protected readonly shared: SharedState;
   protected lines: string[] = [];
   private level = 0;
 
@@ -98,6 +101,7 @@ export abstract class Emitter {
   constructor(program: ast.Program, options: JsOptions) {
     this.program = program;
     this.options = options;
+    this.shared = sharedState(program, options.shared);
 
     const decorators = new Map<string, DecoratorSource>(options.decorators);
     const imported = [...(options.decorators?.values() ?? [])];

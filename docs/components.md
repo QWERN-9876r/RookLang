@@ -3,7 +3,8 @@
 **English** · [Русский](components.ru.md)
 
 > Status: implemented are elements, components, `state`, `bind:`, `if` / `for` / `switch` in markup
-> (stages 1–4), recursive components, early returns, `mount()`, web components (`@html-tag`),
+> (stages 1–4), recursive components, early returns, `mount`, bound properties (`bind`), state of a
+> module, web components (`@html-tag`),
 > decorators (`dec`), `derived`, `effect`, `ref` and `style`. The decisions made are collected at the end of
 > the document, together with what is not decided yet.
 
@@ -95,6 +96,14 @@ The compiler knows the DOM and chooses how to set a value:
 
 The value of an attribute is a `string`, `number`, `bool` or `?T` (`null` means no attribute). For
 known properties the type is checked more precisely: `checked={1}` is an error.
+
+- **A list of classes.** `class` also takes a `[]?string`: the classes that are not `null` or empty
+  are joined with spaces by `$$classes` of the runtime, so a class that depends on a condition
+  needs no template string:
+  `<button class={[styles.tab, item.id == active ? styles.active : null]}>`.
+- **A `bool` in `aria-*`** (and in any attribute without a DOM property) is written as `"true"` or
+  `"false"`, which is what ARIA expects: `aria-selected={item.id == active}`. A property that is
+  a `bool`, like `disabled`, is set as one.
 
 ### Event handlers
 
@@ -277,8 +286,8 @@ comp Clock() {
 }
 ```
 
-`mount()` is implemented already (decision 8): it runs once the markup is in the document, and the
-function it returns runs when `{if}`, `{switch}` or `{for}` removes the markup.
+`mount { ... }` is implemented already (decision 8): it runs once the markup is in the document,
+and what it defers, as an effect does, runs when `{if}`, `{switch}` or `{for}` removes the markup.
 
 ### How it compiles
 
@@ -585,7 +594,7 @@ comp Chat() {
         }
     }
 
-    mount() {
+    mount {
         input.focus()
     }
 
@@ -606,7 +615,7 @@ comp Chat() {
   before any `{...spread}`, which may override them. The markup sets the rest where it is written:
   values in `{...}`, handlers, `bind:` and children. So above `return` `log` is an empty
   `<ul class="log">`, and markup can refer to an element further down:
-  `<label for={input.id}>` before `<input id="name" ref={input} />`. In `mount()`, `effect` and
+  `<label for={input.id}>` before `<input id="name" ref={input} />`. In `mount`, `effect` and
   handlers the element is complete. A ref is never `null`.
 - **Once.** A ref points to one element, which the markup creates exactly once: in what a `return`
   gives, in `const x = <...>` at the top level of the body, in the children of components there,
@@ -623,7 +632,7 @@ let messages = ["Hi! Write something"];
 let draft = "";
 const log = $$element("ul", { className: "log" });
 const input = $$element("input", { placeholder: "Message" });
-// ...the effect, mount() and the rest of the markup, which fills the elements in:
+// ...the effect, mount and the rest of the markup, which fills the elements in:
 log.append($$for7);
 input.value = draft;
 input.addEventListener("input", () => {
@@ -668,10 +677,10 @@ dec measured() {
     public state width = 0
     ref frame
 
-    mount() {
+    mount {
         const observer = new ResizeObserver(() => { width = frame.clientWidth })
         observer.observe(frame)
-        return () => observer.disconnect()
+        defer observer.disconnect()
     }
 
     return (content Element) => <div class="measured" ref={frame}>{content}</div>
@@ -786,7 +795,8 @@ export comp Button(kind Kind = "primary", children Content) {
   work with `rook build` and with Vite alike, but not in the playground, which has no files.
 - **Warnings:** a class that the module never names is reported, unless it reads `styles` with a
   key that is not known (`styles[name]` with a `string`).
-- **Several classes** are joined with a template string: there is no special syntax for it.
+- **Several classes** are a list, `class={[styles.button, styles[kind]]}`, see "Attributes and
+  properties"; a template string works too.
 
 `style { ... }` in the component is for small styles that need values from code; a CSS module is a
 file of its own, which editors and tools for CSS understand.
@@ -872,9 +882,8 @@ blocks are the content:
   The update of a block runs when any state the block reads changes, and it updates all its parts.
   The module imports these functions of the runtime only if it uses them, like `$$runDeferred`.
 
-- When a branch or a list item is removed, the functions returned by the `mount()` of the
-  components inside it run, nested blocks included. When `effect` appears, its `defer`s will run
-  there too.
+- When a branch or a list item is removed, what the `mount` and `effect` of the components inside
+  it deferred runs, nested blocks included.
 
 ### Children and events of components
 
@@ -909,7 +918,155 @@ comp TodoItem(todo Todo, onToggle func(), onRemove func()) {
 ```
 
 Properties are read-only: a parameter cannot be assigned inside the component. To change the
-parent's state, it is passed through a function property, like `onToggle` above.
+parent's state, it is passed through a function property, like `onToggle` above, or the property
+is bound.
+
+### Bound properties: `bind`
+
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
+
+A component that only changes a value of the parent, a drawer that closes or tabs that switch,
+would need a pair `open` and `onClose`. A bound property is one: the component changes it as its
+state, and `bind:` writes the changes into the parent's variable, as `bind:value` of an input does.
+
+```go
+comp Drawer(bind open bool = false, children Content) {
+    return <aside hidden={!open}>
+        <button onClick={open = false}>×</button>
+        {children}
+    </aside>
+}
+
+comp Page() {
+    state menu = false
+    return <main>
+        <button onClick={menu = true}>Menu</button>
+        <Drawer bind:open={menu}>...</Drawer>
+    </main>
+}
+```
+
+- **Declaration.** `bind` before the name of a property. Inside the component it is assigned and
+  changed in place like `state`: `open = false`, `items.push(x)`, `todo.done = true`.
+- **`bind:open={menu}`** gives the component the parent's value and writes every change back,
+  which updates what reads `menu` in the parent. The variable is anything assignable, a field of a
+  list item included, `<Check bind:on={todo.done} />`, of the same type as the property.
+- **Without `bind:`** the property is the component's own state: `<Drawer open={true} />` starts
+  open, `<Drawer />` with the default value. When the parent's value changes, the component gets
+  it, as with any property.
+- **`bind:` needs `bind`.** `bind:` on a property that is not bound is an error that says how to
+  declare it; a tag that takes its component from a value cannot bind, since its type does not say
+  which properties are bound. A web component's bound properties are its state.
+- **Changes in the body itself,** while the component is created, go to the parent too, but the
+  parent's markup created before that keeps the old value (see the limitations of stage 3).
+
+In JS the use writes a function that sets its variable and updates what reads it there, and the
+component calls it after each change, together with its own updates:
+
+```js
+const $$bind5 = ($$value) => {
+  menu = $$value;
+  $$updateMenu2();
+};
+// <Drawer>
+{
+  let open = menu;
+  // ...
+  function $$updateOpen10() {
+    $$bind5(open);
+    $$aside11.hidden = !open;
+  }
+}
+```
+
+When the parent changes `menu`, it sets `open` by the setter of the property, which updates the
+component but does not call the function back. A component that is a function gets these
+functions as arguments after its properties, `$$Drawer(open, children, $$bindOpen)`, and calls
+`$$bindOpen?.(open)`: without `bind:` there is none.
+
+### State of a module
+
+> **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
+
+State that several components need, a cart or the user who is signed in, is a `state` at the top
+level of a module. The components that read it are updated when it changes, wherever in the module
+that happens: in its functions, in its components, in a timer or in a response of the server.
+
+```go
+// cart.rk
+export interface Item {
+    name string
+    done bool
+}
+
+export state items []Item = []
+
+export func add(name string) {
+    items.push({ name: name, done: false })
+}
+```
+
+```go
+// badge.rk
+import { items } from "./cart.rk"
+
+export comp Badge() {
+    return <b>{items.length}</b>
+}
+```
+
+- **Declaration.** `state` or `export state` at the top level of a module, like `let`; markup has
+  to be on.
+- **What counts as a change** is what it is for the state of a component: assignment, `++`, the
+  mutating methods, fields, also through names that refer into it, `for item in items`. The
+  analysis goes over the whole module and by names, so a local variable with the name of the state
+  gives an extra update, not a missed one. Changes inside functions the state was passed to are
+  not seen: `items = items` after them helps.
+- **Other modules read it.** An import of the state reads its current value, as imports of JS do,
+  and the components there are updated too. Changing it there, `items.push(x)` or `items = []`, is
+  an error that says to call a function of its module: the module keeps its data consistent, as a
+  decorator does with its public state.
+- **Who is updated.** A component that reads the state in its markup, a `derived` or an `effect`
+  listens to it while it is on the page; `{if}`, `{switch}` or `{for}` that removes it stops it.
+  Code outside components reads the value when it runs.
+- **Code of other modules.** An exported component that reads state, of its module or one it
+  imports, is called from other modules, not inlined: it listens in its module. An exported
+  decorator cannot read state of its module yet.
+- **Not yet:** `derived` and `effect` at the top level of a module.
+
+In JS the state is a variable with the set of the updates of the components that read it. A change
+runs them, and a component adds its update once its markup is created:
+
+```js
+// cart.js
+export let items = [];
+export const $$listeners$items = new Set();
+
+export function add(name) {
+  items.push({ name: name, done: false });
+  $$changed($$listeners$items);
+}
+```
+
+```js
+// badge.js
+import { items, $$listeners$items } from "./cart.js";
+
+export function $$Badge($$root) {
+  // ...
+  function $$updateItems1() {
+    $$text4.data = items.length;
+  }
+
+  $$badge2 = $$b3;
+  $$watch($$listeners$items, $$updateItems1);
+  return [$$badge2];
+}
+```
+
+`$$watch` adds the update and removes it with the component, `$$changed` runs the updates: that is
+the runtime of it. The components still update their nodes in place, with the statements the
+compiler wrote, as for their own state.
 
 ### Components as values
 
@@ -959,7 +1116,7 @@ comp Guide() {
   does: the property `Header comp()` of a component hides a component `Header` of the module. A
   tag with a small letter and no dot is always an element.
 - **When the value changes,** the component is created again: the old one is removed with what its
-  `mount` returned, like a branch of `{if}`. When only the properties change, the component stays
+  `mount` deferred, like a branch of `{if}`. When only the properties change, the component stays
   and gets them, as a component used by its name does.
 
 A component used as a value is a function in its module, like an exported one (see "When a
@@ -1022,11 +1179,11 @@ attrs?.($$button4);
 
 > **Experimental:** may change in any release before 1.0; see the status of [spec.md](spec.md).
 
-> Implemented: declarations, arguments, public members, `mount()`, wrappers, `needs`,
+> Implemented: declarations, arguments, public members, `mount`, wrappers, `needs`,
 > `includes` and exporting. Not yet: renaming a decorator on import, a `return` inside the `if` or
 > `for` of a wrapper, and an exported decorator that includes others.
 
-A decorator adds logic to a component: its own state, functions, `mount()` and a wrapper around
+A decorator adds logic to a component: its own state, functions, `mount` and a wrapper around
 what the component returns. Components are not only markup, and the logic many of them share
 (loading when visible, a 404 page, analytics, access checks) is written once, in a decorator. Like
 a component, a decorator exists only at compile time: its code is inlined into every component it
@@ -1042,7 +1199,7 @@ dec visible(margin string = "0px") {
         shown = true
     }
 
-    mount() {
+    mount {
         const observer = new IntersectionObserver(entries => {
             if entries.some(entry => entry.isIntersecting) {
                 show()
@@ -1052,7 +1209,7 @@ dec visible(margin string = "0px") {
         if node != null {
             observer.observe(node)
         }
-        return () => observer.disconnect()
+        defer observer.disconnect()
     }
 
     // Changes nothing: only keeps the node for mount
@@ -1083,7 +1240,7 @@ comp Playground() {
   declaration at the top level of a module; elsewhere it is an ordinary name. The parameters are
   written as for functions, but may have default values at the end: `margin string = "0px"`.
   `export dec` exports a decorator, and in another module it is inlined like a component.
-- **The body** may hold `state`, `const`, `let`, `ref`, `style`, functions, `mount() { ... }` and, at the
+- **The body** may hold `state`, `const`, `let`, `ref`, `style`, functions, `mount { ... }` and, at the
   end, the `return` of a wrapper. Each of them is optional: a decorator without a wrapper only adds
   state and logic. Its refs are bound in the markup of its wrapper.
 - **Application.** `@visible("300px")` before `comp`. The arguments are positional, as in a call of
@@ -1138,7 +1295,7 @@ comp Playground() {
 - the bodies run from top to bottom: `a`, `b`, then the body of the component;
 - the wrappers apply from bottom to top: the result of the component goes to `b`, and the result of
   `b` goes to `a`;
-- `mount()` runs from the inside out: the component, `b`, `a`; the cleanup runs in the reverse
+- `mount` runs from the inside out: the component, `b`, `a`; the cleanup runs in the reverse
   order;
 - a decorator applied twice is an error: `@a.x` would be ambiguous;
 - `@html-tag` must be the first one: the element is built from the final result.
@@ -1221,7 +1378,7 @@ comp Fruit(name string) {
   may be empty, `dec shop() includes cart, cartBadge {}`.
 - `@card` is the list `@framed(title) @likes` followed by the body of `card`: the bodies run in
   this order, then the component's; the wrapper of `card` is the closest to the component, that of
-  `framed` the outermost; `mount()` runs from the inside out.
+  `framed` the outermost; `mount` runs from the inside out.
 - Inside `card`, the included decorators are used by their names, as with `needs`:
   `@likes.count`. The component reads all of them through `card`, `@card.count`; `@likes.count` is
   an error that points to it. The same name from two of them, or from one of them and `card`
@@ -1325,7 +1482,7 @@ body of `for`: the code of one row of the list is written there once, and no ext
 | A component at runtime         | a function                | a function                     | none: the code is inlined (a function only if large or recursive) |
 | How updates are found          | VDOM diffing              | the compiler + runtime signals | the compiler; proxies only for values that go into unknown code   |
 | The handler `onClick={save()}` | called on render          | called on render               | called on a click                                                 |
-| Cleaning up effects            | a function from an effect | `onCleanup` / return           | the function returned by `mount()`                                |
+| Cleaning up effects            | a function from an effect | `onCleanup` / return           | `defer` in `effect` and `mount`                                   |
 | Shared logic of components     | hooks, HOCs               | actions (Svelte), primitives   | decorators `dec`, inlined                                         |
 | A reference to an element      | `useRef`, set on render   | `bind:this` / `ref`, set later | `ref input`: the element exists from the start of the body        |
 
@@ -1367,13 +1524,14 @@ body of `for`: the code of one row of the list is written there once, and no ext
    `@if` / `@for ... key`, ordinary `if` / `for` / `switch` inside `{...}`, and the blocks of a list
    are found by the item itself, without a key. Spread of properties into a component came along.
    The test site shows the filters, the tasks and the message with `{for}` and `{if}`.
-5. ~~**`derived` and `effect`**~~ (done, with `mount()`). An effect runs once the markup is created
+5. ~~**`derived` and `effect`**~~ (done, with `mount`). An effect runs once the markup is created
    and again after the updates of what it reads while it runs; one after an early `return` does
    not run again, like the markup there.
 6. ~~**Function components**~~ (recursion, exported components and the 100-line threshold are
    done) **and proxies** for state that goes into unknown code.
-7. **State shared by several components.**
-8. **Decorators (`dec`):** ~~public members, `mount()`, wrappers and `needs`~~ (done);
+7. ~~**State shared by several components**~~ (done): `state` at the top level of a module, see
+   "State of a module".
+8. **Decorators (`dec`):** ~~public members, `mount`, wrappers and `needs`~~ (done);
    ~~exporting decorators~~ (done); ~~combining them~~ (done, `includes`).
 9. **State that survives a reload** (planned): a `state` that the compiler loads when the
    component is mounted and saves after each change, in IndexedDB or `localStorage`. IndexedDB
@@ -1391,17 +1549,17 @@ body of `for`: the code of one row of the list is written there once, and no ext
 3. **Proxies only where there is no way around them:** for arrays and objects that go into code the
    compiler cannot see, or into functions that change them.
 4. **Two-way binding is `bind:value` and `bind:checked`.**
-5. **State shared by several components** will come later; for now it is passed through properties.
+5. **State shared by several components** is `state` at the top level of a module (decision 27).
 6. **The inlining threshold:** if inlining adds more than 100 extra lines of code, the component
    becomes a function.
 7. **Conditions and loops in markup are ordinary `if`, `for` and `switch` inside `{...}`**, with no
    separate syntax like `@if`: `<div>{for product in products { <Product {...product} /> }}</div>`.
-8. **Mounting is `mount() { ... }` in a component's body.** It runs only when the component's
+8. **Mounting is `mount { ... }` in a component's body.** It runs only when the component's
    markup is in the document: that is checked in a microtask after creation, and markup that is not
    in the document yet is waited for with a `MutationObserver`, which watches only while some markup
    waits. The first node is taken right after the markup is created, since a fragment is empty once
-   inserted. The function `mount` returns runs when `{if}`, `{switch}` or `{for}` removes the
-   markup. For that, blocks are created with an "owner" that collects the cleanup of the block's
+   inserted. What `mount` defers runs when `{if}`, `{switch}` or `{for}` removes the markup
+   (decision 23). For that, blocks are created with an "owner" that collects the cleanup of the block's
    components and of the nested blocks. The owner of the current block is shared by the modules of a
    page (`Symbol.for("rook.owner")`), because a block of one module can hold components of
    another. Removing markup by the program's own code is not tracked: that would need an observer of
@@ -1444,8 +1602,8 @@ body of `for`: the code of one row of the list is written there once, and no ext
     element is a warning: the compiler got warnings, which do not stop compilation, with styles.
 14. **The main way to style components is a CSS module,** `import styles from "./x.module.css"`,
     which the compiler reads itself: typed classes with names of their own, and the CSS added to the
-    page by the module, so it works without a bundler. Several classes are joined with template
-    strings, without a syntax of their own.
+    page by the module, so it works without a bundler. Several classes are a list,
+    `class={[styles.tab, active ? styles.active : null]}` (decision 24).
 15. **Elements are created with `$$element`,** which takes their attributes in two objects,
     properties and attributes for `setAttribute`. On the site it saves 7.5% of the minified JS but
     less than 1% after gzip, which compresses repeated statements well, and the call is a little
@@ -1473,6 +1631,25 @@ body of `for`: the code of one row of the list is written there once, and no ext
     "Including decorators".
 22. **A decorator has `public ref`,** which the component reads as `@framed.box`, and all public
     members are read without `get`: `@visible.shown`.
+23. **Mounting is `mount { ... }`, without parentheses, and cleans up with `defer`,** like
+    `effect`: what it defers runs when the component is removed, and it returns nothing. The
+    runtime adds the deferred calls to the owner once the component mounts, so the cleanups of
+    decorators, which mount after it, run first. `mount() { ... }` is an error that shows the new
+    form.
+24. **`class` takes a list of classes,** `class={[styles.tab, active ? styles.active : null]}`, of
+    type `[]?string`: `null`s and empty strings are left out. No syntax of its own, such as
+    `class:active={...}`: a list is an ordinary value, and it works with CSS modules.
+25. **A `bool` in an attribute without a DOM property is `"true"` or `"false"`,** as
+    `setAttribute` writes it, which is what `aria-*` needs: `aria-selected={item.id == active}`.
+26. **A property that the component changes is bound,** `comp Drawer(bind open bool = false)`, and
+    the use writes its changes into a variable with `bind:open={menu}`, as for the inputs, instead
+    of a pair of `open` and `onClose`. Without `bind:` the property is the component's own state.
+    Changes in place (`items.push(x)`) reach the parent as assignments do. See "Bound properties".
+27. **State shared by several components is `state` at the top level of a module.** The components
+    that read it listen to it with `$$watch` while they are on the page, and every change in the
+    module runs `$$changed`; other modules read it and change it only with the functions of its
+    module. It is the one place where updates go through a runtime set, since a change may be in
+    any code of the module, at any time. See "State of a module".
 
 ## Not decided yet
 

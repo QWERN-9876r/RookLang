@@ -33,6 +33,8 @@ export interface JsOptions {
   runtime?: RuntimeMode | undefined;
   /** The data classes of the module, whose imports stay even if only types use them. */
   dataClasses?: ReadonlySet<string> | undefined;
+  /** State of other modules that this one imports, `local → name there`: it only reads it. */
+  shared?: ReadonlyMap<string, string> | undefined;
 }
 
 /** A decorator of another module, with the types of the expressions of that module. */

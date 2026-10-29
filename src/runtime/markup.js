@@ -1,10 +1,10 @@
 // Markup: the owners of the blocks that `{if}`, `{switch}` and `{for}` remove, the
-// `mount()` of components, the blocks themselves, elements and the CSS of components.
+// `mount` of components, the blocks themselves, elements and the CSS of components.
 
 import { $$runDeferred } from './core.js';
 
-// Owners of markup that `{if}`, `{switch}` and `{for}` may remove: the functions returned by the
-// `mount()` of its components, and the removal of the blocks inside it, run when it is removed.
+// Owners of markup that `{if}`, `{switch}` and `{for}` may remove: what the `mount` and `effect`
+// of its components deferred, and the removal of the blocks inside it, run when it is removed.
 // The current owner is shared by the modules of a page, since the blocks of one module may hold
 // the components of another.
 export const $$owner = Symbol.for('rook.owner');
@@ -36,15 +36,17 @@ export function $$onRemove(cleanup) {
   globalThis[$$owner]?.cleanups.push(cleanup);
 }
 
-// `mount() { ... }` of a component: runs when its markup is in the document. That is checked after
+// `mount { ... }` of a component: runs when its markup is in the document. That is checked after
 // the code that creates the component; markup that is not in the document yet is waited for with a
 // MutationObserver, which watches only while some markup waits. Markup that its owner removes
-// before that never mounts. The function `mount` returns runs when the owner is removed.
+// before that never mounts. What its `defer`s put into `cleanups` runs when the owner is removed;
+// they are added to the owner once it mounts, so the cleanups of the decorators, which mount after
+// the component, run before those of the component.
 export const $$waiting = new Set();
 export let $$observer = null;
 
-export function $$mount(node, mount) {
-  const entry = { node, mount, owner: globalThis[$$owner] };
+export function $$mount(node, mount, cleanups) {
+  const entry = { node, mount, cleanups, owner: globalThis[$$owner] };
 
   entry.owner?.cleanups.push(() => $$waiting.delete(entry));
   queueMicrotask(() => $$tryMount(entry));
@@ -65,9 +67,8 @@ export function $$tryMount(entry) {
     return;
   }
 
-  const cleanup = entry.mount();
-
-  if (typeof cleanup === 'function') entry.owner?.cleanups.push(cleanup);
+  entry.mount();
+  if (entry.cleanups) entry.owner?.cleanups.push(() => $$runDeferred(entry.cleanups.splice(0)));
 }
 
 export function $$mountWaiting() {
@@ -316,6 +317,12 @@ export function $$svgElement(tag, attributes) {
   for (const name in attributes) element.setAttribute(name, attributes[name]);
 
   return element;
+}
+
+// The class of `class={[styles.tab, active ? styles.active : null]}`: the classes that are not
+// null or empty, separated by spaces.
+export function $$classes(list) {
+  return list.filter((each) => each).join(' ');
 }
 
 // Sets an attribute whose value may be null: then the attribute is removed.

@@ -28,6 +28,12 @@ export interface EarlyReturns {
 /** Marks where the setters of an inlined component with early returns go: before any return. */
 export const SETTERS = String.fromCharCode(0xe002);
 
+/**
+ * Marks the `$$watch(...)` of a component that reads state of the module, around the id of the
+ * source: it stays only if something depends on the state (resolveMarkers).
+ */
+export const LISTEN = String.fromCharCode(0xe004);
+
 /** `f(a, undefined, undefined)` → `f(a)`: missing arguments are undefined anyway. */
 export function withoutTrailingUndefined(args: string[]): string[] {
   let end = args.length;
@@ -37,7 +43,7 @@ export function withoutTrailingUndefined(args: string[]): string[] {
   return args.slice(0, end);
 }
 
-/** Whether a component has `mount() { ... }`. */
+/** Whether a component has `mount { ... }`. */
 export function hasMount(component: ast.ComponentDeclaration): boolean {
   return component.body.body.some((statement) => statement.kind === 'MountStatement');
 }

@@ -4,7 +4,9 @@ import { isIterator } from '../iterators.ts';
 import { decoratedName, moduleNamesOf } from '../decorators.ts';
 import { inlinePackages, type InlinePackage } from '../inline-packages.ts';
 import { packageExports } from './imported.ts';
+import { readNames } from './mutations.ts';
 import { ParallelLoopEmitter } from './parallel.ts';
+import { listenersName } from './shared.ts';
 import { ARROW, POSTFIX } from './syntax.ts';
 
 /**
@@ -17,6 +19,40 @@ import { ARROW, POSTFIX } from './syntax.ts';
 export abstract class StatementEmitter extends ParallelLoopEmitter {
   /** A CSS module: its object and CSS go with the styles (StyleEmitter), not to an import. */
   protected abstract styleModuleImport(node: ast.ImportDeclaration): boolean;
+
+  private sharedReads: Set<string> | null = null;
+
+  /** State of the module: the updates of the components that read it are kept beside it. */
+  protected override emitStatement(node: ast.Statement): void {
+    super.emitStatement(node);
+    if (node.kind !== 'VariableDeclaration' || node.keyword !== 'state') return;
+    if (!this.program.body.includes(node)) return;
+
+    const exported = node.exported ? 'export ' : '';
+
+    for (const name of node.names) {
+      const listeners = this.shared.listeners.get(name.name);
+
+      if (listeners) this.line(`${exported}const ${listeners} = new Set();`);
+    }
+  }
+
+  /** Whether the components or decorators of the module read `name`, and so listen to it. */
+  protected readsShared(name: string): boolean {
+    if (!this.sharedReads) {
+      this.sharedReads = new Set();
+      for (const statement of this.program.body) {
+        if (
+          statement.kind === 'ComponentDeclaration' ||
+          statement.kind === 'DecoratorDeclaration'
+        ) {
+          readNames(statement, this.sharedReads);
+        }
+      }
+    }
+
+    return this.sharedReads.has(name);
+  }
 
   protected override importDeclaration(node: ast.ImportDeclaration): void {
     if (this.styleModuleImport(node)) return;
@@ -50,6 +86,13 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
 
     for (const specifier of node.namedImports) {
       const component = this.options.components?.get(specifier.local.name);
+      const state = this.options.shared?.get(specifier.local.name);
+
+      // State of that module: the components here that read it listen to its changes.
+      if (state !== undefined && this.readsShared(specifier.local.name)) {
+        hidden(listenersName(state), this.shared.listeners.get(specifier.local.name)!);
+      }
+
       const inlined = this.inlinedImports.get(specifier.local.name);
 
       if (inlined) {

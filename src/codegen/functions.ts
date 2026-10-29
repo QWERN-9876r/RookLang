@@ -56,7 +56,7 @@ export abstract class FunctionEmitter extends WebComponentEmitter {
     this.inHandler++;
     try {
       const body = this.withRendering(0, () =>
-        cleanups === null ? this.func([], node.body)[1] : this.effectBody(node.body, cleanups),
+        cleanups === null ? this.func([], node.body)[1] : this.deferringBody(node.body, cleanups),
       );
 
       if (cleanups !== null) this.line(`const ${cleanups} = [];`);
@@ -68,13 +68,45 @@ export abstract class FunctionEmitter extends WebComponentEmitter {
     this.addEffect({ name, node, cleanups });
   }
 
-  private effectBody(body: ast.BlockStatement, cleanups: string): string {
+  /**
+   * `mount { ... }` becomes `$$mount(() => node, () => { ... })`. Its body runs later, like a
+   * handler: what it changes updates the markup. What it defers goes into a list that the runtime
+   * runs when `{if}`, `{switch}` or `{for}` removes the component.
+   */
+  protected override mountStatement(node: ast.MountStatement): void {
+    const cleanups = findDefers(node.body).length > 0 ? `$$cleanups${this.nextId()}` : null;
+
+    this.inHandler++;
+    try {
+      const body = this.withRendering(0, () =>
+        cleanups === null
+          ? this.func([], node.body)[1]
+          : this.deferringBody(node.body, cleanups, false),
+      );
+      const args = [`() => ${this.mountNode ?? 'null'}`, `() => ${body}`];
+
+      if (cleanups !== null) {
+        this.line(`const ${cleanups} = [];`);
+        args.push(cleanups);
+      }
+
+      this.line(`$$mount(${args.join(', ')});`);
+    } finally {
+      this.inHandler--;
+    }
+  }
+
+  /**
+   * The body of an effect or of `mount`, whose `defer`s put their calls into `cleanups`. An effect
+   * that runs again first runs what it deferred before.
+   */
+  private deferringBody(body: ast.BlockStatement, cleanups: string, again = true): string {
     return this.withFunction('effect', [], () => {
       this.fn.deferList = cleanups;
 
       return this.block(() =>
         this.withScope(declarationsOf(body.body), () => {
-          this.line(`$$runDeferred(${cleanups}.splice(0));`);
+          if (again) this.line(`$$runDeferred(${cleanups}.splice(0));`);
           this.statements(body.body);
         }),
       );

@@ -1,0 +1,87 @@
+// component-bind.js
+
+import { $$element } from "rooklang/runtime";
+
+// <Page>
+let $$page1;
+{
+  let menu = false;
+  const $$div3 = $$element("div");
+  const $$button4 = $$element("button");
+  $$button4.addEventListener("click", () => {
+    menu = !menu;
+    $$updateMenu2();
+  });
+  const $$text5 = document.createTextNode(menu ? "Hide" : "Show");
+  $$button4.append($$text5, " the menu");
+  // <Panel>
+  const $$bind6 = ($$value) => {
+    menu = $$value;
+    $$updateMenu2();
+  };
+  const $$children7 = document.createDocumentFragment();
+  $$children7.append("Close it with ×: the button above knows.");
+  let $$panel8;
+  let $$setOpen9;
+  {
+    let open = menu;
+    const title = "Menu";
+    const children = $$children7;
+    const $$section12 = $$element("section", { className: "card", hidden: !open });
+    const $$h413 = $$element("h4");
+    const $$button14 = $$element("button");
+    $$button14.addEventListener("click", () => {
+      open = false;
+      $$updateOpen11();
+    });
+    $$button14.append("×");
+    $$h413.append(title, " ", $$button14);
+    $$section12.append($$h413, children);
+
+    $$setOpen9 = ($$open) => {
+      open = $$open;
+      $$section12.hidden = !open;
+    };
+
+    function $$updateOpen11() {
+      $$bind6(open);
+      $$section12.hidden = !open;
+    }
+
+    $$panel8 = $$section12;
+  }
+  // <Panel>
+  const $$children15 = document.createDocumentFragment();
+  $$children15.append("This one keeps its state to itself.");
+  let $$panel16;
+  {
+    let open = true;
+    const title = "Note";
+    const children = $$children15;
+    const $$section18 = $$element("section", { className: "card", hidden: !open });
+    const $$h419 = $$element("h4");
+    const $$button20 = $$element("button");
+    $$button20.addEventListener("click", () => {
+      open = false;
+      $$section18.hidden = !open;
+    });
+    $$button20.append("×");
+    $$h419.append(title, " ", $$button20);
+    $$section18.append($$h419, children);
+    $$panel16 = $$section18;
+  }
+  $$div3.append($$button4, $$panel8, $$panel16);
+
+  function $$updateMenu2() {
+    if (!$$page1) return;
+    $$text5.data = menu ? "Hide" : "Show";
+    $$setOpen9(menu);
+  }
+
+  $$page1 = $$div3;
+}
+document.body.append($$page1);
+
+// component-bind.d.ts
+
+export {};

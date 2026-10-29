@@ -1,8 +1,9 @@
 import type * as ast from '../ast.ts';
 import { widenLiterals, type Type } from '../checker/types.ts';
-import type { Reactive, Source, Write } from './reactive.ts';
+import { type Reactive, type Source, type Write, updatesOf } from './reactive.ts';
 import { StatementEmitter } from './statements.ts';
 import { startsWithObjectLiteral } from './analysis.ts';
+import { sharedWrites } from './shared.ts';
 import { ARROW } from './syntax.ts';
 
 /**
@@ -23,8 +24,48 @@ export abstract class UpdateEmitter extends StatementEmitter {
    */
   protected rendering = 0;
 
-  /** After a statement that changes state, the update of what depends on it. */
+  /**
+   * After a statement that changes state of the module, the updates of the components that read
+   * it; code that renders markup changes none, as with the state of a component.
+   */
   protected override statement(node: ast.Statement): void {
+    const shared =
+      this.rendering > 0 ? [] : sharedWrites(node, this.shared, (each) => this.typeOf(each));
+
+    if (shared.length === 0) {
+      this.statementWithUpdates(node);
+
+      return;
+    }
+
+    const notify = () => {
+      for (const name of shared) this.line(`$$changed(${this.shared.listeners.get(name)!});`);
+    };
+
+    if (node.kind !== 'ReturnStatement' && node.kind !== 'ThrowStatement') {
+      this.statementWithUpdates(node);
+      notify();
+
+      return;
+    }
+
+    // The value is computed first, then the updates run, then the function leaves.
+    const values = node.kind === 'ThrowStatement' ? [node.argument] : node.values;
+    const temp = this.temp();
+
+    this.withHoisting(true, () => {
+      const rendered = values.map((value) => this.expression(value, ARROW));
+
+      this.line(
+        `const ${temp} = ${rendered.length === 1 ? rendered[0]! : `[${rendered.join(', ')}]`};`,
+      );
+    });
+    notify();
+    this.line(`${node.kind === 'ThrowStatement' ? 'throw' : 'return'} ${temp};`);
+  }
+
+  /** After a statement that changes state, the update of what depends on it. */
+  private statementWithUpdates(node: ast.Statement): void {
     const { reactive } = this;
 
     if (reactive && this.fn === reactive.setup && reactive.declaresRenderFunction(node)) {
@@ -40,6 +81,8 @@ export abstract class UpdateEmitter extends StatementEmitter {
       super.statement(node);
       for (const source of changed) {
         for (const computation of source.computations) this.line(computation);
+        // The parent of a bound property gets the value the body gave it.
+        if (source.bound) this.line(source.bound);
       }
 
       return;
@@ -172,7 +215,19 @@ export function resolveMarkers(block: string, reactive: Reactive): string {
 
   for (const source of reactive.sources.values()) sources.set(source.id, source);
 
-  return block.replace(
+  // `$$watch(...)` of state of the module stays if something depends on it.
+  const listened = block.replace(
+    /^([ \t]*)\uE004(\d+)\uE004(.*)\n/gm,
+    (line, indent: string, id: string, text: string) => {
+      const source = sources.get(Number(id));
+
+      if (!source) return line;
+
+      return updatesOf(source).length > 0 ? `${indent}${text}\n` : '';
+    },
+  );
+
+  return listened.replace(
     /^([ \t]*)\uE000(\d+)(?::(\d+))?\uE001;\n/gm,
     (line, indent: string, id: string, skip: string | undefined) => {
       const source = sources.get(Number(id));
@@ -190,9 +245,16 @@ export function resolveMarkers(block: string, reactive: Reactive): string {
   );
 }
 
-/** The update statements that a place changing the source needs, the computations first. */
+/**
+ * The update statements that a place changing the source needs: the computations, the call that
+ * gives a bound property to the parent, then the updates of the nodes.
+ */
 export function needed(source: Source, write: Write): string[] {
-  return [...source.computations, ...source.dependents.filter((_, i) => i !== write.skip)];
+  return [
+    ...source.computations,
+    ...(source.bound ? [source.bound] : []),
+    ...source.dependents.filter((_, i) => i !== write.skip),
+  ];
 }
 
 /** One place changes the source, after the markup exists, and needs one update statement. */

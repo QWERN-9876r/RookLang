@@ -1,8 +1,8 @@
-// mount() runs for every instance of a component, after all the synchronous code of the
+// mount runs for every instance of a component, after all the synchronous code of the
 // program, when the markup is already on the page
 comp Fruit(name string) {
     const item = <li>{name}</li>
-    mount() {
+    mount {
         console.log("mount:", name, "on the page:", item.isConnected)
     }
     return item

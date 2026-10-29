@@ -122,14 +122,15 @@ describe('VS Code grammar', () => {
     expect(scopeOf('const includes = 1', 'includes')).toBe('variable.other.readwrite');
     expect(scopeOf('    public state shown = false', 'public')).toBe('storage.modifier');
     expect(scopeOf('    public state shown = false', 'state')).toBe('storage.type.state');
+    expect(scopeOf('export state items []Item = []', 'state')).toBe('storage.type.state');
     expect(scopeOf('    public func show() {', 'func')).toBe('storage.type.function');
     expect(scopeOf('@visible("300px")', 'visible')).toBe('entity.name.function.decorator');
     expect(scopeOf('    @visible.show()', 'visible')).toBe('entity.name.function.decorator');
     expect(scopeOf('    if @visible.shown {', 'visible')).toBe('entity.name.function.decorator');
   });
 
-  it('treats mount() as a keyword only at the start of a statement', () => {
-    expect(scopeOf('    mount() {', 'mount')).toBe('storage.type.mount');
+  it('treats mount as a keyword only at the start of a statement', () => {
+    expect(scopeOf('    mount {', 'mount')).toBe('storage.type.mount');
     expect(scopeOf('    widget.mount(element)', 'mount')).not.toBe('storage.type.mount');
   });
 
@@ -200,6 +201,9 @@ describe('VS Code grammar', () => {
     expect(scopeOf(constructor, 'private')).toBe('storage.modifier');
     expect(scopeOf(constructor, 'readonly')).toBe('storage.modifier');
     expect(scopeOf('func f(readonly number) { }', 'readonly')).not.toBe('storage.modifier');
+    expect(scopeOf('comp Tabs(bind active string) {', 'bind')).toBe('storage.modifier');
+    expect(scopeOf('    bind open bool = false,', 'bind')).toBe('storage.modifier');
+    expect(scopeOf('func f(bind Mode) { }', 'bind')).not.toBe('storage.modifier');
   });
 
   it('colours regular expressions, and keeps / a division after a value', () => {

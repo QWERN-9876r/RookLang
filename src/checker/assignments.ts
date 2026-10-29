@@ -120,7 +120,7 @@ export abstract class AssignmentChecker extends InitializerChecker {
 
   /** The type a value assigned to `target` must have. */
   protected checkTarget(target: ast.Expression): Type {
-    if (this.checkDecoratorWrite(target)) return UNKNOWN;
+    if (this.checkDecoratorWrite(target) || this.checkSharedWrite(target)) return UNKNOWN;
     switch (target.kind) {
       case 'Identifier': {
         if (target.name === '_') return ANY;
@@ -156,7 +156,7 @@ export abstract class AssignmentChecker extends InitializerChecker {
           this.error(
             this.decorator
               ? `cannot assign to "${target.name}": parameters of a decorator are read-only`
-              : `cannot assign to "${target.name}": component properties are read-only; to change the parent's state, pass a function`,
+              : `cannot assign to "${target.name}": component properties are read-only; to change it, declare it with bind, e.g. comp ${this.component?.node.name.name ?? 'Tabs'}(bind ${target.name} ...)`,
             target,
           );
         } else if (

@@ -57,7 +57,7 @@ export comp Lanes() {
         frame = requestAnimationFrame(step)
     }
 
-    mount() {
+    mount {
         const observer = new IntersectionObserver(entries => {
             if entries.some(entry => entry.isIntersecting) {
                 play()
@@ -65,7 +65,7 @@ export comp Lanes() {
             }
         }, { threshold: 0.4 })
         observer.observe(host)
-        return () => {
+        defer {
             observer.disconnect()
             cancelAnimationFrame(frame)
         }

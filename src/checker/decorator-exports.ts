@@ -30,6 +30,14 @@ export abstract class DecoratorExportChecker extends DecoratorWrapperChecker {
     const assigned = assignedNames(node.body);
 
     for (const used of info.moduleNames) {
+      if (this.moduleScope.values.get(used)?.kind === 'state') {
+        this.error(
+          `@${name} is exported, so its code cannot read "${used}", state of its module, yet: read it in a component of the module and pass it to @${name} as an argument`,
+          node.name,
+        );
+        continue;
+      }
+
       if (!assigned.has(used)) continue;
       this.error(
         `@${name} is exported, so it cannot change "${used}" of its module: other modules can only read it; change it in a function of the module`,

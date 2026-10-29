@@ -1,10 +1,10 @@
 import type * as ast from '../ast.ts';
-import { JumpParser } from './jumps.ts';
-import { describe, FUNCTION_BODY, VISIBILITIES } from './syntax.ts';
+import { ParamParser } from './params.ts';
+import { describe, FUNCTION_BODY } from './syntax.ts';
 
-// Imports and exports, functions and components with their parameters and results.
+// Imports and exports, functions and components.
 
-export abstract class DeclarationParser extends JumpParser {
+export abstract class DeclarationParser extends ParamParser {
   protected override parseImport(): ast.ImportDeclaration {
     const start = this.next().start;
 
@@ -64,6 +64,21 @@ export abstract class DeclarationParser extends JumpParser {
     }
 
     return { kind: 'ImportSpecifier', imported, local, ...this.span(token.start) };
+  }
+
+  /** `state items []Item = []` at the top level of a module: state its components share. */
+  protected override parseDeclaration(start: number, exported: boolean): ast.Statement | undefined {
+    if (!this.context.topLevel || !this.checkWord('state') || this.peek(1).kind !== 'Identifier') {
+      return super.parseDeclaration(start, exported);
+    }
+
+    this.requireMarkup('state of a module is');
+
+    const declaration = this.parseVariableDeclaration(start, exported);
+
+    this.endStatement();
+
+    return declaration;
   }
 
   protected override parseExport(): ast.Statement {
@@ -142,149 +157,6 @@ export abstract class DeclarationParser extends JumpParser {
     return params;
   }
 
-  /**
-   * `(a, b number, c string)`. Names without a type take the type of the next typed name, as in
-   * Go; only arrow functions may leave types out entirely. The parameters of a constructor can be
-   * properties: `(private name string)`.
-   */
-  protected parseParams(
-    typesOptional: boolean,
-    allowDefaults = false,
-    allowRest = false,
-    allowProperties = false,
-  ): ast.Parameter[] {
-    this.expect('(');
-
-    const params: ast.Parameter[] = [];
-    let untyped = 0;
-
-    while (!this.check(')')) {
-      if (this.check('...')) {
-        params.push(this.parseRestParam(allowRest));
-        break;
-      }
-
-      const paramStart = this.peek().start;
-      const property = this.parsePropertyModifiers(allowProperties);
-      const name = this.parseIdentifier('parameter name');
-      const type = this.canStartType() ? this.parseType() : null;
-      const defaultValue = allowDefaults && this.accept('=') ? this.parseExpression() : null;
-
-      params.push({
-        kind: 'Parameter',
-        name,
-        type,
-        defaultValue,
-        ...(property ? { property } : {}),
-        ...this.span(paramStart),
-      });
-      if (type === null) {
-        untyped++;
-      } else {
-        for (const param of params.slice(params.length - 1 - untyped)) param.type = type;
-        untyped = 0;
-      }
-
-      if (!this.accept(',')) break;
-    }
-
-    this.expect(')');
-    if (untyped > 0 && !typesOptional) {
-      const param = params[params.length - untyped]!;
-
-      this.error(`missing type for parameter "${param.name.name}"`, param.start, param.end);
-    }
-
-    return params;
-  }
-
-  /** `private`, `readonly` or both before a parameter that is a property of its class. */
-  private parsePropertyModifiers(allowed: boolean): ast.Parameter['property'] | null {
-    let visibility: ast.Visibility | null = null;
-    let readonly = false;
-    const start = this.peek().start;
-
-    // Elsewhere `readonly number` is a parameter named readonly, and `private x number` an error.
-    while (
-      this.check('Identifier') &&
-      (VISIBILITIES.has(this.peek().text) || this.peek().text === 'readonly') &&
-      this.peek(1).kind === 'Identifier' &&
-      (allowed || this.peek(2).kind === 'Identifier')
-    ) {
-      const modifier = this.next();
-
-      if (modifier.text === 'readonly') {
-        if (readonly) this.error('duplicate "readonly" modifier', modifier.start, modifier.end);
-        readonly = true;
-      } else {
-        if (visibility) this.error('duplicate visibility modifier', modifier.start, modifier.end);
-        visibility = modifier.text as ast.Visibility;
-      }
-    }
-
-    if (visibility === null && !readonly) return null;
-    if (!allowed) {
-      this.error(
-        'only the parameters of a constructor can be properties, e.g. constructor(private name string)',
-        start,
-        this.span(start).end,
-      );
-    }
-
-    return { visibility: visibility ?? 'public', ...(readonly ? { readonly: true } : {}) };
-  }
-
-  /** `...attrs`: the attributes that a component passes on to one of its elements. */
-  private parseRestParam(allowed: boolean): ast.Parameter {
-    const start = this.next().start;
-    const name = this.parseIdentifier('parameter name');
-
-    if (!allowed) {
-      this.error(
-        `...${name.name} is only for components: it takes the attributes of an element`,
-        start,
-        name.end,
-      );
-    }
-
-    if (this.canStartType() || this.check('=')) {
-      const at = this.peek().start;
-
-      // After the error, the type and the default are read, so they are not reported again.
-      if (this.canStartType()) this.parseType();
-      if (this.accept('=')) this.parseExpression();
-      this.error(
-        `...${name.name} has no type and no default: it gets the type of the element it is spread on`,
-        at,
-        this.span(at).end,
-      );
-    }
-
-    // After the error, the rest of the list is skipped up to the `)`.
-    if (this.check(',')) {
-      this.error(`...${name.name} is the last property of a component`, start, name.end);
-      while (!this.check(')') && !this.check('EOF')) this.next();
-    }
-
-    return {
-      kind: 'Parameter',
-      name,
-      type: null,
-      defaultValue: null,
-      rest: true,
-      ...this.span(start),
-    };
-  }
-
-  /** Result types after a parameter list: nothing, `T`, or `(T1, T2)`. */
-  protected parseResults(): ast.TypeNode[] {
-    if (this.accept('(')) return this.parseList(')', () => this.parseType());
-    // `{` after the parameters starts the body, so an object result type needs parentheses.
-    if (this.canStartType() && !this.check('{')) return [this.parseType()];
-
-    return [];
-  }
-
   /** `comp Name(properties) { ...; return <markup> }`, maybe after decorators. */
   protected override parseComponent(
     start: number,
@@ -332,7 +204,7 @@ export abstract class DeclarationParser extends JumpParser {
     };
   }
 
-  /** Like a function body, but its own statements may also declare `state`, `ref` and `mount()`. */
+  /** Like a function body, but its own statements may also declare `state`, `ref` and `mount`. */
   protected parseComponentBody(): ast.BlockStatement {
     const start = this.expect('{').start;
     const body: ast.Statement[] = [];

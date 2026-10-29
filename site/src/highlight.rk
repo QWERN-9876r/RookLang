@@ -26,8 +26,9 @@ const JS_KEYWORDS = [
 
 const LITERALS = ["true", "false", "null", "undefined"]
 
-// Modifiers of class members and constructor parameters, before a name: private readonly id string
-const MODIFIERS = ["private", "protected", "static", "readonly"]
+// Modifiers of class members and parameters, before a name: private readonly id string, and bind
+// before a property of a component that it may change, bind active string
+const MODIFIERS = ["private", "protected", "static", "readonly", "bind"]
 
 // What follows public when it is a modifier: public state x, public func f(), public name string
 const PUBLIC_NEXT = ["Identifier", "const", "let", "func", "async"]
@@ -146,11 +147,10 @@ func identifierClass(text string, next string, language string) string {
             return "type"
         }
         // state, derived, ref, mount, effect, style and dec are keywords only at the start of a
-        // declaration: state count = 0, ref input, mount() { }, effect { }, style { },
+        // declaration: state count = 0, ref input, mount { }, effect { }, style { },
         // dec visible() { }; so is public, in classes and decorators, and select before {
         if (text == "state" || text == "derived" || text == "ref") && next == "Identifier" ||
-            text == "mount" && next == "(" ||
-            (text == "effect" || text == "style" || text == "select") && next == "{" {
+            (text == "mount" || text == "effect" || text == "style" || text == "select") && next == "{" {
             return "kw"
         }
         // data is a keyword only before class, data class Point, and so is abstract, also before

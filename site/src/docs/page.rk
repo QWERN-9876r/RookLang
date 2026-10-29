@@ -56,11 +56,11 @@ comp DocsPage(sections []Section) {
         }
     }
 
-    mount() {
+    mount {
         update()
         const stop = sectionLinks(ids, update)
         window.addEventListener("keydown", onKey)
-        return () => {
+        defer {
             stop()
             window.removeEventListener("keydown", onKey)
         }
@@ -71,7 +71,7 @@ comp DocsPage(sections []Section) {
             tools={<SearchButton onOpen={searching = true} />}
             menu={<NavList groups={groups} active={section.id} label={t.sections} hrefOf={id => `../${id}/`} />}
         />
-        <SearchDialog open={searching} sections={sections} onClose={searching = false} />
+        <SearchDialog bind:open={searching} sections={sections} />
         <div class={styles.layout}>
             <aside class={styles.sidebar}>
                 <NavList groups={groups} active={section.id} label={t.sections} hrefOf={id => `../${id}/`} />

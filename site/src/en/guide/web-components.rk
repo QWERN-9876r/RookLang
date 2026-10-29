@@ -34,8 +34,8 @@ export comp WebComponents() {
                 yet, so such properties need a default value or a nullable type.
             </li>
             <li>
-                <code>mount</code> runs when the element is in the document, and the function it
-                returns runs when the element is removed. Moving the element keeps its markup and
+                <code>mount</code> runs when the element is in the document, and what it defers
+                runs when the element is removed. Moving the element keeps its markup and
                 state.
             </li>
             <li>

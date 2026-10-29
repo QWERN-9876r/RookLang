@@ -39,5 +39,13 @@ export comp Reactivity() {
             runs again and when the component is removed.
         </p>
         <Example name="derived" />
+        <p>
+            State that several components need is a <code>state</code> at the top level of a
+            module. The components that read it are updated when it changes anywhere in the
+            module: in a function, a handler or a timer. Other modules import it and read it, and
+            change it with the functions of its module: <code>items.push(x)</code> there is an
+            error that says so.
+        </p>
+        <Example name="shared-state" />
     </>
 }

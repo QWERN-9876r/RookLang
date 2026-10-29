@@ -241,7 +241,7 @@ export interface DeferStatement extends NodeBase {
 }
 
 /**
- * `mount() { ... }` at the top level of a component: runs once the component's markup is in the
+ * `mount { ... }` at the top level of a component: runs once the component's markup is in the
  * document. It may return a function, which runs when `{if}`, `{switch}` or `{for}` removes the
  * markup.
  */

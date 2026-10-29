@@ -131,7 +131,7 @@ comp Playground() {
         source = input.value
     }
 
-    mount() {
+    mount {
         if !matchMedia("(pointer: coarse)").matches {
             loadEditor()
                 .then(module => module.createEditor(host, {
@@ -153,7 +153,9 @@ comp Playground() {
                     error => console.warn("the editor of VS Code did not load:", error),
                 )
         }
-        return () => editor?.dispose()
+        defer {
+            editor?.dispose()
+        }
     }
 
     return <div class={styles.ide}>

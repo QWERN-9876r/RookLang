@@ -1,5 +1,7 @@
 import type * as ast from '../ast.ts';
+import type { Type } from '../checker/types.ts';
 import { decoratedName } from '../decorators.ts';
+import { mayChange } from '../methods.ts';
 import { forEachChild } from '../walk.ts';
 
 // What code reads: the names of values, and the variable a change goes into.
@@ -123,4 +125,63 @@ export function effectReads(node: ast.Node, names: Set<string>): void {
     default:
       forEachChild(node, (child) => effectReads(child, names));
   }
+}
+
+/**
+ * What a statement (or an expression body) changes: the targets of assignments, `++` and
+ * `delete`, and the values that a method that may change them is called on, such as `push`.
+ * Nested blocks and functions are not included: their statements are handled on their own.
+ */
+export function writeTargets(
+  node: ast.Node,
+  typeOf: (node: ast.Expression) => Type | undefined,
+): ast.Expression[] {
+  const found: ast.Expression[] = [];
+  const visit = (node: ast.Node): void => {
+    switch (node.kind) {
+      case 'BlockStatement':
+      case 'EventHandler':
+      case 'FuncDeclaration':
+      case 'FuncExpression':
+      case 'ArrowFunction':
+      case 'ClassDeclaration':
+        return;
+
+      case 'SwitchCase':
+        node.tests.forEach(visit);
+
+        return;
+
+      case 'AssignmentStatement':
+        found.push(...node.targets);
+        break;
+
+      case 'IncDecStatement':
+      case 'DeleteStatement':
+        found.push(node.target);
+        break;
+
+      case 'CallExpression': {
+        const { callee } = node;
+
+        if (
+          callee.kind === 'MemberExpression' &&
+          mayChange(typeOf(callee.object), callee.property.name)
+        ) {
+          found.push(callee.object);
+        }
+
+        break;
+      }
+
+      default:
+        break;
+    }
+
+    forEachChild(node, visit);
+  };
+
+  visit(node);
+
+  return found;
 }

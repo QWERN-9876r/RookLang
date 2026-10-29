@@ -21,18 +21,19 @@ let $$app1;
     {
       let time = new Date().toLocaleTimeString();
 
+      const $$cleanups11 = [];
       $$mount(() => $$mountNode9, () => {
         const timer = setInterval(() => {
           time = new Date().toLocaleTimeString();
-          $$text12.data = time;
+          $$text13.data = time;
         }, 1000);
-        return () => clearInterval(timer);
-      });
+        $$cleanups11.push(() => clearInterval(timer));
+      }, $$cleanups11);
 
-      const $$p11 = $$element("p", { className: "card" });
-      const $$text12 = document.createTextNode(time);
-      $$p11.append("It is ", $$text12);
-      $$clock8 = $$p11;
+      const $$p12 = $$element("p", { className: "card" });
+      const $$text13 = document.createTextNode(time);
+      $$p12.append("It is ", $$text13);
+      $$clock8 = $$p12;
       $$mountNode9 = $$clock8?.nodeType === 11 ? $$clock8.firstChild : $$clock8;
     }
     $$block7.append($$clock8);

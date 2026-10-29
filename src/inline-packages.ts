@@ -39,7 +39,8 @@ export interface ModulePackages {
  * recursive or a web component cannot be inlined, and neither can one that reaches components or
  * decorators the module imports: those would bring the names of a third module. Nor can code that
  * uses a component of the module as a value, which is the function in the module, or that assigns
- * a variable of the module: another module could only read it.
+ * a variable of the module: another module could only read it. Nor can code that reads state of
+ * the module, `state items` at its top level: it listens to the changes there.
  */
 export function inlinePackages(program: ast.Program): ModulePackages {
   const components = new Map<string, ast.ComponentDeclaration>();
@@ -68,10 +69,20 @@ export function inlinePackages(program: ast.Program): ModulePackages {
   const topLevel = topLevelNames(program);
   const usesComponentValues = (node: ast.Node) =>
     componentValues(node, (name) => components.has(name)).length > 0;
-  const assignsModuleNames = (node: ast.ComponentDeclaration) => {
+  const states = new Set(
+    program.body.flatMap((statement) =>
+      statement.kind === 'VariableDeclaration' && statement.keyword === 'state'
+        ? statement.names.map((name) => name.name)
+        : [],
+    ),
+  );
+  // It assigns a variable of the module or reads its state, which only the module can do.
+  const needsItsModule = (node: ast.ComponentDeclaration) => {
     const assigned = assignedNames(node);
 
-    return [...freeNames(node)].some((name) => topLevel.has(name) && assigned.has(name));
+    return [...freeNames(node)].some(
+      (name) => topLevel.has(name) && (assigned.has(name) || states.has(name)),
+    );
   };
 
   /** The package of a component, or of the tags in the code of a decorator. */
@@ -106,7 +117,7 @@ export function inlinePackages(program: ast.Program): ModulePackages {
 
       found.components.set(current, component);
       if (usesComponentValues(expanded.get(current)!)) return false;
-      if (assignsModuleNames(expanded.get(current)!)) return false;
+      if (needsItsModule(expanded.get(current)!)) return false;
       for (const use of component.decorators) {
         const source = sources.get(use.name.name);
 

@@ -12,7 +12,7 @@ const ICONS { note IconName; tip IconName; warning IconName } = {
 }
 
 export comp Callout(kind CalloutKind = "note", title string = "", children Content) {
-    return <aside class={`${styles.callout} ${styles[kind]}`}>
+    return <aside class={[styles.callout, styles[kind]]}>
         <Icon name={ICONS[kind]} size={20} />
         <div class={styles.body}>
             {title != "" ? <strong class={styles.title}>{title}</strong> : null}

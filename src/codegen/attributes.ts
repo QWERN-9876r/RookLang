@@ -5,6 +5,7 @@ import { SVG_NAMESPACE } from '../svg.ts';
 import { eventName, mentions } from './element-helpers.ts';
 import type { Live, Source } from './reactive.ts';
 import { ARROW } from './syntax.ts';
+import { rootsOf } from './shared.ts';
 import { UpdateEmitter } from './updates.ts';
 
 // Attributes of elements: properties, setAttribute, styles, `bind:` and event handlers.
@@ -76,6 +77,21 @@ export abstract class AttributeEmitter extends UpdateEmitter {
 
     if (name === 'class' && scope) {
       this.scopedClass(element, value, live, svg, scope);
+
+      return;
+    }
+
+    if (
+      name === 'class' &&
+      value !== null &&
+      value.kind !== 'EventHandler' &&
+      this.isClassList(value)
+    ) {
+      this.setLive(live, value, (text) =>
+        svg
+          ? `${element}.setAttribute("class", $$classes(${text}));`
+          : `${element}.className = $$classes(${text});`,
+      );
 
       return;
     }
@@ -160,16 +176,26 @@ export abstract class AttributeEmitter extends UpdateEmitter {
     if (value === null || value.kind === 'StringLiteral') {
       this.scopeClass(element, `${value?.value ?? ''} ${scope}`.trim(), svg);
     } else if (value.kind !== 'EventHandler') {
-      const nullable = this.typeOf(value)?.kind !== 'string';
-
       this.setLive(live, value, (text) => {
-        const scoped = `\`\${${nullable ? `${text} ?? ""` : text}} ${scope}\``;
+        const scoped = `\`\${${this.classText(value, text)}} ${scope}\``;
 
         return svg
           ? `${element}.setAttribute("class", ${scoped});`
           : `${element}.className = ${scoped};`;
       });
     }
+  }
+
+  /** Whether `class={...}` is a list of classes, `[styles.tab, active ? styles.active : null]`. */
+  protected isClassList(value: ast.Expression): boolean {
+    return value.kind === 'ArrayLiteral' || this.typeOf(value)?.kind === 'array';
+  }
+
+  /** The classes of `class={...}` as a string, before the class of the style is added to them. */
+  protected classText(value: ast.Expression, text: string): string {
+    if (this.isClassList(value)) return `$$classes(${text})`;
+
+    return this.typeOf(value)?.kind === 'string' ? text : `${text} ?? ""`;
   }
 
   /** Sets the class of an element: `className`, or the attribute of an SVG element. */
@@ -275,6 +301,10 @@ export abstract class AttributeEmitter extends UpdateEmitter {
     try {
       const body = this.block(() => {
         this.line(`${target} = ${current};`);
+        for (const name of rootsOf(value, this.shared)) {
+          this.line(`$$changed(${this.shared.listeners.get(name)!});`);
+        }
+
         for (const source of written) {
           // The element already shows what was entered: its own update is skipped.
           const own = live && dependsOn.has(source) ? live.ownIndex(source) : null;

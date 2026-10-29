@@ -1,0 +1,24 @@
+// Состояние на верхнем уровне модуля делят его компоненты: изменение
+// где угодно в модуле обновляет каждый компонент, который его читает
+state cart []string = []
+
+func add(fruit string) {
+    cart.push(fruit)
+}
+
+comp Shelf() {
+    return <div>
+        {for fruit in ["Манго", "Гуава", "Личи"] {
+            <button onClick={add(fruit)}>+ {fruit}</button>
+        }}
+    </div>
+}
+
+comp Basket() {
+    return <p class="card">
+        {cart.length == 0 ? "Корзина пуста" : cart.join(", ")}
+        {" "}<button onClick={cart = []}>Очистить</button>
+    </p>
+}
+
+document.body.append(<Shelf />, <Basket />)

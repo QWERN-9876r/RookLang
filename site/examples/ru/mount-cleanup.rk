@@ -1,13 +1,13 @@
-// mount() выполняется, когда разметка компонента уже на странице. Функция, которую он вернул,
+// mount выполняется, когда разметка компонента уже на странице. То, что он отложил через defer,
 // выполнится, когда {if} уберёт компонент: таймер не продолжит работать впустую
 comp Clock() {
     state time = new Date().toLocaleTimeString()
 
-    mount() {
+    mount {
         const timer = setInterval(() => {
             time = new Date().toLocaleTimeString()
         }, 1000)
-        return () => clearInterval(timer)
+        defer clearInterval(timer)
     }
 
     return <p class="card">Сейчас {time}</p>

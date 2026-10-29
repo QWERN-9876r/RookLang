@@ -30,7 +30,7 @@ export comp NavList(
                 <div class={styles.links}>
                     {for link in group.links {
                         <a
-                            class={link.id == active ? `${styles.link} ${styles.active}` : styles.link}
+                            class={[styles.link, link.id == active ? styles.active : null]}
                             href={hrefOf(link.id)}
                             aria-current={link.id == active ? "location" : null}
                             onClick={onNavigate()}

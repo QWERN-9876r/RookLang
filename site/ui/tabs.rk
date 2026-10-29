@@ -12,10 +12,10 @@ export comp Tabs(items []TabItem, active string, onSelect func(string), children
     return <div class={styles.tabs} role="tablist">
         {for item in items {
             <button
-                class={item.id == active ? `${styles.tab} ${styles.active}` : styles.tab}
+                class={[styles.tab, item.id == active ? styles.active : null]}
                 type="button"
                 role="tab"
-                aria-selected={item.id == active ? "true" : "false"}
+                aria-selected={item.id == active}
                 onClick={onSelect(item.id)}
             >
                 {item.label}

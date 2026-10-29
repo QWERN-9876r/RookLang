@@ -33,7 +33,7 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
   /** A `defer` inside an if/loop/switch; implemented by FunctionEmitter. */
   protected abstract deferStatement(node: ast.DeferStatement): void;
 
-  /** `mount() { ... }` of a component (see ComponentEmitter). */
+  /** `mount { ... }` of a component (see FunctionEmitter). */
   protected abstract mountStatement(node: ast.MountStatement): void;
 
   /** `effect { ... }` of a component (see FunctionEmitter). */

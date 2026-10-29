@@ -124,21 +124,6 @@ export abstract class ComponentEmitter extends StyleEmitter {
   }
 
   /**
-   * `mount() { ... }` becomes `$$mount(() => { ... })`. Its body runs later, like a handler: what
-   * it changes updates the markup.
-   */
-  protected override mountStatement(node: ast.MountStatement): void {
-    this.inHandler++;
-    try {
-      const [, body] = this.withRendering(0, () => this.func([], node.body));
-
-      this.line(`$$mount(() => ${this.mountNode ?? 'null'}, () => ${body});`);
-    } finally {
-      this.inHandler--;
-    }
-  }
-
-  /**
    * Inlines a component: its code goes into a block where its properties are constants. Attribute
    * values are computed before the block, so that the component's own names cannot hide the
    * names they refer to. In live markup, a property whose value depends on the parent's state is
@@ -157,6 +142,7 @@ export abstract class ComponentEmitter extends StyleEmitter {
 
     const values = new Map<string, string>();
     const reactiveProps = new Map<string, [string, Set<Source>]>();
+    const binders = new Map<string, string>();
     const rest = attrsParam(component);
     const forwarded: ast.JsxAttribute[] = [];
 
@@ -166,9 +152,11 @@ export abstract class ComponentEmitter extends StyleEmitter {
         continue;
       }
 
-      const prop = attribute.name.name;
+      const bound = attribute.name.name.startsWith('bind:');
+      const prop = bound ? attribute.name.name.slice('bind:'.length) : attribute.name.name;
 
       if (prop === 'ref') continue;
+      if (bound) binders.set(prop, this.binder(attribute.value as ast.Expression));
       if (rest && !component.params.some((param) => param.name.name === prop)) {
         forwarded.push(attribute);
         continue;
@@ -198,7 +186,9 @@ export abstract class ComponentEmitter extends StyleEmitter {
 
     const root = this.rootFor(node);
 
-    if (isFunction) return this.callComponent(component, values, reactiveProps, live, root?.name);
+    if (isFunction) {
+      return this.callComponent(component, values, reactiveProps, live, root?.name, binders);
+    }
 
     const result = `$$${lowerFirst(name)}${this.nextId()}`;
     const label = hasEarlyReturn(component) ? `$$body${this.nextId()}` : null;
@@ -228,9 +218,12 @@ export abstract class ComponentEmitter extends StyleEmitter {
                 const value =
                   values.get(param.name.name) ??
                   (param.defaultValue ? this.expression(param.defaultValue, ARROW) : 'null');
-                const keyword = setters.has(param.name.name) ? 'let' : 'const';
+                const name = this.name(param.name.name);
+                const binder = binders.get(param.name.name);
+                const keyword = setters.has(param.name.name) || param.bind ? 'let' : 'const';
 
-                this.line(`${keyword} ${this.name(param.name.name)} = ${value};`);
+                this.line(`${keyword} ${name} = ${value};`);
+                if (binder) reactive.sources.get(param.name.name)!.bound = `${binder}(${name});`;
               }
 
               this.body(component, result, reactive, { kind: 'inline', setters }, label);
@@ -273,7 +266,11 @@ export abstract class ComponentEmitter extends StyleEmitter {
       const own = this.takesRoot(component) ? ownRoot(component) : null;
       const preset =
         own && typeof own !== 'string' ? { node: own, name: '$$root', created: false } : null;
-      const params = [this.parameters(component.params, ''), ...(preset ? ['$$root'] : [])]
+      const params = [
+        this.parameters(component.params, ''),
+        ...this.bindersOf(component, reactive),
+        ...(preset ? ['$$root'] : []),
+      ]
         .filter((each) => each !== '')
         .join(', ');
       const body = this.withRefs(component, preset, () =>

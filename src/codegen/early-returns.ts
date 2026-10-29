@@ -6,7 +6,7 @@ import { effectReads } from './mutations.ts';
 import { Block, updatesOf } from './reactive.ts';
 import { ARROW, indentMore } from './syntax.ts';
 import { inlinesUpdate, needed } from './updates.ts';
-import { type EarlyReturns, type Ending, SETTERS } from './component-helpers.ts';
+import { type EarlyReturns, type Ending, LISTEN, SETTERS } from './component-helpers.ts';
 
 /** The markup a component returns, with early returns, update functions and setters of properties. */
 
@@ -106,9 +106,10 @@ export abstract class EarlyReturnEmitter extends ComponentValueEmitter {
 
   /**
    * After the markup of a component is created, before anything inserts it: the first node for
-   * `mount()` (a fragment is empty once inserted, so its first child is taken now), the CSS
-   * variables of its style, and the first run of the effects, whose cleanups also run when the
-   * component is removed.
+   * `mount` (a fragment is empty once inserted, so its first child is taken now), the CSS
+   * variables of its style, the first run of the effects, whose cleanups also run when the
+   * component is removed, and the updates that listen to the state of the module it reads. Those
+   * are kept only if something depends on the state, which is known at the end (resolveMarkers).
    */
   protected markupCreated(result: string): void {
     if (this.mountNode) {
@@ -123,6 +124,14 @@ export abstract class EarlyReturnEmitter extends ComponentValueEmitter {
       this.line(`${effect.name}();`);
       if (effect.cleanups === null) continue;
       this.line(`$$onRemove(() => $$runDeferred(${effect.cleanups}.splice(0)));`);
+    }
+
+    for (const source of this.reactive?.sources.values() ?? []) {
+      if (source.kind !== 'shared') continue;
+
+      const listeners = this.shared.listeners.get(source.name)!;
+
+      this.line(`${LISTEN}${source.id}${LISTEN}$$watch(${listeners}, ${source.update});`);
     }
   }
 
@@ -245,13 +254,17 @@ export abstract class EarlyReturnEmitter extends ComponentValueEmitter {
 
     for (const source of reactive.sources.values()) {
       const called = source.writes.some((write) => needed(source, write).length > 0);
+      // State of the module: the changes are elsewhere, and they run the update it listens with.
+      const listened = source.kind === 'shared' && updatesOf(source).length > 0;
 
-      if (source.kind !== 'state' || !called || inlinesUpdate(source)) continue;
+      if (!listened && (source.kind !== 'state' || !called || inlinesUpdate(source))) continue;
 
       const body = this.block(() => {
         // Derived values are computed again even before the markup exists, which a function of
         // the body may change the state before.
         for (const computation of source.computations) this.line(indentMore(computation));
+        // The parent gets the value of a bound property even before the markup exists.
+        if (source.bound) this.line(source.bound);
         if (source.writes.some((write) => write.early)) this.line(`if (!${result}) return;`);
         for (const dependent of source.dependents) this.line(indentMore(dependent));
       });

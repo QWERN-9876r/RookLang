@@ -1,4 +1,4 @@
-// A decorator adds logic to components: state, functions and mount(). Its code is
+// A decorator adds logic to components: state, functions and mount. Its code is
 // inlined into every component it is applied to, so each one ticks on its own
 dec ticker(interval number = 1000) {
     public state ticks = 0
@@ -8,13 +8,13 @@ dec ticker(interval number = 1000) {
         running = !running
     }
 
-    mount() {
+    mount {
         const timer = setInterval(() => {
             if running {
                 ticks++
             }
         }, interval)
-        return () => clearInterval(timer)
+        defer clearInterval(timer)
     }
 }
 

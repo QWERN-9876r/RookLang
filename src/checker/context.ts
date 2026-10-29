@@ -16,6 +16,8 @@ export interface ModuleExports {
   decorators?: Map<string, DecoratorInfo>;
   /** `export comp`: components are used as tags, not as values. */
   components?: Map<string, ComponentInfo>;
+  /** `export state`: other modules read it, and change it only with the functions of its module. */
+  shared?: Set<string>;
 }
 
 /** What `importModule` found: the module's exports, an error for the import, or nothing (untyped). */
@@ -133,6 +135,8 @@ export interface Binding {
   type: Type | null;
   /** For components, which exist only at compile time and are used as tags. */
   component?: ComponentInfo;
+  /** State of another module, `state items` there, which is read-only here: its module's path. */
+  shared?: string;
   /**
    * `const user, err = loadUser(id)` of `(User, error)`: the error has the values that are not null
    * once it is null, and each of them has the error (error-results.ts).
@@ -144,7 +148,7 @@ export interface Binding {
 export interface ComponentInfo {
   node: ast.ComponentDeclaration;
   /** Properties by name; optional ones have a default value or a nullable type. */
-  props: Map<string, { type: Type; optional: boolean }>;
+  props: Map<string, { type: Type; optional: boolean; bind?: true }>;
   /** Names from the module that the component's code uses, computed when first needed. */
   freeNames: Set<string> | null;
   /**

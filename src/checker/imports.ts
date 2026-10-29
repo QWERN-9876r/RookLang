@@ -72,7 +72,12 @@ export abstract class ImportChecker extends CheckerBase {
         this.error(`"${name}" is not exported by "${specifier}"`, specifierNode.imported);
       }
 
-      if (value !== undefined) this.declareValue(specifierNode.local, 'import', value);
+      if (value !== undefined) {
+        const binding = this.declareValue(specifierNode.local, 'import', value);
+
+        if (exports.shared?.has(name)) binding.shared = specifier;
+      }
+
       if (type !== undefined) this.declareType(specifierNode.local, type);
       if (decorator !== undefined) this.importDecorator(specifierNode, decorator);
       if (component !== undefined) {
