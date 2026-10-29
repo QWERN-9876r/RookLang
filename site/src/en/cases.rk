@@ -6,12 +6,6 @@ import { Case } from "../examples/page.rk"
 
 export const CASES []Case = [
     {
-        id: "search",
-        title: "Search as you type",
-        description: "Each key starts a search that waits for a pause and aborts the one before, and a log shows which answers got through: select, after, done and decode.",
-        example: "search",
-    },
-    {
         id: "filters",
         title: "Image filters on every core",
         description: "Five filters of a 1600 × 900 picture, on one thread and on every processor with go for.",
@@ -34,5 +28,11 @@ export const CASES []Case = [
         title: "Uploads three at a time",
         description: "Three uploaders take files from one channel; a try that hangs is aborted by abortSignal(after(…)), and a failed one is tried again later.",
         example: "uploads",
+    },
+    {
+        id: "search",
+        title: "Search as you type",
+        description: "Each key starts a search that waits for a pause and aborts the one before, and a log shows which answers got through: select, after, done and decode.",
+        example: "search",
     },
 ]
