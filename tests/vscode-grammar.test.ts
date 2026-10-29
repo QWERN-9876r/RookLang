@@ -132,6 +132,14 @@ describe('VS Code grammar', () => {
     expect(scopeOf('let derived = 1', 'derived')).toBe('variable.other.readwrite');
   });
 
+  it('colours a derived block like a declaration with its type', () => {
+    const source = '    derived summary string {\n        return "none"\n    }';
+
+    expect(scopeOf(source, 'derived')).toBe('storage.type.state');
+    expect(scopeOf(source, 'string')).toBe('support.type.primitive');
+    expect(scopeOf(source, 'return')).toBe('keyword.control.flow');
+  });
+
   it('colours CSS in style blocks, with values from code', () => {
     const source = `comp Card(accent string) {
     style {

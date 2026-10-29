@@ -190,7 +190,10 @@ export comp RoadmapText() {
                 {" "}<code>if d.kind == "courier"</code> gives <code>d.address</code>.
                 {" "}<i>Done, with the narrowing of paths: <code>order.delivery.kind</code>.</i>
             </li>
-            <li><code>derived</code> of several statements.</li>
+            <li>
+                <code>derived</code> of several statements:
+                {" "}<code>{"derived total number { ... return sum }"}</code>. <i>Done.</i>
+            </li>
             <li>Combining decorators, and <code>public ref</code> in decorators.</li>
             <li>A component that returns <code>null</code> for a wrapper.</li>
             <li>Refs in <code>{"{if}"}</code>, <code>{"{switch}"}</code> and <code>{"{for}"}</code>, and one ref in several returns.</li>

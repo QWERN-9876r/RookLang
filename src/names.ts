@@ -156,6 +156,7 @@ export function freeNames(component: {
       case 'VariableDeclaration':
         for (const name of node.names) declared.add(name.name);
         node.values.forEach(visit);
+        visit(node.body);
 
         return;
 
@@ -278,6 +279,7 @@ export function collectValueNames(
 
     case 'VariableDeclaration':
       node.values.forEach(visit);
+      visit(node.body);
 
       return;
 

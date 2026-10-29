@@ -7,37 +7,44 @@ let $$basket1;
 {
   let prices = [3, 2];
   let total = prices.reduce((sum, price) => sum + price, 0);
-  let note = total > 10 ? "That is a lot of guavas" : "There is room for more";
+  const $$computeNote3 = () => {
+    const room = 10 - total;
+    if (room <= 0) {
+      return "That is a lot of guavas";
+    }
+    return `There is room for ${room} more`;
+  };
+  let note = $$computeNote3();
 
-  const $$effect3 = () => {
+  const $$effect4 = () => {
     console.log("total:", total);
   };
 
-  const $$div4 = $$element("div");
-  const $$button5 = $$element("button");
-  $$button5.addEventListener("click", () => {
+  const $$div5 = $$element("div");
+  const $$button6 = $$element("button");
+  $$button6.addEventListener("click", () => {
     prices.push(3);
     $$updatePrices2();
   });
-  $$button5.append("Add a guava");
-  const $$p6 = $$element("p");
-  const $$text7 = document.createTextNode(prices.length);
-  const $$text8 = document.createTextNode(total);
-  const $$text9 = document.createTextNode(note);
-  $$p6.append($$text7, " fruits for ", $$text8, ". ", $$text9);
-  $$div4.append($$button5, $$p6);
+  $$button6.append("Add a guava");
+  const $$p7 = $$element("p");
+  const $$text8 = document.createTextNode(prices.length);
+  const $$text9 = document.createTextNode(total);
+  const $$text10 = document.createTextNode(note);
+  $$p7.append($$text8, " fruits for ", $$text9, ". ", $$text10);
+  $$div5.append($$button6, $$p7);
 
   function $$updatePrices2() {
     total = prices.reduce((sum, price) => sum + price, 0);
-    note = total > 10 ? "That is a lot of guavas" : "There is room for more";
-    $$text7.data = prices.length;
-    $$text8.data = total;
-    $$text9.data = note;
-    $$effect3();
+    note = $$computeNote3();
+    $$text8.data = prices.length;
+    $$text9.data = total;
+    $$text10.data = note;
+    $$effect4();
   }
 
-  $$basket1 = $$div4;
-  $$effect3();
+  $$basket1 = $$div5;
+  $$effect4();
 }
 document.body.append($$basket1);
 

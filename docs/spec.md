@@ -2358,11 +2358,57 @@ function $$updateCount2() {
 }
 ```
 
-- It is one name and one expression; its type may be written: `derived left number = ...`. It is
-  declared only in a component (or a decorator), like `state`.
+- It is one name and one expression, or a block that computes it (below); its type may be
+  written: `derived left number = ...`. It is declared only in a component (or a decorator), like
+  `state`.
 - It is computed again also when the body of the component changes the state before the markup
   exists, so it is right wherever it is read. One that reads no state and no properties that get
   the parent's state is a constant.
+
+**A derived block.** A value that takes several statements to compute is a block after the name,
+which ends with a `return` of the value. In JS the block becomes a function, called first and by
+the updates of what it reads:
+
+```go
+comp Todos() {
+    state todos []Todo = []
+    derived summary string {
+        const done = todos.filter(todo => todo.done).length
+        if done == 0 {
+            return "Nothing done"
+        }
+        return `${done} of ${todos.length} done`
+    }
+    return <p>{summary}</p>
+}
+```
+
+```js
+const $$computeSummary3 = () => {
+  const done = todos.filter((todo) => todo.done).length;
+  if (done === 0) {
+    return "Nothing done";
+  }
+  return `${done} of ${todos.length} done`;
+};
+let summary = $$computeSummary3();
+// ...creating the nodes...
+function $$updateTodos2() {
+  summary = $$computeSummary3();
+  $$text5.data = summary;
+}
+```
+
+- The block is the body of a function without parameters: `const`, `let`, `if`, `for`, `switch`
+  and `return`, but no `state` or other declarations of a component. The type is inferred from the
+  `return`s, as for a function without results, or checked against the one written. An object type
+  goes in parentheses, as after the parameters of a function: `derived point ({ x, y number }) { ... }`.
+- Every way through the block ends with a `return` of one value: otherwise it is an error.
+- What it reads is what its code reads, the local functions it calls included. One that reads no
+  state runs once, as `(() => { ... })()`.
+- It computes and changes nothing: assigning state in it is an error, and it is computed while the
+  markup is created and updated, so it calls no updates.
+- `public derived` of a decorator may be a block too.
 
 **Effects.** `effect { ... }` at the top level of a component's body runs once the markup is
 created, and again after the updates whenever what it reads changes. What it reads is what its code

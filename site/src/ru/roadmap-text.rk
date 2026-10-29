@@ -190,7 +190,10 @@ export comp RoadmapText() {
                 {" "}<code>if d.kind == "courier"</code> даёт <code>d.address</code>.
                 {" "}<i>Сделано, вместе с сужением путей: <code>order.delivery.kind</code>.</i>
             </li>
-            <li><code>derived</code> из нескольких операторов.</li>
+            <li>
+                <code>derived</code> из нескольких операторов:
+                {" "}<code>{"derived total number { ... return sum }"}</code>. <i>Сделано.</i>
+            </li>
             <li>Объединение декораторов и <code>public ref</code> в декораторах.</li>
             <li>Компонент, который возвращает <code>null</code> для обёртки.</li>
             <li>Ref в <code>{"{if}"}</code>, <code>{"{switch}"}</code> и <code>{"{for}"}</code> и один ref в нескольких <code>return</code>.</li>

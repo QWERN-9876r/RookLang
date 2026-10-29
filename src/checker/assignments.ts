@@ -20,6 +20,9 @@ import {
 // that returns several values.
 
 export abstract class AssignmentChecker extends InitializerChecker {
+  /** The name of the `derived` whose block is being checked: it computes, so it changes no state. */
+  protected derivedBlock: string | null = null;
+
   /**
    * `a, b = f()` or `return f()`: the call must return exactly `count` values. Returns their
    * types.
@@ -140,6 +143,11 @@ export abstract class AssignmentChecker extends InitializerChecker {
         } else if (binding.kind === 'ref') {
           this.error(
             `cannot assign to "${target.name}": a ref always points to its element`,
+            target,
+          );
+        } else if (binding.kind === 'state' && this.derivedBlock !== null) {
+          this.error(
+            `derived "${this.derivedBlock}" cannot change the state "${target.name}": change it in an event handler or an effect`,
             target,
           );
         } else if (binding.kind === 'loop') {

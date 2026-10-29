@@ -12,6 +12,11 @@ to change it under **Breaking**. A patch version (0.3.5) never does: it adds and
 
 ### Added
 
+- A `derived` of several statements is a block that returns the value:
+  `derived summary string { ...; return text }`. The type may be left out, and is then inferred
+  from the `return`s. In JS the block becomes a function, called first and by the updates of what
+  it reads; assigning state in it is an error. A `{` after the name of a `derived` now starts the
+  block, so an object type goes in parentheses there: `derived p ({ x number }) = ...`.
 - Tagged unions (experimental): comparing a tag, a field with a literal type in every member of a
   union, narrows the union. After `if d.kind == "courier"` the fields of `Courier` can be read, and
   so in `else`, after a branch that returns, in `switch d.kind` and in `{if}` and `{switch}` of

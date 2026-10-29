@@ -65,6 +65,8 @@ export abstract class ParserBase {
 
   protected abstract parseTypeAlias(start: number, exported: boolean): ast.TypeAliasDeclaration;
 
+  protected abstract parseFunctionBody(async?: boolean): ast.BlockStatement;
+
   protected abstract canStartType(offset?: number): boolean;
 
   protected abstract parseType(): ast.TypeNode;

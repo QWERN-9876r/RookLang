@@ -2,6 +2,7 @@ import type * as ast from '../ast.ts';
 import { guardedByError } from './error-results.ts';
 import { AssignmentChecker } from './assignments.ts';
 import { placeOf, type Binding } from './context.ts';
+import { isTerminating } from './flow.ts';
 import { isUntyped, isNumeric, ownStatements } from './helpers.ts';
 import {
   func,
@@ -285,7 +286,9 @@ export abstract class StatementChecker extends AssignmentChecker {
     const { names, values } = node;
     let types: Type[];
 
-    if (values.length === 0) {
+    if (node.body) {
+      types = [this.derivedBlockType(names[0]!.name, node.body.body, declared)];
+    } else if (values.length === 0) {
       if (declared && !hasZeroValue(declared) && declared.kind !== 'unknown') {
         const type = typeToString(declared);
 
@@ -310,5 +313,45 @@ export abstract class StatementChecker extends AssignmentChecker {
     }
 
     return types;
+  }
+
+  /** `derived total number { ... }`: the block runs like the body of a closure and returns the value. */
+  private derivedBlockType(name: string, body: ast.BlockStatement, declared: Type | null): Type {
+    const ends = isTerminating(body);
+
+    if (!ends) {
+      this.error(
+        `derived "${name}" must return its value at the end of the block, e.g. return total`,
+        {
+          start: body.end - 1,
+          end: body.end,
+        },
+      );
+    }
+
+    const saved = this.derivedBlock;
+    const results = declared ? [declared] : null;
+
+    this.derivedBlock = name;
+    try {
+      const types = this.checkFunction([], func([], results ?? []), results, body, {
+        closure: true,
+      });
+
+      if (types.length === 1) return types[0]!;
+      // A block that does not end with a return is reported above.
+      if (ends) {
+        this.error(
+          types.length === 0
+            ? `derived "${name}" returns no value: return it, e.g. return total`
+            : `derived "${name}" is one value, but its block returns ${types.length}`,
+          body,
+        );
+      }
+
+      return UNKNOWN;
+    } finally {
+      this.derivedBlock = saved;
+    }
   }
 }

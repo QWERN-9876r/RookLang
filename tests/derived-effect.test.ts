@@ -44,11 +44,11 @@ describe('syntax', () => {
     ],
     [
       component('    derived a, b = count, count'),
-      'derived is one name and the expression it is computed from, e.g. derived double = count * 2',
+      'derived is one name and the expression it is computed from, e.g. derived double = count * 2, or a block that returns it: derived total number { ... return sum }',
     ],
     [
       component('    derived x number'),
-      'derived is one name and the expression it is computed from, e.g. derived double = count * 2',
+      'derived is one name and the expression it is computed from, e.g. derived double = count * 2, or a block that returns it: derived total number { ... return sum }',
     ],
   ])('reports %j', (source, message) => {
     expect(errors(source)).toEqual([message]);

@@ -3,7 +3,14 @@
 comp Basket() {
     state prices []number = [120, 90]
     derived total = prices.reduce((sum, price) => sum + price, 0)
-    derived note = total > 400 ? "Гуавы уже много" : "Можно взять ещё"
+    // Блок вычисляет его в несколько шагов и возвращает значение
+    derived note {
+        const room = 400 - total
+        if room <= 0 {
+            return "Гуавы уже много"
+        }
+        return `Можно взять ещё на ${room} ₽`
+    }
 
     // effect выполняется, когда разметка создана, и снова, когда меняется то, что он читает
     effect {

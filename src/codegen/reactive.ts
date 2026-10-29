@@ -1,4 +1,5 @@
 import type * as ast from '../ast.ts';
+import { ownStatements } from '../checker/helpers.ts';
 import type { Type } from '../checker/types.ts';
 import { wrappedMarkup } from '../decorators.ts';
 import { containsReturn, returnedMarkup } from '../recursion.ts';
@@ -341,6 +342,17 @@ export class Reactive implements Live {
           break;
 
         case 'VariableDeclaration':
+          // `derived first { return todos[0] }` points into what it returns.
+          if (node.body) {
+            const name = node.names[0]!.name;
+
+            add(name, this.dependencies(node.body));
+            for (const statement of ownStatements(node.body.body)) {
+              if (statement.kind !== 'ReturnStatement') continue;
+              for (const value of statement.values) add(name, this.rootSources(value));
+            }
+          }
+
           node.names.forEach((name, i) => {
             const value =
               node.values.length === node.names.length ? node.values[i] : node.values[0];

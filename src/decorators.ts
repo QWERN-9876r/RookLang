@@ -157,6 +157,7 @@ export function decorate(
         names: [{ ...param.name, name: renames.get(param.name.name)! }],
         type: param.type,
         values: value ? [value] : [],
+        body: null,
         start: param.start,
         end: param.end,
       };
@@ -255,6 +256,7 @@ function wrapped(node: ast.ReturnStatement, chain: readonly AppliedWrapper[]): a
     names: [{ ...wrapper.content }],
     type: wrapper.type,
     values: [value],
+    body: null,
     start: node.start,
     end: node.end,
   };

@@ -356,7 +356,7 @@ export abstract class StatementParser extends SimpleStatementParser {
     return { kind: 'BlockStatement', body, ...this.span(start) };
   }
 
-  protected parseFunctionBody(async = false): ast.BlockStatement {
+  protected override parseFunctionBody(async = false): ast.BlockStatement {
     return this.withContext({ ...FUNCTION_BODY, inAsync: async }, () => this.parseBlock());
   }
 

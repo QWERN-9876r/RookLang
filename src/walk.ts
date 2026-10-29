@@ -69,6 +69,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       each(node.names);
       optional(node.type);
       each(node.values);
+      optional(node.body);
       break;
 
     case 'ClassDeclaration':

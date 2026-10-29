@@ -238,6 +238,7 @@ document.body.append(<Counter initialValue={0} />)
 | --------------------------------------- | ----------------------------------------------------------------- |
 | `state count = 0`, `state items []Todo` | a reactive variable, like `let`; without a value, the zero value  |
 | `derived double = count * 2`            | a computed value, read-only, like `const`                         |
+| `derived total number { ... }`          | the same, computed by a block that ends with `return`             |
 | `effect { ... }`                        | code that runs after creation and whenever what it reads changes  |
 | `ref input`                             | an element of the markup, which exists from the start of the body |
 
@@ -1420,6 +1421,10 @@ body of `for`: the code of one row of the list is written there once, and no ext
 19. **A list is keyed with `with key`:** `{for todo in todos with key todo.id { ... }}` finds the
     blocks by the key instead of the item itself, so a list loaded again from a server keeps its
     blocks, and the state of the components in them; see "Control flow in markup".
+20. **A `derived` of several statements is a block that returns the value:**
+    `derived summary string { ...; return text }`. The type may be left out and is then inferred
+    from the `return`s, as for a function. The block becomes a function in JS, called first and by
+    the updates of what it reads; see "Derived values" in [spec.md](spec.md).
 
 ## Not decided yet
 
@@ -1429,25 +1434,23 @@ All of these go into 1.0 ([roadmap.md](roadmap.md)): each is decided first, then
    implicit decisions that affect the output. I propose a `rook build --explain` flag that lists
    them: "`Card` became a function: 140 extra lines", "`options` is wrapped in a proxy: passed to
    `confetti`".
-2. **A `derived` of several statements.** Now it is `derived x = expression`. A block form
-   `derived total number { ... return sum }` could be added.
-3. **Combining decorators.** The syntax of the built-in higher-order decorator is open, and so is
+2. **Combining decorators.** The syntax of the built-in higher-order decorator is open, and so is
    how it works with the rest: whether the public members of the combined decorators are read as
    `get(@card.count)` or through the name of the combination, whether a combination containing
    `cart` satisfies `needs cart`, and whether `@cart` next to a combination containing it counts as
    applied twice.
-4. **A component that returns `null` for a wrapper.** A 404 page could be a wrapper
+3. **A component that returns `null` for a wrapper.** A 404 page could be a wrapper
    `(page ?Element) => ...` that shows it when the component returns `null`. Now a component returns
    markup only, and the choice between `return`s is made once, at creation; the reactive way is the
    decorator's state, as in `notFound` above.
-5. **Refs in `{if}`, `{switch}` and `{for}`.** An element that exists only sometimes could be a ref
+4. **Refs in `{if}`, `{switch}` and `{for}`.** An element that exists only sometimes could be a ref
    of type `?T`, and the elements of a list an array. For now such an element goes into a component
    with a ref of its own.
-6. **`public ref` in decorators,** for the component to read the element of the wrapper.
-7. **One ref in several `return`s.** Only one `return` runs, so a ref could be bound in each of them
+5. **`public ref` in decorators,** for the component to read the element of the wrapper.
+6. **One ref in several `return`s.** Only one `return` runs, so a ref could be bound in each of them
    when their tags are the same; the same would let a ref point to a component with several
    `return`s.
-8. **The CSS in a file of its own**, `app.css` next to `app.js` or a CSS module for Vite, instead of
+7. **The CSS in a file of its own**, `app.css` next to `app.js` or a CSS module for Vite, instead of
    `$$style`: it would be cached apart from the code.
-9. **The class of a style only on the elements that some selector can match**, as in Svelte, to
+8. **The class of a style only on the elements that some selector can match**, as in Svelte, to
    make the code shorter.

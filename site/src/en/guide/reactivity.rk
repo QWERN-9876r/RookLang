@@ -32,6 +32,8 @@ export comp Reactivity() {
         <p>
             <code>derived</code> declares a value computed from state, read-only. When the state
             changes, the value is computed again right before the markup that reads it is updated.
+            A value that takes several statements is a block that returns it:
+            {" "}<code>{"derived note { ...; return text }"}</code>.
             {" "}<code>effect</code> runs its code once the markup is created, and again when what
             it reads changes; it cleans up with <code>defer</code>, which runs before the effect
             runs again and when the component is removed.

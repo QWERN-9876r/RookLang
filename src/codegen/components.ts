@@ -61,6 +61,13 @@ export abstract class ComponentEmitter extends StyleEmitter {
     const { reactive } = this;
     const [name] = node.names;
     const [value] = node.values;
+
+    if (node.body && name) {
+      this.derivedBlock(name, node.body.body);
+
+      return;
+    }
+
     const sources = reactive && value ? reactive.dependencies(value) : new Set<Source>();
 
     super.statement(sources.size > 0 ? node : { ...node, keyword: 'const' });
@@ -69,6 +76,30 @@ export abstract class ComponentEmitter extends StyleEmitter {
     const expression = this.withHoisting(false, () => this.expression(value, ARROW));
 
     reactive.compute(sources, `${this.name(name.name)} = ${expression};`);
+  }
+
+  /**
+   * `derived summary { ... }`: the block becomes a function that computes the value, called first
+   * and in the updates of what it reads; one that reads no state runs once. The block computes
+   * while the markup is created or updated, so it calls no updates, as the expressions there.
+   */
+  private derivedBlock(name: ast.Identifier, block: ast.BlockStatement): void {
+    const { reactive } = this;
+    const sources = reactive ? reactive.dependencies(block) : new Set<Source>();
+    const [, body] = this.withRendering(this.rendering + 1, () => this.func([], block));
+    const variable = this.name(name.name);
+
+    if (!reactive || sources.size === 0) {
+      this.line(`const ${variable} = (() => ${body})();`);
+
+      return;
+    }
+
+    const compute = `$$compute${upperFirst(name.name)}${this.nextId()}`;
+
+    this.line(`const ${compute} = () => ${body};`);
+    this.line(`let ${variable} = ${compute}();`);
+    reactive.compute(sources, `${variable} = ${compute}();`);
   }
 
   /**

@@ -86,7 +86,7 @@ the open ones are listed in "Not decided yet" of [components.md](components.md).
 - A union of interfaces narrowed by a field of a literal type: `if d.kind == "courier"` gives
   `d.address`, and `{ kind: "pickup", shop: "..." }` fits the union. _(done, with the narrowing
   of paths: `order.delivery.kind`)_
-- `derived` of several statements.
+- `derived` of several statements: `derived total number { ... return sum }`. _(done)_
 - Combining decorators, and `public ref` in decorators.
 - A component that returns `null` for a wrapper.
 - Refs in `{if}`, `{switch}` and `{for}`, and one ref in several `return`s.

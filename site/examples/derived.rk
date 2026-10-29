@@ -3,7 +3,14 @@
 comp Basket() {
     state prices []number = [3, 2]
     derived total = prices.reduce((sum, price) => sum + price, 0)
-    derived note = total > 10 ? "That is a lot of guavas" : "There is room for more"
+    // A block computes it in several steps and returns the value
+    derived note {
+        const room = 10 - total
+        if room <= 0 {
+            return "That is a lot of guavas"
+        }
+        return `There is room for ${room} more`
+    }
 
     // effect runs once the markup is created, and again when what it reads changes
     effect {

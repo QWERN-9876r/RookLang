@@ -1,4 +1,4 @@
-import type { Expression, Identifier, StringLiteral } from './expressions.ts';
+import type { Expression, FuncExpression, Identifier, StringLiteral } from './expressions.ts';
 import type { TypeMember, TypeNode, TypeReference } from './markup.ts';
 import type { BlockStatement, Statement } from './statements.ts';
 
@@ -140,6 +140,12 @@ export interface VariableDeclaration extends NodeBase {
   names: Identifier[];
   type: TypeNode | null;
   values: Expression[];
+  /**
+   * `derived summary string { ...; return text }`: the block that computes a derived value, a
+   * function without parameters, so that what looks for the `return`s, `defer`s and `break`s of a
+   * component stops at it, as at other functions. Its result type is `type`; `values` is empty.
+   */
+  body: FuncExpression | null;
 }
 
 /** `class Admin extends User implements Shape { ... }` */

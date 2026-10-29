@@ -165,6 +165,19 @@ export abstract class SimpleStatementParser extends ParserBase {
     }
   }
 
+  private parseDerivedBlock(): ast.FuncExpression {
+    const body = this.parseFunctionBody();
+
+    return {
+      kind: 'FuncExpression',
+      params: [],
+      results: [],
+      body,
+      start: body.start,
+      end: body.end,
+    };
+  }
+
   protected parseVariableDeclaration(start: number, exported: boolean): ast.VariableDeclaration {
     const token = this.next();
     const keyword =
@@ -177,19 +190,26 @@ export abstract class SimpleStatementParser extends ParserBase {
 
     while (this.accept(',')) names.push(this.parseIdentifier('variable name'));
 
-    const type = this.canStartType() ? this.parseType() : null;
-    const values = this.accept('=') ? this.parseExpressionList() : [];
+    // `derived summary {` starts the block that computes it, as `{` after the parameters of a
+    // function starts its body: an object type goes in parentheses.
+    const block = () => keyword === 'derived' && this.check('{');
+    const type = !block() && this.canStartType() ? this.parseType() : null;
+    const body = block() ? this.parseDerivedBlock() : null;
+    const values = body === null && this.accept('=') ? this.parseExpressionList() : [];
     const { end } = this.span(start);
 
     if (keyword === 'ref') {
       this.checkRef(names, values.length > 0, start, end);
-    } else if (keyword === 'derived' && (names.length !== 1 || values.length !== 1)) {
+    } else if (
+      keyword === 'derived' &&
+      (names.length !== 1 || values.length + Number(!!body) !== 1)
+    ) {
       this.error(
-        'derived is one name and the expression it is computed from, e.g. derived double = count * 2',
+        'derived is one name and the expression it is computed from, e.g. derived double = count * 2, or a block that returns it: derived total number { ... return sum }',
         start,
         end,
       );
-    } else if (values.length === 0 && type === null) {
+    } else if (values.length === 0 && type === null && body === null) {
       this.error(`"${names[0]!.name}" needs a type or a value`, start, end);
     } else if (values.length === 0 && keyword === 'const') {
       this.error('constants need a value', start, end);
@@ -205,6 +225,7 @@ export abstract class SimpleStatementParser extends ParserBase {
       names,
       type,
       values,
+      body,
       start,
       end,
     };
