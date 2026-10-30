@@ -12,10 +12,13 @@ import {
   type LanguageClientOptions,
   type ServerOptions,
 } from 'vscode-languageclient/node';
+import { offerUpdate, outdated } from './outdated.mts';
+import { VERSION } from './versions.mts';
 
 // The extension starts the language server (server.mts) for `.rk` files, tells it whether the
 // workspace is trusted, so that it may run the compiler installed there, and shows in the status
-// bar which compiler checked the file being edited.
+// bar which compiler checked the file being edited. An installed compiler older than its own copy
+// is marked there, and the extension offers to update it (outdated.mts).
 
 let client: LanguageClient | undefined;
 
@@ -40,6 +43,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
   };
   const status = window.createStatusBarItem(StatusBarAlignment.Right, 100);
   const compilers = new Map<string, CompilerOfFile['installed']>();
+  // A new rooklang has been installed: the server loads it when it checks the files again.
+  const recheck = () => void client?.sendNotification('rook/recheck');
 
   client = new LanguageClient('rook', 'Rook', serverOptions, clientOptions);
   context.subscriptions.push(
@@ -51,6 +56,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
   client.onNotification('rook/compiler', ({ uri, installed }: CompilerOfFile) => {
     compilers.set(uri, installed);
     showCompiler(status, compilers);
+    if (installed) offerUpdate(context, installed, recheck);
   });
   await client.start();
 }
@@ -69,10 +75,14 @@ function showCompiler(
   }
 
   const installed = compilers.get(uri);
+  const old = installed ? outdated(installed) : false;
 
-  status.text = installed ? `Rook ${installed.version}` : 'Rook (built-in)';
+  status.text = installed
+    ? `${old ? '$(warning) ' : ''}Rook ${installed.version}`
+    : 'Rook (built-in)';
   status.tooltip = installed
-    ? `Checked by rooklang ${installed.version} of ${installed.path}`
+    ? `Checked by rooklang ${installed.version} of ${installed.path}` +
+      (old ? `, older than the ${VERSION} of the extension: newer syntax shows as errors` : '')
     : workspace.isTrusted
       ? 'Checked by the compiler of the extension: no node_modules/rooklang next to the file'
       : 'Checked by the compiler of the extension: the workspace is not trusted';

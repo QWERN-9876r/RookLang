@@ -33,7 +33,7 @@ export interface CompileOptions {
   declarations?: boolean;
   /** Where the worker module of `go` is, relative to the module; see workerUrl() in compile.ts. */
   workerUrl?: string;
-  /** A module that a worker thread of Node imports first, to load `.rk` files (vite.ts). */
+  /** A module that a worker of Node or Bun imports first, to load `.rk` files (vite.ts, bun.ts). */
   nodeLoader?: string;
   /** Markup and components; by default as the package.json of the file says (src/config.ts). */
   markup?: boolean;

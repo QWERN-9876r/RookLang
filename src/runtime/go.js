@@ -116,9 +116,18 @@ export function $$pool() {
       }
     }
   };
+  // A worker that failed before it started, as when its module does not load, would fail again:
+  // the calls of its module that wait fail with it, instead of starting worker after worker.
   const fail = (worker, error) => {
     remove(worker, error);
+    if (!worker.key) failQueued(worker.start, error);
     dispatch();
+  };
+  const failQueued = (start, error) => {
+    for (const call of queue.filter((each) => each.start === start)) {
+      queue.splice(queue.indexOf(call), 1);
+      call.reject(error);
+    }
   };
   const receive = (worker, data) => {
     if ('op' in data || 'answer' in data) return $$incoming(worker.key, data);
@@ -176,10 +185,7 @@ export function $$pool() {
       },
       (error) => {
         remove(worker, error);
-        for (const call of queue.filter((each) => each.start === start)) {
-          queue.splice(queue.indexOf(call), 1);
-          call.reject(error);
-        }
+        failQueued(start, error);
       },
     );
   };

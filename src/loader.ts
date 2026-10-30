@@ -1,13 +1,12 @@
-import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire, registerHooks } from 'node:module';
-import { dirname, extname, join, resolve } from 'node:path';
+import { dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMainThread } from 'node:worker_threads';
 import type * as Build from './build.ts';
 import type * as CompileFile from './compile-file.ts';
 import { RUNTIME_MODULE } from './runtime-module.ts';
-import { sourceMapComment, type SourceMap } from './source-map.ts';
+import { cachedFile, listFiles, withMap } from './run-cache.ts';
 
 // `rook run` imports this module first (`node --import`): Node then imports `.rk` files,
 // compiled when they load, and `app.rk?goroutines` is the worker module of `go` in app.rk.
@@ -29,7 +28,7 @@ const cache = process.env['ROOK_RUN_CACHE'];
 
 /** The file of the cache for the code of a URL, query included. */
 function cached(url: string): string | null {
-  return cache ? join(cache, `${createHash('sha1').update(url).digest('hex')}.js`) : null;
+  return cache ? cachedFile(cache, url) : null;
 }
 
 // The compiled code imports the runtime of this compiler, wherever the program is.
@@ -60,7 +59,7 @@ registerHooks({
     const { compileFile } = require(`./compile-file${extension}`) as typeof CompileFile;
     const path = displayPath(fileURLToPath(moduleUrl));
 
-    if (isMainThread && cache) list([resolve(path)]);
+    if (isMainThread && cache) listFiles(cache, [resolve(path)]);
 
     const result = compileFile(path, {
       rewriteImports: false,
@@ -77,7 +76,10 @@ registerHooks({
       // The CSS modules it imports; the .rk modules are listed when they are loaded.
       const read = result.dependencies.map((each) => resolve(dirname(path), each));
 
-      list(read.filter((each) => existsSync(each)));
+      listFiles(
+        cache,
+        read.filter((each) => existsSync(each)),
+      );
       writeFileSync(cached(moduleUrl)!, code);
       if (worker !== undefined) writeFileSync(cached(`${moduleUrl}?goroutines`)!, worker);
     }
@@ -87,19 +89,3 @@ registerHooks({
     return { format: 'module', source, shortCircuit: true };
   },
 });
-
-/** The code with its source map in it. */
-function withMap(code: string, map: SourceMap | undefined): string {
-  if (map === undefined || code === '') return code;
-
-  const data = Buffer.from(JSON.stringify(map)).toString('base64');
-
-  return `${code}${sourceMapComment(`data:application/json;base64,${data}`)}`;
-}
-
-/** Adds files to the list of the run: a line of the path and the time it was changed. */
-function list(paths: readonly string[]): void {
-  const lines = paths.map((path) => `${path}\t${statSync(path).mtimeMs}\n`);
-
-  appendFileSync(join(cache!, 'files'), lines.join(''));
-}

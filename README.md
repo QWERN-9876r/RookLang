@@ -63,7 +63,7 @@ version: [CHANGELOG.md](CHANGELOG.md).
 
 ## Installation
 
-Rook needs Node.js ≥ 24.
+Rook needs Node.js ≥ 24 or [Bun](#bun).
 
 ```sh
 npm install rooklang
@@ -77,7 +77,8 @@ The compiled code imports what channels, goroutines and markup need from `rookla
 the package is a dependency of the project, not only of its build.
 
 From code, the compiler is `import { compile } from 'rooklang'`. The package also has the
-[Vite](#vite) plugin, `rooklang/vite`, and `rooklang/browser`, the compiler without the
+[Vite](#vite) plugin, `rooklang/vite`, the [Bun](#bun) plugin, `rooklang/bun`, and
+`rooklang/browser`, the compiler without the
 TypeScript compiler for running in a browser, as in the site's playground: there imports are not
 type checked.
 
@@ -208,6 +209,34 @@ import { expect, it } from 'vitest';
 import { add } from './math.rk';
 
 it('adds', () => expect(add(1, 2)).toBe(3));
+```
+
+## Bun
+
+Rook works in Bun too: `bun add rooklang`, then `bunx rook build app.rk` or `bunx rook run
+app.rk`. Under the runtime of Bun, `bun --bun rook run app.rk`, the program runs in Bun.
+
+To let Bun load `.rk` modules itself, preload the plugin `rooklang/bun` in `bunfig.toml`:
+
+```toml
+preload = ["rooklang/bun/register"]
+
+[test]
+preload = ["rooklang/bun/register"]
+```
+
+Then `bun app.rk` runs a module, TypeScript imports `.rk` modules, `bun --watch` and `bun --hot`
+follow them, and `bun test` runs tests of them; goroutines work there too. The plugin itself is
+`import { rook } from 'rooklang/bun'`, for `Bun.plugin(rook())` or `Bun.build({ plugins: [rook()] })`;
+a bundle of `Bun.build` cannot have the workers of `go` yet, so build those with `rook build` or
+Vite.
+
+```ts
+// math.test.ts
+import { expect, test } from 'bun:test';
+import { add } from './math.rk';
+
+test('adds', () => expect(add(1, 2)).toBe(3));
 ```
 
 ## Conventions

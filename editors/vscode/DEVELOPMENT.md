@@ -42,6 +42,10 @@ Code uses (`vscode-textmate`). The scopes under the cursor are shown by the comm
 
 ## Publishing
 
+The extension has the version of the package, since it carries that compiler: each release of
+`rooklang` raises both, and `tests/vscode-compiler.test.ts` fails while they differ. The stores
+give users a new copy of the compiler only with a new version.
+
 A new `version` in `package.json` on `main` publishes the extension:
 [.github/workflows/vscode.yml](../../.github/workflows/vscode.yml) checks the repository, packs
 `rooklang.vsix` and publishes it to each store that does not have this version yet, then tags the

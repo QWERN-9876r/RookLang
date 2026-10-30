@@ -71,6 +71,13 @@ one, `Rook (built-in)` for the copy of the extension; its tooltip says where it 
 panel "Rook" says which version was loaded, or why it could not be, in which case the extension
 uses its own copy.
 
+The installed version may be older than the copy of the extension, which is that of the
+extension (0.4.0 in the extension 0.4.0). Then newer syntax shows as errors, as `rook build` would
+give them: the status bar marks the version with a warning, and the extension offers once to
+install its version in the project. "Update" runs `npm install rooklang@0.4.0` in a task, or
+`bun add`, `pnpm add` or `yarn add` when the project has their lock file, and checks the files
+again with the new version; "Don't Show Again" stops asking until either version changes.
+
 Loading the installed compiler runs code of the project, so in a workspace that VS Code does not
 trust (Restricted Mode) the extension uses its own copy; it switches once you trust the
 workspace.

@@ -16,7 +16,7 @@ npm run vscode:install   # the VS Code extension from the source`
 export comp Tools() {
     return <>
         <p>
-            The compiler is the npm package <code>rooklang</code>, and it runs on Node.js 24. The
+            The compiler is the npm package <code>rooklang</code>, and it runs on Node.js 24 or Bun. The
             {" "}compiled code imports the runtime, <code>rooklang/runtime</code>, so the package is
             {" "}a dependency of the project:
         </p>
@@ -32,6 +32,12 @@ export comp Tools() {
             Vite projects have a plugin, <code>rooklang/vite</code>: with it <code>.rk</code>
             modules are imported like any others, and type errors show up over the page. This site
             is built that way; its <code>package.json</code> turns markup and components on.
+        </p>
+        <p>
+            In Bun, <code>{'preload = ["rooklang/bun/register"]'}</code> in
+            {" "}<code>bunfig.toml</code> lets Bun load <code>.rk</code> modules itself:
+            {" "}<code>bun app.rk</code>, imports from TypeScript and <code>bun test</code>, with
+            goroutines.
         </p>
         <p>
             For VS Code there is the extension <a href={MARKETPLACE}>Rook Language</a>:

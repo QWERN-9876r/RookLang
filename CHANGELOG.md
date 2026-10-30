@@ -8,6 +8,26 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
+## Unreleased
+
+### Added
+
+- Bun: the plugin `rooklang/bun`, preloaded with `preload = ["rooklang/bun/register"]` in
+  `bunfig.toml`, compiles `.rk` modules when they load, for `bun app.rk`, imports from TypeScript,
+  `bun --hot` and `bun test`, goroutines included. `rook run` under the runtime of Bun,
+  `bun --bun rook run app.rk`, runs the program in Bun, `--watch` too; it used to fail on
+  `registerHooks`, which Bun does not have.
+- The VS Code extension has the version of the package it carries, 0.4.0, and the stores get each
+  release: it was 0.1.0 there, with the compiler of 17 October. When the `rooklang` installed in a
+  project is older than its copy, which then checks the files with errors for newer syntax, the
+  status bar marks it and the extension offers to install the new version with the package
+  manager of the project.
+
+### Fixed
+
+- A worker of `go` that fails before it starts, as when its module does not load, fails the calls
+  that wait for it: they used to wait forever while the pool started worker after worker.
+
 ## 0.4.0 — 2026-10-29
 
 ### Breaking

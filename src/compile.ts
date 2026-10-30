@@ -40,7 +40,7 @@ export interface CoreCompileOptions {
   readStyleModule?: ((specifier: string) => string | null) | undefined;
   /** Where the worker module of `go` is, relative to the module; see workerUrl(). */
   workerUrl?: string | undefined;
-  /** A module that a worker thread of Node imports first, to load `.rk` files (vite.ts). */
+  /** A module that a worker of Node or Bun imports first, to load `.rk` files (vite.ts, bun.ts). */
   nodeLoader?: string | undefined;
   /**
    * How the code gets the runtime of Rook: `import`, the default, imports it from

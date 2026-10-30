@@ -16,7 +16,7 @@ npm run vscode:install   # расширение VS Code из исходнико�
 export comp Tools() {
     return <>
         <p>
-            Компилятор — npm-пакет <code>rooklang</code>, он работает в Node.js 24.
+            Компилятор — npm-пакет <code>rooklang</code>, он работает в Node.js 24 и в Bun.
             {" "}Скомпилированный код импортирует рантайм, <code>rooklang/runtime</code>, поэтому
             {" "}пакет — зависимость проекта:
         </p>
@@ -33,6 +33,12 @@ export comp Tools() {
             {" "}<code>.rk</code>-модули импортируются как обычные, а ошибки типов показываются
             поверх страницы. Этот сайт собран именно так; его <code>package.json</code> включает
             разметку и компоненты.
+        </p>
+        <p>
+            В Bun строка <code>{'preload = ["rooklang/bun/register"]'}</code> в
+            {" "}<code>bunfig.toml</code> позволяет Bun самому загружать <code>.rk</code>-модули:
+            {" "}<code>bun app.rk</code>, импорты из TypeScript и <code>bun test</code>, с
+            горутинами.
         </p>
         <p>
             Для VS Code есть расширение <a href={MARKETPLACE}>Rook Language</a>: подсветка, ошибки

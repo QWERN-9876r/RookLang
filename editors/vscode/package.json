@@ -2,7 +2,7 @@
   "name": "rooklang",
   "displayName": "Rook Language",
   "description": "Rook support: highlighting, errors as you type, completion and auto-imports",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "publisher": "Qwern9876r",
   "preview": true,
   "icon": "icons/rook.png",
@@ -76,6 +76,12 @@
       {
         "scopeName": "source.rook.css",
         "path": "./syntaxes/rook-css.tmLanguage.json"
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "rook",
+        "properties": {}
       }
     ],
     "configurationDefaults": {

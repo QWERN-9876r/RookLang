@@ -2,7 +2,10 @@ import { mkdirSync, mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import extension from '../editors/vscode/package.json' with { type: 'json' };
 import { BUNDLED, compilerFor, findInstalled } from '../editors/vscode/src/compiler.mts';
+import { isOlder, updateCommand, VERSION } from '../editors/vscode/src/versions.mts';
+import pkg from '../package.json' with { type: 'json' };
 import { complete } from '../src/index.ts';
 
 // The compiler that the language server of the VS Code extension checks a file with: rooklang
@@ -90,5 +93,41 @@ describe('the compiler of a file', () => {
       ),
       expect.stringMatching(/rooklang has no compile\(\); using the compiler of the extension$/),
     ]);
+  });
+});
+
+describe('the version of the extension', () => {
+  // A new version of the package is a new version of the extension too: the stores give users
+  // a new copy of the compiler only for a new version (.github/workflows/vscode.yml).
+  it('is the version of the compiler it carries', () => {
+    expect(extension.version).toBe(pkg.version);
+    expect(VERSION).toBe(pkg.version);
+  });
+
+  it('is compared with the installed one by its numbers', () => {
+    expect(isOlder('0.3.4', '0.4.0')).toBe(true);
+    expect(isOlder('0.4.0', '0.4.0')).toBe(false);
+    expect(isOlder('0.10.0', '0.9.1')).toBe(false);
+    expect(isOlder('1.0.0', '0.9.9')).toBe(false);
+    expect(isOlder('0.4.0-beta.1', '0.4.0')).toBe(false);
+  });
+
+  it('is installed in the project with the package manager of its lock file', () => {
+    const installed = join('/work', 'app', 'node_modules', 'rooklang');
+    const locks = (lock?: string) => (path: string) => path === join('/work', 'app', lock ?? '');
+
+    expect(updateCommand(installed, '0.4.0', locks())).toEqual({
+      folder: join('/work', 'app'),
+      command: 'npm install rooklang@0.4.0',
+    });
+    expect(updateCommand(installed, '0.4.0', locks('bun.lock')).command).toBe(
+      'bun add rooklang@0.4.0',
+    );
+    expect(updateCommand(installed, '0.4.0', locks('pnpm-lock.yaml')).command).toBe(
+      'pnpm add rooklang@0.4.0',
+    );
+    expect(updateCommand(installed, '0.4.0', locks('yarn.lock')).command).toBe(
+      'yarn add rooklang@0.4.0',
+    );
   });
 });

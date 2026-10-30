@@ -120,18 +120,31 @@ export function moduleGo(workerUrl: string | null, nodeLoader?: string): string[
  * The start of a worker of a module: a Web Worker, or a worker thread of Node. Node takes only the
  * path of a `file:` URL, without the query of `app.rk?goroutines`, so its worker starts with a
  * module that imports the whole URL. An absolute URL, such as the Blob of the playground, is used
- * as it is. With `nodeLoader`, as under Vitest, the worker of Node imports the loader of `.rk`
- * files first, since its thread has neither Vite nor the loader of `rook run`.
+ * as it is. With `nodeLoader`, as under Vitest or the plugin of Bun, the worker imports the loader
+ * of `.rk` files first, since its thread has neither Vite nor the hooks of the main thread: so does
+ * the Web Worker of Bun, which also loads its module without the plugins and the query.
  */
 function startWorker(url: string, nodeLoader?: string): string[] {
-  // The loader registers its hooks when it runs, so the module comes after it, by a dynamic import.
-  const code =
-    nodeLoader === undefined
-      ? '`import ${JSON.stringify(url.href)};`'
-      : `\`import ${JSON.stringify(nodeLoader)}; await import(\${JSON.stringify(url.href)});\``;
-
   const base = /^[a-z][a-z\d+.-]*:/i.test(url) ? '' : ', import.meta.url';
   const workerUrl = `new URL(${JSON.stringify(url)}${base})`;
+
+  if (nodeLoader !== undefined) {
+    // The loader registers its hooks when it runs, so the module comes after it, by a dynamic import.
+    const code = `\`import ${JSON.stringify(nodeLoader)}; await import(\${JSON.stringify(url.href)});\``;
+
+    return [
+      'async function $$startWorker() {',
+      `  const url = new URL(/* @vite-ignore */ ${JSON.stringify(url)}${base});`,
+      `  const start = new URL(\`data:text/javascript,\${encodeURIComponent(${code})}\`);`,
+      '  if (typeof Worker === "function") return new Worker(start, { type: "module" });',
+      '  const threads = "node:worker_threads";',
+      '  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);',
+      '  return new NodeWorker(start);',
+      '}',
+    ];
+  }
+
+  const code = '`import ${JSON.stringify(url.href)};`';
 
   return [
     'async function $$startWorker() {',

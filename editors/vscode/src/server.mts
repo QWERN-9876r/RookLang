@@ -43,6 +43,9 @@ connection.onNotification('rook/trusted', () => {
   documents.all().forEach(schedule);
 });
 
+// Another rooklang has been installed: check the files again, with it.
+connection.onNotification('rook/recheck', () => documents.all().forEach(schedule));
+
 /** The path of a document on disk: imports are found from it. Unsaved new files have none. */
 function filename(uri: string): string | undefined {
   return uri.startsWith('file:') ? fileURLToPath(uri) : undefined;

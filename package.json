@@ -47,6 +47,14 @@
       "types": "./dist/browser.d.ts",
       "default": "./dist/browser.js"
     },
+    "./bun": {
+      "types": "./dist/bun.d.ts",
+      "default": "./dist/bun.js"
+    },
+    "./bun/register": {
+      "types": "./dist/bun-register.d.ts",
+      "default": "./dist/bun-register.js"
+    },
     "./runtime": "./src/runtime/index.js",
     "./package.json": "./package.json"
   },

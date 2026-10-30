@@ -63,7 +63,7 @@ close(results)
 
 ## Установка
 
-Нужен Node.js ≥ 24.
+Нужен Node.js ≥ 24 или [Bun](#bun).
 
 ```sh
 npm install rooklang
@@ -77,7 +77,8 @@ npx rook run --watch app.rk          # и запускать снова, ког�
 `rooklang/runtime`, поэтому пакет — зависимость проекта, а не только его сборки.
 
 Из кода компилятор подключается как `import { compile } from 'rooklang'`. Ещё в пакете есть
-плагин для [Vite](#vite) — `rooklang/vite` — и `rooklang/browser`: компилятор без
+плагин для [Vite](#vite) — `rooklang/vite`, — плагин для [Bun](#bun) — `rooklang/bun` — и
+`rooklang/browser`: компилятор без
 компилятора TypeScript, для работы в браузере, как в песочнице сайта; импорты там не проверяются
 по типам.
 
@@ -208,6 +209,34 @@ import { expect, it } from 'vitest';
 import { add } from './math.rk';
 
 it('adds', () => expect(add(1, 2)).toBe(3));
+```
+
+## Bun
+
+Rook работает и в Bun: `bun add rooklang`, потом `bunx rook build app.rk` или `bunx rook run
+app.rk`. Под рантаймом Bun, `bun --bun rook run app.rk`, программа выполняется в Bun.
+
+Чтобы Bun сам загружал `.rk`-модули, плагин `rooklang/bun` подключают заранее в `bunfig.toml`:
+
+```toml
+preload = ["rooklang/bun/register"]
+
+[test]
+preload = ["rooklang/bun/register"]
+```
+
+Тогда `bun app.rk` запускает модуль, TypeScript импортирует `.rk`-модули, `bun --watch` и
+`bun --hot` следят за ними, а `bun test` запускает их тесты; горутины там тоже работают. Сам плагин —
+`import { rook } from 'rooklang/bun'`, для `Bun.plugin(rook())` или
+`Bun.build({ plugins: [rook()] })`; в бандле `Bun.build` воркеров `go` пока быть не может, поэтому
+такой код собирают `rook build` или Vite.
+
+```ts
+// math.test.ts
+import { expect, test } from 'bun:test';
+import { add } from './math.rk';
+
+test('adds', () => expect(add(1, 2)).toBe(3));
 ```
 
 ## Соглашения

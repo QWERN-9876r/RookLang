@@ -15,7 +15,8 @@ import { displayPath } from './build.ts';
 
 // `rook run`: the program runs in a process of its own that imports loader.ts first, and so do
 // the worker threads of its goroutines, which do not share the hooks of the thread that registers
-// them. They take the compiled code from a directory of the run, removed after it.
+// them. Under Bun, the process is Bun's and preloads its plugin, bun-register.ts, which the workers
+// import too. They take the compiled code from a directory of the run, removed after it.
 //
 // The program may listen to signals with signal(): Ctrl+C reaches it as it reaches this process,
 // since a terminal sends it to both, and the signals that a process manager sends here go on to
@@ -40,6 +41,9 @@ export function runFile(file: string, options: RunOptions): void {
   // The build rewrites the extensions of imports, not of these URLs: in the package they are .js.
   const extension = import.meta.url.endsWith('.ts') ? '.ts' : '.js';
   const loader = new URL(`./loader${extension}`, import.meta.url).href;
+  // Under Bun the program runs in Bun, with its plugin preloaded instead of the hooks of Node.
+  const bun = process.versions['bun'] !== undefined;
+  const register = fileURLToPath(new URL(`./bun-register${extension}`, import.meta.url));
   const run = fileURLToPath(new URL(`./run${extension}`, import.meta.url));
   const watched = new Set<string>();
   let child: ChildProcess | null = null;
@@ -101,7 +105,9 @@ export function runFile(file: string, options: RunOptions): void {
     restart = null;
     cache = mkdtempSync(join(tmpdir(), 'rook-run-'));
 
-    const args = ['--enable-source-maps', '--import', loader, run, file];
+    const args = bun
+      ? ['--preload', register, run, file]
+      : ['--enable-source-maps', '--import', loader, run, file];
 
     child = spawn(process.execPath, args, {
       stdio: 'inherit',
