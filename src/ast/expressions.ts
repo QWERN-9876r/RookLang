@@ -37,7 +37,22 @@ export type Expression =
   | DecodeExpression
   | TryExpression
   | ConversionExpression
-  | MakeExpression;
+  | MakeExpression
+  | NonNullExpression
+  | TaggedTemplateExpression;
+
+/** `user!`: the value is taken not to be null, as in TypeScript; nothing is checked at runtime. */
+export interface NonNullExpression extends NodeBase {
+  kind: 'NonNullExpression';
+  expression: Expression;
+}
+
+/** sql`select ... ${id}`: the function gets the strings and the values, as in JS. */
+export interface TaggedTemplateExpression extends NodeBase {
+  kind: 'TaggedTemplateExpression';
+  tag: Expression;
+  quasi: TemplateLiteral;
+}
 
 /**
  * `[]byte("rook")`: the UTF-8 bytes of a string. `string(data)`, the way back, is a call, since
@@ -216,6 +231,8 @@ export interface Property extends NodeBase {
   key: Identifier | StringLiteral;
   value: Expression;
   shorthand: boolean;
+  /** `fetch(req Request) Response { ... }`: a method, whose value is a FuncExpression. */
+  method?: true;
 }
 
 /** `...xs` in array literals, object literals and call arguments. */

@@ -163,6 +163,8 @@ export interface NullableType extends NodeBase {
 export interface FuncType extends NodeBase {
   kind: 'FuncType';
   params: TypeNode[];
+  /** `func(string, ...[]any)`: the array of the arguments after the others. */
+  rest?: TypeNode;
   results: TypeNode[];
   /** `func(yield func(T) bool)`: its one parameter is named `yield`, so it is an iterator. */
   iterator?: boolean;

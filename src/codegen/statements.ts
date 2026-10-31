@@ -24,6 +24,12 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
 
   /** State of the module: the updates of the components that read it are kept beside it. */
   protected override emitStatement(node: ast.Statement): void {
+    if (node.kind === 'ExportFromDeclaration') {
+      this.exportFrom(node);
+
+      return;
+    }
+
     super.emitStatement(node);
     if (node.kind !== 'VariableDeclaration' || node.keyword !== 'state') return;
     if (!this.program.body.includes(node)) return;
@@ -163,10 +169,38 @@ export abstract class StatementEmitter extends ParallelLoopEmitter {
     this.line(`export { ${names.join(', ')} };`);
   }
 
+  /** `const { name, size: bytes, ...rest } = file`, as in JS. */
+  protected override variableDeclaration(node: ast.VariableDeclaration): string {
+    if (!node.pattern) return super.variableDeclaration(node);
+
+    const { keys, rest } = node.pattern;
+    const fields = keys.map((key, i) => {
+      const name = this.name(node.names[i]!.name);
+      const field = key.kind === 'StringLiteral' ? key.raw : key.name;
+
+      return field === name ? name : `${field}: ${name}`;
+    });
+
+    if (rest) fields.push(`...${this.name(node.names.at(-1)!.name)}`);
+
+    return `${node.keyword} { ${fields.join(', ')} } = ${this.expression(node.values[0]!, ARROW)}`;
+  }
+
+  /** `export { Rows } from "./rows.js"` with the hidden names that go with them (reexports.ts). */
+  private exportFrom(node: ast.ExportFromDeclaration): void {
+    const source = this.importPath(node.source);
+    const names = node.specifiers ? (this.options.reexports?.get(node) ?? []) : null;
+
+    if (names === null) this.line(`export * from ${source};`);
+    else if (names.length > 0) this.line(`export { ${names.join(', ')} } from ${source};`);
+  }
+
   protected importPath(source: ast.StringLiteral): string {
     const path = source.value;
 
-    if (this.options.rewriteImports && /^\.{1,2}\//.test(path) && path.endsWith('.rk')) {
+    // `./button.rk` and the aliases `#ui/button.rk` and `@/ui/button.rk` (aliases.ts): the built
+    // module is next to its source.
+    if (this.options.rewriteImports && !isBare(path) && path.endsWith('.rk')) {
       return JSON.stringify(`${path.slice(0, -'.rk'.length)}.js`);
     }
 
@@ -294,4 +328,14 @@ function hash(text: string): string {
   }
 
   return value.toString(16).padStart(8, '0');
+}
+
+/** `pkg/file.rk` of another package, which is not built with this one. */
+function isBare(path: string): boolean {
+  return (
+    !/^\.{1,2}\//.test(path) &&
+    !path.startsWith('#') &&
+    !path.startsWith('@/') &&
+    !path.startsWith('~/')
+  );
 }

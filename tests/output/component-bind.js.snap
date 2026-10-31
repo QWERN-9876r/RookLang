@@ -1,87 +1,144 @@
 // component-bind.js
 
-import { $$element } from "rooklang/runtime";
+import { $$element, $$list } from "rooklang/runtime";
 
 // <Page>
 let $$page1;
 {
   let menu = false;
-  const $$div3 = $$element("div");
-  const $$button4 = $$element("button");
-  $$button4.addEventListener("click", () => {
+  let todos = [{ title: "Buy guavas", done: false }, { title: "Wash limes", done: true }];
+  const $$div4 = $$element("div");
+  const $$button5 = $$element("button");
+  $$button5.addEventListener("click", () => {
     menu = !menu;
     $$updateMenu2();
   });
-  const $$text5 = document.createTextNode(menu ? "Hide" : "Show");
-  $$button4.append($$text5, " the menu");
+  const $$text6 = document.createTextNode(menu ? "Hide" : "Show");
+  $$button5.append($$text6, " the menu");
   // <Panel>
-  const $$bind6 = ($$value) => {
+  const $$bind7 = ($$value) => {
     menu = $$value;
     $$updateMenu2();
   };
-  const $$children7 = document.createDocumentFragment();
-  $$children7.append("Close it with ×: the button above knows.");
-  let $$panel8;
-  let $$setOpen9;
+  const $$children8 = document.createDocumentFragment();
+  $$children8.append("Close it with ×: the button above knows.");
+  let $$panel9;
+  let $$setOpen10;
   {
     let open = menu;
     const title = "Menu";
-    const children = $$children7;
-    const $$section12 = $$element("section", { className: "card", hidden: !open });
-    const $$h413 = $$element("h4");
-    const $$button14 = $$element("button");
-    $$button14.addEventListener("click", () => {
+    const children = $$children8;
+    const $$section13 = $$element("section", { className: "card", hidden: !open });
+    const $$h414 = $$element("h4");
+    const $$button15 = $$element("button");
+    $$button15.addEventListener("click", () => {
       open = false;
-      $$updateOpen11();
+      $$updateOpen12();
     });
-    $$button14.append("×");
-    $$h413.append(title, " ", $$button14);
-    $$section12.append($$h413, children);
+    $$button15.append("×");
+    $$h414.append(title, " ", $$button15);
+    $$section13.append($$h414, children);
 
-    $$setOpen9 = ($$open) => {
+    $$setOpen10 = ($$open) => {
       open = $$open;
-      $$section12.hidden = !open;
+      $$section13.hidden = !open;
     };
 
-    function $$updateOpen11() {
-      $$bind6(open);
-      $$section12.hidden = !open;
+    function $$updateOpen12() {
+      $$bind7(open);
+      $$section13.hidden = !open;
     }
 
-    $$panel8 = $$section12;
+    $$panel9 = $$section13;
   }
   // <Panel>
-  const $$children15 = document.createDocumentFragment();
-  $$children15.append("This one keeps its state to itself.");
-  let $$panel16;
+  const $$children16 = document.createDocumentFragment();
+  $$children16.append("This one keeps its state to itself.");
+  let $$panel17;
   {
     let open = true;
     const title = "Note";
-    const children = $$children15;
-    const $$section18 = $$element("section", { className: "card", hidden: !open });
-    const $$h419 = $$element("h4");
-    const $$button20 = $$element("button");
-    $$button20.addEventListener("click", () => {
+    const children = $$children16;
+    const $$section19 = $$element("section", { className: "card", hidden: !open });
+    const $$h420 = $$element("h4");
+    const $$button21 = $$element("button");
+    $$button21.addEventListener("click", () => {
       open = false;
-      $$section18.hidden = !open;
+      $$section19.hidden = !open;
     });
-    $$button20.append("×");
-    $$h419.append(title, " ", $$button20);
-    $$section18.append($$h419, children);
-    $$panel16 = $$section18;
+    $$button21.append("×");
+    $$h420.append(title, " ", $$button21);
+    $$section19.append($$h420, children);
+    $$panel17 = $$section19;
   }
-  $$div3.append($$button4, $$panel8, $$panel16);
+  const [$$for22, $$updateFor22] = $$list(() => todos, (todo) => {
+    const $$block23 = document.createDocumentFragment();
+    // <Check>
+    const $$bind24 = ($$value) => {
+      const $$at = todos.indexOf(todo);
+      if ($$at !== -1) todos[$$at] = $$value;
+      todo = $$value;
+      $$updateTodos3();
+    };
+    const $$0 = todo;
+    let $$check25;
+    let $$setTodo26;
+    {
+      let todo = $$0;
+      const $$label29 = $$element("label");
+      const $$input30 = $$element("input", { type: "checkbox" });
+      $$input30.checked = todo.done;
+      $$input30.addEventListener("change", () => {
+        todo.done = $$input30.checked;
+        $$updateTodo28();
+      });
+      const $$text31 = document.createTextNode(todo.title);
+      $$label29.append($$input30, " ", $$text31);
+
+      $$setTodo26 = ($$todo) => {
+        todo = $$todo;
+        if ($$input30.checked !== todo.done) $$input30.checked = todo.done;
+        $$text31.data = todo.title;
+      };
+
+      function $$updateTodo28() {
+        $$bind24(todo);
+        if ($$input30.checked !== todo.done) $$input30.checked = todo.done;
+        $$text31.data = todo.title;
+      }
+
+      $$check25 = $$label29;
+    }
+    $$block23.append($$check25);
+    return [$$block23, () => {
+      $$setTodo26(todo);
+    }];
+  });
+  const $$p32 = $$element("p");
+  const $$text33 = document.createTextNode(todos.filter((t) => t.done).length);
+  $$p32.append($$text33, " done");
+  $$div4.append($$button5, $$panel9, $$panel17, $$for22, $$p32);
 
   function $$updateMenu2() {
     if (!$$page1) return;
-    $$text5.data = menu ? "Hide" : "Show";
-    $$setOpen9(menu);
+    $$text6.data = menu ? "Hide" : "Show";
+    $$setOpen10(menu);
   }
 
-  $$page1 = $$div3;
+  function $$updateTodos3() {
+    if (!$$page1) return;
+    $$updateFor22();
+    $$text33.data = todos.filter((t) => t.done).length;
+  }
+
+  $$page1 = $$div4;
 }
 document.body.append($$page1);
 
 // component-bind.d.ts
 
+interface Todo {
+    title: string;
+    done: boolean;
+}
 export {};

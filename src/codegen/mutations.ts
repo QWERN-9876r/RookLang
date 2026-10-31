@@ -76,6 +76,42 @@ export function readNames(node: ast.Node, names: Set<string>): void {
 }
 
 /**
+ * Names of the functions that code may run while it runs: those it calls and those it gives to a
+ * call, `items.map(format)`. A function it only gives as a value, `act={copy}` or
+ * `act={() => show("x")}`, runs later, when whoever gets it calls it.
+ */
+export function calledNames(node: ast.Node, names: Set<string>): void {
+  switch (node.kind) {
+    case 'CallExpression':
+      if (node.callee.kind === 'Identifier') names.add(node.callee.name);
+      else calledNames(node.callee, names);
+      for (const arg of node.arguments) {
+        if (arg.kind === 'Identifier') names.add(arg.name);
+        else if (arg.kind === 'ArrowFunction' || arg.kind === 'FuncExpression') {
+          forEachChild(arg, (child) => calledNames(child, names));
+        } else calledNames(arg, names);
+      }
+
+      return;
+
+    case 'ArrowFunction':
+    case 'FuncExpression':
+    case 'EventHandler':
+    case 'MountStatement':
+    case 'EffectStatement':
+      return;
+
+    case 'JsxAttribute':
+      if (node.value !== null && !/^on[A-Z]/.test(node.name.name)) calledNames(node.value, names);
+
+      return;
+
+    default:
+      forEachChild(node, (child) => calledNames(child, names));
+  }
+}
+
+/**
  * Names an effect reads while it runs: not in the functions it creates, which run later, nor in
  * its `defer`, nor the variables it writes, or `count++` would run it again.
  */

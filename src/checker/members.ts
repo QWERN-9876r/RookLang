@@ -47,6 +47,7 @@ export abstract class MemberChecker extends DecoratorMemberChecker {
 
       this.checkDecoratorMutation(node);
       this.checkSharedMutation(node);
+      this.checkPropMutation(node);
       if (isNullable(callee)) {
         if (node.optional) shortCircuits = true;
         else this.nullError(node.callee);

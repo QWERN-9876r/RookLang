@@ -12,3 +12,17 @@ const todo = todos.find(t => t.title == "Купить гуаву")
 if todo != null {
     console.log(todo.done)     // здесь у todo уже тип Todo
 }
+
+// x! считает значение не null, как в TypeScript; при выполнении это не проверяется,
+// поэтому проверка или ?? надёжнее
+const first = todos.find(t => !t.done)!
+console.log(first.title, todo?.title ?? "нет")
+
+// Функция с результатом never не возвращается: после её вызова todo — это Todo
+func fail(message string) never {
+    throw error(message)
+}
+if todo == null {
+    fail("нет такой задачи")
+}
+console.log(todo.title)

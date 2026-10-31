@@ -35,6 +35,8 @@ export interface JsOptions {
   dataClasses?: ReadonlySet<string> | undefined;
   /** State of other modules that this one imports, `local → name there`: it only reads it. */
   shared?: ReadonlyMap<string, string> | undefined;
+  /** What each `export { ... } from` passes on in JS, with hidden names (reexports.ts). */
+  reexports?: ReadonlyMap<ast.ExportFromDeclaration, readonly string[]> | undefined;
 }
 
 /** A decorator of another module, with the types of the expressions of that module. */

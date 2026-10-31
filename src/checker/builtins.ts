@@ -16,12 +16,14 @@ import {
   ERROR_CLASS,
   func,
   method,
-  NUMBER,
+  NEVER,
   nullable,
+  NUMBER,
   property,
   STRING,
   topicOf,
   union,
+  VOID,
   type FunctionType,
   type Member,
   type ObjectType,
@@ -371,6 +373,10 @@ export const GLOBAL_TYPES: ReadonlyMap<string, Type> = new Map<string, Type>([
   ['string', STRING],
   ['bool', BOOL],
   ['any', ANY],
+  // A function whose result is `never` does not end: it throws or exits, as `process.exit`.
+  ['never', NEVER],
+  // The value of `Promise<void>`; as the result of a function, `void` is no result.
+  ['void', VOID],
   ['error', ERROR],
   ['Error', ERROR_CLASS.instance],
   ...['Date', 'RegExp', 'Map', 'Set', 'URL', ...UNTYPED_CLASSES, ...BUFFERS].map(

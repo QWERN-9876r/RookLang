@@ -121,6 +121,7 @@ export abstract class AssignmentChecker extends InitializerChecker {
   /** The type a value assigned to `target` must have. */
   protected checkTarget(target: ast.Expression): Type {
     if (this.checkDecoratorWrite(target) || this.checkSharedWrite(target)) return UNKNOWN;
+    this.checkPropWrite(target);
     switch (target.kind) {
       case 'Identifier': {
         if (target.name === '_') return ANY;
@@ -276,7 +277,7 @@ export abstract class AssignmentChecker extends InitializerChecker {
     const expected = fn.results;
 
     if (values.length === 0) {
-      if (expected.length > 0) {
+      if (expected.length > 0 && !fn.mayEnd) {
         this.error(`missing return values: expected ${countValues(expected.length)}`, node);
       }
 

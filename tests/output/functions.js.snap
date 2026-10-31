@@ -17,6 +17,20 @@ const factorial = (n) => {
 };
 console.log(square(4), doubled, factorial(5));
 
+function greet(name = "guest", times = 1) {
+  return `Hi, ${name}! `.repeat(times);
+}
+
+function total(label, ...prices) {
+  return `${label}: ${prices.reduce((sum, p) => sum + p, 0)}`;
+}
+console.log(greet(), greet("Ann", 2), total("cart", 120, 90));
+
+function money(parts, ...values) {
+  return parts.map((part, i) => i < values.length ? `${part}${values[i].toFixed(2)} ₽` : part).join("");
+}
+console.log(money`Guavas cost ${120} and limes ${90}`);
+
 // functions.d.ts
 
 export {};

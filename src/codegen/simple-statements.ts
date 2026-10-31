@@ -257,8 +257,10 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
         this.effectStatement(node);
         break;
 
+      // Components write their styles themselves (ComponentEmitter), and StatementEmitter the
+      // exports of other modules.
       case 'StyleStatement':
-        // Components write their styles themselves (ComponentEmitter).
+      case 'ExportFromDeclaration':
         break;
     }
   }

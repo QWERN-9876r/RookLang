@@ -86,12 +86,21 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
    */
   protected binder(target: ast.Expression): string {
     const name = `$$bind${this.nextId()}`;
+    const list = target.kind === 'Identifier' ? this.loopLists.get(target.name) : undefined;
     const text = this.liveExpression(target);
     // `todos` of `bind:todos={todos}`, or the state that `bind:open={menu.open}` writes into.
-    const written = [...(this.reactive?.rootSources(target) ?? [])].filter(
+    const written = [...(this.reactive?.rootSources(list ?? target) ?? [])].filter(
       (source) => source.kind === 'state',
     );
     const body = this.block(() => {
+      // The item of `{for row in rows}`: a new one replaces it in the list, wherever it is now.
+      if (list) {
+        const items = this.liveExpression(list, POSTFIX);
+
+        this.line(`const $$at = ${items}.indexOf(${text});`);
+        this.line(`if ($$at !== -1) ${items}[$$at] = $$value;`);
+      }
+
       this.line(`${text} = $$value;`);
       for (const name of rootsOf(target, this.shared)) {
         this.line(`$$changed(${this.shared.listeners.get(name)!});`);

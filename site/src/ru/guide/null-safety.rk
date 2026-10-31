@@ -13,6 +13,13 @@ export comp NullSafety() {
             После проверки <code>if todo != null</code> тип сужается до <code>Todo</code>. С
             {" "}<code>?T</code> работают и привычные <code>?.</code> и <code>??</code>.
         </p>
+        <p>
+            Там, где программа знает больше компилятора, <code>todo!</code> считает значение не
+            {" "}<code>null</code>, как в TypeScript; при выполнении это не проверяется. Функция с
+            результатом <code>never</code> — та, что бросает исключение или завершает процесс, как
+            {" "}<code>process.exit</code>, — не возвращается, поэтому код после её вызова сужен,
+            как после <code>throw</code>.
+        </p>
         <Example name="null-safety" />
         <p>
             Тип может быть объединением нескольких: <code>string | number</code>. Литеральный тип

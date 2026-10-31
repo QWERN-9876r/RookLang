@@ -68,6 +68,18 @@ describe('syntax and types', () => {
       'comp A(n number) {\n    return <button onClick={n++}>{n}</button>\n}',
       'cannot assign to "n": component properties are read-only; to change it, declare it with bind, e.g. comp A(bind n ...)',
     ],
+    [
+      'comp A(row { name string }) {\n    return <input bind:value={row.name} />\n}',
+      '"row" is a property: changing it in place would not update the parent; declare it bound, e.g. comp A(bind row ...), and pass bind:row={...}',
+    ],
+    [
+      'comp A(items []string) {\n    return <button onClick={items.push("x")}>+</button>\n}',
+      '"items" is a property: changing it in place would not update the parent; declare it bound, e.g. comp A(bind items ...), and pass bind:items={...}',
+    ],
+    [
+      `${tabs}comp A() {\n    return <div>{for item in ["a"].map(x => x) { <Tabs items={[]} bind:active={item} /> }}</div>\n}`,
+      '"bind:active" of "item" needs a loop over a list in a variable or a field, e.g. for item in items',
+    ],
   ])('reports %j', (source, message) => {
     expect(errors(source)).toEqual([message]);
   });
@@ -148,6 +160,31 @@ document.body.append(<App />)
     first.checked = true;
     first.dispatch('change');
     expect(String(body.find('p'))).toBe('<p>0</p>');
+  });
+
+  it('binds the item of a loop: changes in place and a new item go into the list', () => {
+    const { body } = mountWithDom(`interface Row {
+    id number
+    name string
+}
+comp Editor(bind row Row) {
+    return <li><input bind:value={row.name} /><button onClick={row = { id: row.id, name: "new" }}>r</button></li>
+}
+comp Rows() {
+    state rows []Row = [{ id: 1, name: "a" }, { id: 2, name: "b" }]
+    return <ul>
+        {for row in rows with key row.id { <Editor bind:row={row} /> }}
+        <p>{rows.map(r => r.name).join(",")}</p>
+    </ul>
+}
+document.body.append(<Rows />)`);
+    const [, second] = body.findAll('input');
+
+    second!.value = 'z';
+    second!.dispatch('input');
+    expect(String(body.find('p'))).toBe('<p>a,z</p>');
+    body.findAll('button')[0]!.click();
+    expect(String(body.find('p'))).toBe('<p>new,z</p>');
   });
 
   it('works with a component that becomes a function', () => {

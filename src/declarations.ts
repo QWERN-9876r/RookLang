@@ -39,6 +39,11 @@ class DeclarationPrinter {
           this.importDeclaration(statement);
           break;
 
+        case 'ExportFromDeclaration':
+          exports = true;
+          this.exportFrom(statement);
+          break;
+
         case 'FuncDeclaration':
           if (statement.exported) this.functionDeclaration(statement);
           break;
@@ -91,6 +96,26 @@ class DeclarationPrinter {
     const source = node.source.value.replace(/\.rk$/, '.js');
 
     this.lines.push(`import ${parts.join(', ')} from ${JSON.stringify(source)};`);
+  }
+
+  /** `export { Row } from "./rows.js"`: the values and types it passes on; components have none. */
+  private exportFrom(node: ast.ExportFromDeclaration): void {
+    const source = JSON.stringify(node.source.value.replace(/\.rk$/, '.js'));
+
+    if (!node.specifiers) {
+      this.lines.push(`export * from ${source};`);
+
+      return;
+    }
+
+    const { exports } = this.checked;
+    const names = node.specifiers
+      .filter(({ local }) => exports.values.has(local.name) || exports.types.has(local.name))
+      .map(({ imported, local }) =>
+        imported.name === local.name ? local.name : `${imported.name} as ${local.name}`,
+      );
+
+    if (names.length > 0) this.lines.push(`export { ${names.join(', ')} } from ${source};`);
   }
 
   private functionDeclaration(node: ast.FuncDeclaration): void {

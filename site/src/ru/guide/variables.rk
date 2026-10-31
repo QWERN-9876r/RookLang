@@ -13,6 +13,11 @@ export comp Variables() {
             У <code>let</code> без значения — нулевое значение типа, как в Go: <code>0</code>,
             {" "}<code>""</code>, <code>false</code>, пустой массив или <code>null</code>.
         </p>
+        <p>
+            Поля объекта раскладываются по переменным как в JS,
+            {" "}<code>{"const { name, price: cost, ...rest } = guava"}</code>, а метод в объектном
+            литерале пишется как в классе.
+        </p>
         <Example name="variables" />
         <table>
             <thead>

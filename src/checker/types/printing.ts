@@ -11,6 +11,8 @@ import { isTopic, topicElement } from './topic.ts';
 const MAX_OBJECT_DEPTH = 3;
 /** How many members of an object type without a name are printed: `globalThis` has hundreds. */
 const MAX_OBJECT_MEMBERS = 8;
+/** How long an object type inside another one may be before it is printed as `{ ... }`. */
+const MAX_NESTED_LENGTH = 80;
 let objectDepth = 0;
 
 /** `[]byte`: a Uint8Array, of the lib files or the built-in one. */
@@ -110,7 +112,10 @@ export function typeToString(type: Type): string {
         if (type.numberIndex) members.unshift(`[number]: ${typeToString(type.numberIndex)}`);
         if (type.index) members.unshift(`[string]: ${typeToString(type.index)}`);
 
-        return members.length === 0 ? '{}' : `{ ${members.join('; ')} }`;
+        const text = members.length === 0 ? '{}' : `{ ${members.join('; ')} }`;
+
+        // A long type inside another one, as the chains of Vitest, would fill the screen.
+        return objectDepth > 1 && text.length > MAX_NESTED_LENGTH ? '{ ... }' : text;
       } finally {
         objectDepth--;
       }

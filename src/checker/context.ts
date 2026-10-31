@@ -143,6 +143,13 @@ export interface Binding {
    */
   guards?: Binding[];
   guardedBy?: Binding;
+  /**
+   * A constant of the module with a written type or a literal value: its type, known before its
+   * declaration is checked. The fields of classes, which are resolved first, may use it.
+   */
+  early?: Type;
+  /** The list that `for item in items` goes over, which `bind:item={item}` writes into. */
+  iterable?: ast.Expression;
 }
 
 export interface ComponentInfo {
@@ -254,6 +261,11 @@ export interface FunctionContext {
   isComponent?: boolean;
   /** An async function, which may wait: `await`, `<-ch`, `for v in ch`. */
   isAsync?: boolean;
+  /**
+   * The function may end without a value, as in TypeScript: its result is `any`, or it is a
+   * callback whose result in a `.d.ts` is `void | T`, `onopen = () => { ... }`.
+   */
+  mayEnd?: boolean;
 }
 
 export interface ClassContext {

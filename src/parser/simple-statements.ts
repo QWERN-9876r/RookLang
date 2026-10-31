@@ -120,6 +120,16 @@ export abstract class SimpleStatementParser extends ParserBase {
     if (values.length === 1 && value?.kind === 'DecodeExpression') return;
     // `data, err = try JSON.parse(text)`: the value and the error, as from a call.
     if (values.length === 1 && value?.kind === 'TryExpression') return;
+    if (values.length === 1 && value?.kind === 'ConditionalExpression') {
+      this.error(
+        'a conditional expression gives one value, not the results of a call: unpack them in the branches of if/else, e.g. if ok { a, err = two() } else { a, err = other() }',
+        start,
+        this.span(start).end,
+      );
+
+      return;
+    }
+
     this.error(
       `assignment mismatch: ${plural(targets, 'variable')} but ${plural(values.length, 'value')}`,
       start,
@@ -177,6 +187,59 @@ export abstract class SimpleStatementParser extends ParserBase {
     };
   }
 
+  /** `const { name, size: bytes, ...rest } = file`: fields of an object, one level deep. */
+  private parseDestructuring(
+    start: number,
+    exported: boolean,
+    keyword: 'const' | 'let',
+  ): ast.VariableDeclaration {
+    const names: ast.Identifier[] = [];
+    const keys: (ast.Identifier | ast.StringLiteral)[] = [];
+    let rest = false;
+
+    this.expect('{');
+    this.parseList('}', () => {
+      if (rest) this.fail('...rest is the last name: it gets the other fields');
+      if (this.accept('...')) {
+        rest = true;
+        names.push(this.parseIdentifier('variable name'));
+
+        return;
+      }
+
+      const token = this.peek();
+      const key = this.check('String') ? this.parseStringLiteral() : this.parsePropertyName();
+
+      if (this.accept(':')) {
+        names.push(this.parseIdentifier('variable name'));
+      } else if (key.kind === 'Identifier' && token.kind === 'Identifier') {
+        names.push({ ...key });
+      } else {
+        const shown = token.kind === 'String' ? token.text : `"${token.text}"`;
+
+        this.fail(`${shown} needs a name to take its value, e.g. { ${token.text}: name }`);
+      }
+
+      keys.push(key);
+    });
+    this.expect('=', '"=" and the object: a pattern takes its fields from a value');
+
+    const value = this.parseExpression();
+
+    return {
+      kind: 'VariableDeclaration',
+      exported,
+      keyword,
+      isPublic: false,
+      names,
+      type: null,
+      values: [value],
+      body: null,
+      pattern: { keys, rest },
+      ...this.span(start),
+    };
+  }
+
   protected parseVariableDeclaration(start: number, exported: boolean): ast.VariableDeclaration {
     const token = this.next();
     const keyword =
@@ -185,6 +248,11 @@ export abstract class SimpleStatementParser extends ParserBase {
         : token.text === 'state' || token.text === 'derived' || token.text === 'ref'
           ? token.text
           : 'let';
+
+    if (this.check('{') && (keyword === 'const' || keyword === 'let')) {
+      return this.parseDestructuring(start, exported, keyword);
+    }
+
     const names = [this.parseIdentifier('variable name')];
 
     while (this.accept(',')) names.push(this.parseIdentifier('variable name'));

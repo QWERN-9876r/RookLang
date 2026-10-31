@@ -55,12 +55,19 @@ export abstract class TypeResolver extends ClassChecker {
       case 'NullableType':
         return nullable(this.resolveType(node.type));
 
-      case 'FuncType':
+      case 'FuncType': {
+        // `func(string, ...[]any)`: the rest is an array of what each argument is.
+        const rest = node.rest ? this.resolveType(node.rest) : null;
+
         return func(
           node.params.map((param) => this.resolveType(param)),
-          node.results.map((result) => this.resolveType(result)),
-          { iterator: node.iterator === true },
+          this.resolveResults(node.results),
+          {
+            iterator: node.iterator === true,
+            ...(rest ? { rest: rest.kind === 'array' ? rest.element : ANY } : {}),
+          },
         );
+      }
 
       case 'ComponentType':
         return this.resolveComponentType(node);
@@ -136,6 +143,13 @@ export abstract class TypeResolver extends ClassChecker {
   /** `[]byte`, a Uint8Array. */
   protected bytes(): Type {
     return this.typedArray('Uint8Array');
+  }
+
+  /** The results of a function: `void` alone, as in `close() void`, is no result. */
+  protected override resolveResults(results: readonly ast.TypeNode[]): Type[] {
+    const types = results.map((result) => this.resolveType(result));
+
+    return types.length === 1 && types[0]!.kind === 'void' ? [] : types;
   }
 
   protected override resolveTypeName(

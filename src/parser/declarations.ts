@@ -92,10 +92,42 @@ export abstract class DeclarationParser extends ParamParser {
       );
     }
 
+    if (this.check('{') || this.check('*')) return this.parseExportFrom(start);
+
     return (
       this.parseDeclaration(start, true) ??
       this.fail(`expected a declaration after "export", found ${describe(this.peek())}`)
     );
+  }
+
+  /** `export { Row, Rows as Table } from "./rows.rk"` or `export * from "./rows.rk"`. */
+  private parseExportFrom(start: number): ast.ExportFromDeclaration {
+    let specifiers: ast.ImportSpecifier[] | null = null;
+
+    if (!this.accept('*')) {
+      this.expect('{');
+      specifiers = this.parseList('}', () => this.parseImportSpecifier());
+    }
+
+    if (!this.checkWord('from')) {
+      this.fail(
+        'a module exports its own names where they are declared, e.g. export func f(); export { ... } needs from "./module.rk"',
+      );
+    }
+
+    this.next();
+
+    const source = this.parseStringLiteral('module path');
+    const declaration: ast.ExportFromDeclaration = {
+      kind: 'ExportFromDeclaration',
+      specifiers,
+      source,
+      ...this.span(start),
+    };
+
+    this.endStatement();
+
+    return declaration;
   }
 
   protected override parseFuncDeclaration(start: number, exported: boolean): ast.FuncDeclaration {
@@ -105,7 +137,7 @@ export abstract class DeclarationParser extends ParamParser {
 
     const name = this.parseIdentifier('function name');
     const typeParams = this.parseTypeParams();
-    const params = this.parseParams(false);
+    const params = this.parseParams(false, { defaults: true, rest: 'typed' });
     const results = this.parseResults();
     const body = this.parseFunctionBody(async);
 
@@ -187,7 +219,7 @@ export abstract class DeclarationParser extends ParamParser {
       );
     }
 
-    const params = this.parseParams(false, true, true);
+    const params = this.parseParams(false, { defaults: true, rest: 'attrs' });
     const body = this.withContext({ ...FUNCTION_BODY, inComponent: true }, () =>
       this.parseComponentBody(),
     );

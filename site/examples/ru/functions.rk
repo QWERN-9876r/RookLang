@@ -17,3 +17,19 @@ const factorial = func(n number) number {
     return n <= 1 ? 1 : n * factorial(n - 1)
 }
 console.log(square(4), doubled, factorial(5))
+
+// Значения по умолчанию в конце и остаток аргументов в массиве
+func greet(name string = "гость", times = 1) string {
+    return `Привет, ${name}! `.repeat(times)
+}
+
+func total(label string, ...prices []number) string {
+    return `${label}: ${prices.reduce((sum, p) => sum + p, 0)}`
+}
+console.log(greet(), greet("Аня", 2), total("корзина", 120, 90))
+
+// Тег получает строки шаблона и его значения
+func money(parts []string, ...values []number) string {
+    return parts.map((part, i) => i < values.length ? `${part}${values[i].toFixed(2)} ₽` : part).join("")
+}
+console.log(money`Гуава стоит ${120}, а лайм ${90}`)

@@ -135,6 +135,12 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
     case 'AsExpression':
       return `(as ${sx(node.expression)} ${ty(node.type)})`;
 
+    case 'NonNullExpression':
+      return `(! ${sx(node.expression)})`;
+
+    case 'TaggedTemplateExpression':
+      return `(tag ${sx(node.tag)} ${sx(node.quasi)})`;
+
     case 'CallExpression':
       return `(${node.optional ? '?call' : 'call'} ${[node.callee, ...node.arguments].map(sx).join(' ')})`;
 

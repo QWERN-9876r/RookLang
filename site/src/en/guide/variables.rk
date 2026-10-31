@@ -14,6 +14,11 @@ export comp Variables() {
             {" "}<code>0</code>, <code>""</code>, <code>false</code>, an empty array or
             {" "}<code>null</code>.
         </p>
+        <p>
+            The fields of an object go into variables as in JS,
+            {" "}<code>{"const { name, price: cost, ...rest } = guava"}</code>, and a method in an
+            object literal is written as in a class.
+        </p>
         <Example name="variables" />
         <table>
             <thead>

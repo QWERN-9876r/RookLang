@@ -13,7 +13,7 @@ import "./highlight.module.css"
 const ROOK_KEYWORDS []string = [...KEYWORDS]
 
 const ROOK_TYPES = [
-    "number", "bigint", "byte", "string", "bool", "any", "error", "void", "Content",
+    "number", "bigint", "byte", "string", "bool", "any", "error", "void", "never", "Content",
     "int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float32", "float64",
 ]
 
@@ -120,7 +120,8 @@ func tokenClass(tokens any, i number, language string) string {
         }
         return "attr"
     case "Identifier":
-        if language != "js" && isMadeType(tokens, i) || isAccessor(tokens, i) {
+        if language != "js" && (isMadeType(tokens, i) || isTypeDeclaration(tokens, i)) ||
+            isAccessor(tokens, i) {
             return "kw"
         }
         return identifierClass(text, tokens[i + 1].kind, language)
@@ -171,6 +172,16 @@ func identifierClass(text string, next string, language string) string {
         return "fn"
     }
     return isCapitalized(text) ? "type" : ""
+}
+
+// type is a keyword before the name of a type at the start of a statement, type Id string;
+// elsewhere it is a name: const type = blob.type
+func isTypeDeclaration(tokens any, i number) bool {
+    if tokens[i].text != "type" || tokens[i + 1].kind != "Identifier" {
+        return false
+    }
+    return i == 0 || tokens[i - 1].kind == ";" || tokens[i - 1].kind == "export" ||
+        tokens[i - 1].kind == "{" || tokens[i - 1].kind == "}"
 }
 
 // queue and topic are types before the type of their values, queue number, and before the < of

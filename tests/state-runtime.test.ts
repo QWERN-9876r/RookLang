@@ -254,6 +254,39 @@ document.body.append(<Cart />)`);
     expect(String(body.find('b'))).toBe('<b>210</b>');
   });
 
+  it('keeps updates in functions of the body that markup only gives to a child', () => {
+    // Only the functions that markup calls run while it renders; `act={copy}` runs on a click.
+    const { body } = mountWithDom(`comp Child(act func()) {
+    return <button onClick={act()}>go</button>
+}
+comp Parent() {
+    state toast = ""
+    func show(text string) {
+        toast = text
+    }
+    func copy() {
+        show("copied")
+    }
+    func label() string {
+        return toast.toUpperCase()
+    }
+    return <div>
+        <Child act={copy} />
+        <Child act={() => show("arrow")} />
+        {if toast != "" {
+            <p>{label()}</p>
+        }}
+    </div>
+}
+document.body.append(<Parent />)`);
+    const [copy, arrow] = body.findAll('button');
+
+    copy!.click();
+    expect(String(body.find('p'))).toBe('<p>COPIED</p>');
+    arrow!.click();
+    expect(String(body.find('p'))).toBe('<p>ARROW</p>');
+  });
+
   it('binds inputs to state in both directions', () => {
     const { body } = mountWithDom(`comp Signup() {
     state name = ""

@@ -31,7 +31,9 @@ export comp Components() {
             меняет его как своё состояние. Использование записывает изменения в свою переменную
             через <code>{"bind:open={menu}"}</code>, как <code>bind:value</code> у поля ввода, так
             что пара <code>open</code> и <code>onClose</code> не нужна. Без <code>bind:</code>
-            свойство — собственное состояние компонента.
+            свойство — собственное состояние компонента. Связать можно и элемент
+            {" "}<code>for</code>, <code>{"bind:todo={todo}"}</code>: то, что компонент в нём меняет,
+            обновляет список.
         </p>
         <Example name="component-bind" />
         <p>

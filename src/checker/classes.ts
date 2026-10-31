@@ -326,6 +326,15 @@ export abstract class ClassChecker extends ClassMemberChecker {
       }
     }
 
+    // `export { Rows } from "./rows.rk"`: the names of another module, as it exports them.
+    for (const kind of ['values', 'types', 'decorators', 'components'] as const) {
+      for (const [name, value] of this.reexported[kind] ?? []) {
+        (exports[kind] as Map<string, unknown>).set(name, value);
+      }
+    }
+
+    for (const name of this.reexported.shared ?? []) exports.shared!.add(name);
+
     return { exports, declarations };
   }
 }

@@ -37,7 +37,7 @@ import {
 // shared state → declarations → class members → classes → resolution → initializers → assignments → statements → control flow →
 // tagged unions → functions → expressions → array literals → operators → markup → forwarding → component bindings → components → component values →
 // refs → styles → decorator wrappers → decorator exports → decorators → decorator includes → decorator members →
-// members → calls → goroutines → channels → signals → queues → topics → decode → try → bytes → loops → go for →
+// members → calls → tags → goroutines → channels → signals → queues → topics → decode → try → bytes → loops → go for →
 // iterators → closing → completion → Checker (checker.ts). Statements, expressions and markup
 // check each other recursively, so methods of later layers that earlier ones call are declared
 // here as abstract. This layer has the state of a check, diagnostics, scopes and names, and the DOM types.
@@ -50,6 +50,8 @@ export abstract class CheckerBase {
   protected abstract ensureClassResolved(info: ClassInfo): void;
 
   protected abstract resolveClass(node: ast.ClassDeclaration, info: ClassInfo): void;
+  protected abstract typeEarly(node: ast.VariableDeclaration): void;
+  protected abstract resolveResults(results: readonly ast.TypeNode[]): Type[];
 
   protected abstract inferredType(type: Type, node: ast.Expression): Type;
 
@@ -138,6 +140,7 @@ export abstract class CheckerBase {
   protected abstract checkDecoratorMember(node: ast.DecoratorMember): Type;
 
   protected abstract checkDecoratorWrite(target: ast.Expression): boolean;
+  protected abstract checkPropWrite(target: ast.Expression): void;
 
   protected abstract checkComponentUse(node: ast.ElementExpression, tag: ast.Identifier): Type;
 

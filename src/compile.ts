@@ -17,6 +17,7 @@ import { goroutines, goTarget, workerProgram } from './goroutines.ts';
 import { withoutMarks, type SourceMap } from './source-map.ts';
 import { parse } from './parser/parser.ts';
 import { isStyleModule, styleModule, unusedClasses, type StyleModule } from './style-modules.ts';
+import { reexportedNames } from './reexports.ts';
 
 // Compiling one module, without access to files: the browser uses this directly (src/browser.ts),
 // Node adds reading imported modules from disk (src/index.ts).
@@ -125,6 +126,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     runtime: options.runtime,
     dataClasses,
     ...importedCode(program, options.importModule),
+    reexports: reexportedNames(program, options.importModule),
   };
   const sourceName = options.sourceName ?? 'main.rk';
   const main = withoutMarks(

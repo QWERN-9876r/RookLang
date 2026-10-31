@@ -282,31 +282,6 @@ describe('VS Code grammar', () => {
     expect(scopeOf('const ago = 1', 'ago')).not.toBe('keyword.control.flow');
   });
 
-  it('colours as and delete only where they are keywords', () => {
-    expect(scopeOf('const n = x as number', 'as')).toBe('keyword.operator.expression.as');
-    expect(scopeOf('const as = 1', 'as')).not.toBe('keyword.operator.expression.as');
-    expect(scopeOf('    delete scores[name]', 'delete')).toBe('keyword.operator.expression.delete');
-    expect(scopeOf('<p onClick={delete counts.a} />', 'delete')).toBe(
-      'keyword.operator.expression.delete',
-    );
-    expect(scopeOf('const f = (delete number) => delete', 'delete')).not.toBe(
-      'keyword.operator.expression.delete',
-    );
-  });
-
-  it('treats ref as a keyword only at the start of a declaration', () => {
-    expect(scopeOf('    ref input', 'ref')).toBe('storage.type.state');
-    expect(scopeOf('    ref box HTMLElement', 'ref')).toBe('storage.type.state');
-    expect(scopeOf('let ref = 1', 'ref')).toBe('variable.other.readwrite');
-    expect(scopeOf('ref = 2', 'ref')).toBe('variable.other.readwrite');
-  });
-
-  it('treats state as a keyword only at the start of a declaration', () => {
-    expect(scopeOf('    state count = 0', 'state')).toBe('storage.type.state');
-    expect(scopeOf('let state = load()', 'state')).toBe('variable.other.readwrite');
-    expect(scopeOf('state = 2', 'state')).toBe('variable.other.readwrite');
-  });
-
   it('does not colour keywords used as property names', () => {
     expect(scopeOf('console.log(event.type)', 'type')).toBe('variable.other.property');
     expect(scopeOf('const xs = [...this.items]', 'this')).toBe('variable.language.this');

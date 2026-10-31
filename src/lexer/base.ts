@@ -69,22 +69,33 @@ export abstract class LexerBase {
   protected lastEndsStatement(): boolean {
     const last = this.tokens.at(-1);
 
-    return last !== undefined && ENDS_STATEMENT.has(last.kind);
+    if (last === undefined) return false;
+
+    // `env.PORT!` at the end of a line: the `!` right after a value, which takes it not to be null.
+    if (last.kind === '!') {
+      const before = this.tokens.at(-2);
+
+      return before !== undefined && before.end === last.start && ENDS_VALUE.has(before.kind);
+    }
+
+    return ENDS_STATEMENT.has(last.kind);
   }
 
   /**
-   * Unlike Go, a line starting with `.` / `?.` continues a method chain, and a line starting with
-   * a closing bracket ends a list, so no semicolon is needed before it.
+   * Unlike Go, a line starting with `.` / `?.` continues a method chain, a line starting with `?`
+   * or `:` continues a conditional expression, and a line starting with a closing bracket ends a
+   * list, so no semicolon is needed before it.
    */
   protected nextLineContinues(): boolean {
     const t = this.text;
     const c = t[this.pos];
     const next = t[this.pos + 1];
 
-    if (c === ')' || c === ']' || c === '}') return true;
+    if (c === ')' || c === ']' || c === '}' || c === ':') return true;
     if (c === '.') return next !== '.' && !isDigit(next);
 
-    return c === '?' && next === '.' && !isDigit(t[this.pos + 2]);
+    // `? "yes"` and `?.name`, but not `??`, which stays at the end of the line as other operators.
+    return c === '?' && next !== '?';
   }
 
   protected insertSemicolon(): void {

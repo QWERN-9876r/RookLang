@@ -74,7 +74,15 @@
           "match": "(?<![\\w$])(?<![^.]\\.)implements(?![\\w$])"
         },
         {
-          "match": "(?<![\\w$])(?<![^.]\\.)(interface|type)\\s+([A-Za-z_$][\\w$]*)",
+          "match": "(?<![\\w$])(?<![^.]\\.)(interface)\\s+([A-Za-z_$][\\w$]*)",
+          "captures": {
+            "1": { "name": "storage.type.rook" },
+            "2": { "name": "entity.name.type.rook" }
+          }
+        },
+        {
+          "comment": "`type Id string` declares a type only at the start of a statement; elsewhere `type` is a name, `const type = blob.type`.",
+          "match": "(?:^\\s*(?:export\\s+)?|(?<=;\\s))(type)\\s+([A-Za-z_$][\\w$]*)",
           "captures": {
             "1": { "name": "storage.type.rook" },
             "2": { "name": "entity.name.type.rook" }

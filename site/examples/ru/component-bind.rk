@@ -7,13 +7,26 @@ comp Panel(bind open bool = false, title string, children Content) {
     </section>
 }
 
+interface Todo {
+    title string
+    done bool
+}
+
+// Связать можно и элемент for: то, что меняет компонент, обновляет список
+comp Check(bind todo Todo) {
+    return <label><input type="checkbox" bind:checked={todo.done} /> {todo.title}</label>
+}
+
 comp Page() {
     state menu = false
+    state todos []Todo = [{ title: "Купить гуаву", done: false }, { title: "Помыть лаймы", done: true }]
     return <div>
         <button onClick={menu = !menu}>{menu ? "Скрыть" : "Показать"} меню</button>
         <Panel bind:open={menu} title="Меню">Закройте его ×: кнопка выше это узнает.</Panel>
         {/* Без bind: свойство — собственное состояние панели */}
         <Panel open={true} title="Заметка">Эта панель хранит состояние у себя.</Panel>
+        {for todo in todos { <Check bind:todo={todo} /> }}
+        <p>{todos.filter(t => t.done).length} сделано</p>
     </div>
 }
 

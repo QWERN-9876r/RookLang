@@ -96,7 +96,6 @@ export const STATEMENT_KEYWORDS: ReadonlySet<TokenKind> = new Set<TokenKind>([
   'const',
   'class',
   'interface',
-  'type',
   'return',
   'if',
   'for',

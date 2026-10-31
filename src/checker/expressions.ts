@@ -46,6 +46,7 @@ export abstract class ExpressionChecker extends FunctionChecker {
   protected abstract checkArrayLiteral(node: ast.ArrayLiteral, expected: Type | null): Type;
 
   protected abstract checkTryExpression(node: ast.TryExpression): Type;
+  protected abstract checkTaggedTemplate(node: ast.TaggedTemplateExpression): Type;
 
   /** `[]byte("text")`; implemented by BytesChecker. */
   protected abstract checkConversion(node: ast.ConversionExpression): Type;
@@ -178,6 +179,13 @@ export abstract class ExpressionChecker extends FunctionChecker {
       case 'ElementExpression':
         return this.checkElement(node);
 
+      // `user!`: taken not to be null, as in TypeScript.
+      case 'NonNullExpression':
+        return nonNull(this.checkExpression(node.expression, expected));
+
+      case 'TaggedTemplateExpression':
+        return this.checkTaggedTemplate(node);
+
       case 'DecoratorMember':
         return this.checkDecoratorMember(node);
 
@@ -228,6 +236,8 @@ export abstract class ExpressionChecker extends FunctionChecker {
       return UNKNOWN;
     }
 
+    // The field of a class is set when an instance is made, after the constants of the module.
+    if (binding.type === null && binding.early && this.cls) return binding.early;
     if (binding.type === null) {
       this.error(`"${node.name}" is used before its declaration`, node);
 
@@ -267,6 +277,8 @@ export abstract class ExpressionChecker extends FunctionChecker {
 
   protected checkObjectLiteral(node: ast.ObjectLiteral, expected: Type | null): Type {
     let target = expected ? nonNull(expected) : null;
+    // The objects of a union that no tag chooses from: fields take what they share from them.
+    let union: Type[] | null = null;
 
     // `?(ScrollIntoViewOptions | bool)`: an object literal can only be the object type in it, or
     // the one that its tag chooses, `{ kind: "pickup" }` of `Pickup | Courier`.
@@ -276,6 +288,7 @@ export abstract class ExpressionChecker extends FunctionChecker {
       );
 
       target = objects.length === 1 ? objects[0]! : this.taggedMember(node, objects, target);
+      if (target === null) union = objects;
     }
 
     const index = target?.kind === 'object' ? target.index : undefined;
@@ -324,7 +337,11 @@ export abstract class ExpressionChecker extends FunctionChecker {
         this.error(`${typeToString(target)} has no field "${name}"`, property.key);
       }
 
-      let type = this.checkValue(property.value, expectedMember?.type ?? null);
+      const context = expectedMember?.type ?? (union && this.commonField(union, name));
+      // In JS `this` of a method is the object, not the class around it: it is not used.
+      let type = property.method
+        ? this.withClass(null, () => this.checkValue(property.value, context))
+        : this.checkValue(property.value, context);
 
       if (expectedMember) {
         // Reported at the field; the literal then counts as having the expected field type.

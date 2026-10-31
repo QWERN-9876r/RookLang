@@ -6,7 +6,6 @@ export const KEYWORDS = [
   'return',
   'let',
   'const',
-  'type',
   'interface',
   'class',
   'extends',
@@ -136,6 +135,11 @@ interface TokenBase {
   text: string;
   start: number;
   end: number;
+  /**
+   * A line break comes before the token. No semicolon is inserted after `>`, which may be an
+   * operator; the parser ends a declaration after `Map<string, number>` by it.
+   */
+  newlineBefore?: boolean;
 }
 
 export interface NumberToken extends TokenBase {

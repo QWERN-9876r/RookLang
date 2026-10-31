@@ -8,6 +8,17 @@ if (todo != null) {
   console.log(todo.done);
 }
 
+const first = todos.find((t) => !t.done);
+console.log(first.title, todo?.title ?? "none");
+
+function fail(message) {
+  throw new Error(message);
+}
+if (todo == null) {
+  fail("no such task");
+}
+console.log(todo.title);
+
 // null-safety.d.ts
 
 interface Todo {

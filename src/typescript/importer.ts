@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import type * as TS from 'typescript';
 import type { ImportResult, Library } from '../checker/checker.ts';
 import { TypeConverter, type SharedTypes } from './convert.ts';
@@ -27,6 +27,8 @@ export class DeclarationImporter {
   private readonly shared: SharedTypes = new Map();
   private libraryTypes: LibraryTypes | undefined;
   private readonly results = new Map<string, ImportResult>();
+  /** The paths of each tsconfig.json, by its path. */
+  private readonly configPaths = new Map<string, TS.CompilerOptions>();
 
   /** The exports of the module `specifier` imported from the file `fromFile`. */
   import(fromFile: string, specifier: string): ImportResult {
@@ -80,7 +82,8 @@ export class DeclarationImporter {
   private resolve(ts: typeof TS, fromFile: string, specifier: string): ImportResult {
     this.addTypeRoots(fromFile);
 
-    const { resolvedModule } = ts.resolveModuleName(specifier, fromFile, this.options(ts), ts.sys);
+    const options = { ...this.options(ts), ...this.pathsFor(ts, fromFile) };
+    const { resolvedModule } = ts.resolveModuleName(specifier, fromFile, options, ts.sys);
 
     if (resolvedModule) {
       const file = resolvedModule.resolvedFileName;
@@ -96,7 +99,8 @@ export class DeclarationImporter {
       const source = program.getSourceFile(file);
       const module = source && program.getTypeChecker().getSymbolAtLocation(source);
 
-      return module ? { exports: converter.moduleExports(module) } : undefined;
+      if (module) return { exports: converter.moduleExports(module) };
+      // `@types/bun` only refers to `bun-types`, whose `declare module "bun"` declares the module.
     }
 
     // `node:fs`, `fs`: modules declared with `declare module "..."`, as in @types/node.
@@ -108,6 +112,32 @@ export class DeclarationImporter {
       .find((module) => module.name === name);
 
     return ambient ? { exports: converter.moduleExports(ambient) } : undefined;
+  }
+
+  /** `paths` of the nearest tsconfig.json, `@/lib/*`, which imports of the file may use. */
+  private pathsFor(ts: typeof TS, fromFile: string): TS.CompilerOptions {
+    const config = ts.findConfigFile(dirname(fromFile), (path) => ts.sys.fileExists(path));
+
+    if (!config) return {};
+
+    let options = this.configPaths.get(config);
+
+    if (!options) {
+      const { config: json } = ts.readConfigFile(config, (path) => ts.sys.readFile(path)) as {
+        config?: { compilerOptions?: { baseUrl?: string; paths?: TS.MapLike<string[]> } };
+      };
+      const compilerOptions = json?.compilerOptions;
+
+      options = compilerOptions?.paths
+        ? {
+            paths: compilerOptions.paths,
+            baseUrl: resolve(dirname(config), compilerOptions.baseUrl ?? '.'),
+          }
+        : {};
+      this.configPaths.set(config, options);
+    }
+
+    return options;
   }
 
   private addTypeRoots(fromFile: string): void {

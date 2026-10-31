@@ -35,7 +35,18 @@ export interface ImportSpecifier extends NodeBase {
   local: Identifier;
 }
 
-// ─── Declarations ────────────────────────────────────────────────────────────────────────────────
+/**
+ * `export { Row, Rows } from "./rows.rk"` or `export * from "./rows.rk"`: names of another module,
+ * which this one exports but does not see itself, as in JS.
+ */
+export interface ExportFromDeclaration extends NodeBase {
+  kind: 'ExportFromDeclaration';
+  /** `null` for `export *`; `imported` is the name there, `local` the one it is exported under. */
+  specifiers: ImportSpecifier[] | null;
+  source: StringLiteral;
+}
+
+// ─── Declarations ───────────────────────────────────────────────────────────────────────────────
 
 /** `func divide(a, b number) (number, error) { ... }` */
 export interface FuncDeclaration extends NodeBase {
@@ -156,6 +167,11 @@ export interface VariableDeclaration extends NodeBase {
    * component stops at it, as at other functions. Its result type is `type`; `values` is empty.
    */
   body: FuncExpression | null;
+  /**
+   * `const { name, size: bytes, ...rest } = file`: the key of the field that each name takes, in
+   * the order of `names`; with `rest`, the last name gets the other fields.
+   */
+  pattern?: { keys: (Identifier | StringLiteral)[]; rest: boolean };
 }
 
 /** `class Admin extends User implements Shape { ... }` */

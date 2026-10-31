@@ -380,7 +380,8 @@ This is how it was implemented in stage 3.
 - **Rendering code calls no updates.** That is the expressions of live markup, the component's
   functions they call (`{summary()}`), and the callbacks they pass (`items.map(...)`). Otherwise an
   update that computes `summary()` would run itself. Event handlers and function properties inside
-  markup run later, so their updates stay.
+  markup run later, so their updates stay, and so do the functions of the body that markup only
+  gives to a child, `act={copy}`, and those they call.
 - **A property of a child component** whose value reads the parent's state becomes a variable in
   the child's block. The parent's update calls a function that changes it and updates the child's
   nodes:
@@ -917,9 +918,10 @@ comp TodoItem(todo Todo, onToggle func(), onRemove func()) {
 <TodoItem todo={todo} onToggle={todo.done = !todo.done} onRemove={remove(todo.id)} />
 ```
 
-Properties are read-only: a parameter cannot be assigned inside the component. To change the
-parent's state, it is passed through a function property, like `onToggle` above, or the property
-is bound.
+Properties are read-only: a parameter cannot be assigned inside the component, nor changed in
+place, `todo.done = true`, `bind:value={todo.title}` or `items.push(x)`: the object is the parent's,
+which would change without its markup knowing. To change the parent's state, it is passed through
+a function property, like `onToggle` above, or the property is bound.
 
 ### Bound properties: `bind`
 
@@ -951,6 +953,9 @@ comp Page() {
 - **`bind:open={menu}`** gives the component the parent's value and writes every change back,
   which updates what reads `menu` in the parent. The variable is anything assignable, a field of a
   list item included, `<Check bind:on={todo.done} />`, of the same type as the property.
+  The item of a `{for}` loop over a list in a variable or a field is one too,
+  `{for todo in todos { <TodoItem bind:todo={todo} /> }}`: changes in place update `todos`, and a
+  new value replaces the item in the list.
 - **Without `bind:`** the property is the component's own state: `<Drawer open={true} />` starts
   open, `<Drawer />` with the default value. When the parent's value changes, the component gets
   it, as with any property.

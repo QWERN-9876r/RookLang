@@ -2,10 +2,12 @@ import type * as ast from '../ast.ts';
 import { placeOf, type Narrowing, type Place } from './context.ts';
 import { ControlFlowChecker } from './control-flow.ts';
 import { literalValue, narrowByTag } from './flow.ts';
+import { callSignature } from './helpers.ts';
 import {
   findClassMember,
   memberTypeOf,
   nonNull,
+  typesEqual,
   typeToString,
   unionMembers,
   UNKNOWN,
@@ -146,6 +148,42 @@ export abstract class TaggedUnionChecker extends ControlFlowChecker {
     const tags = owner && this.tagValues(unionMembers(nonNull(owner.type)), target.property.name);
 
     return owner && tags ? [[owner.place, narrowByTag(owner.type, tags, values, equal)]] : [];
+  }
+
+  /**
+   * The type of a field in the objects of a union that no tag chooses from, when it is the same in
+   * each that has it: the literal takes it from the context, as `fetch: req => ...` of the options
+   * of `Bun.serve`. Functions only need the same parameters, which is what their literals take.
+   */
+  protected commonField(objects: readonly Type[], name: string): Type | null {
+    const types = objects.flatMap((object) => {
+      const member =
+        object.kind === 'object'
+          ? object.members.get(name)
+          : object.kind === 'class'
+            ? findClassMember(object.info, name, false)
+            : undefined;
+
+      return member ? [member.type] : [];
+    });
+    const [first] = types;
+
+    if (!first) return null;
+    if (types.every((type) => typesEqual(type, first))) return first;
+
+    const signature = callSignature(nonNull(first));
+    const sameParams = types.every((type) => {
+      const other = callSignature(nonNull(type));
+
+      return (
+        signature &&
+        other &&
+        other.params.length === signature.params.length &&
+        other.params.every((param, i) => typesEqual(param, signature.params[i]!))
+      );
+    });
+
+    return sameParams ? first : null;
   }
 
   /**

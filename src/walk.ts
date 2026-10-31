@@ -16,6 +16,11 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       each(node.body);
       break;
 
+    case 'ExportFromDeclaration':
+      if (node.specifiers) each(node.specifiers);
+      visit(node.source);
+      break;
+
     case 'ImportDeclaration':
       optional(node.defaultImport);
       optional(node.namespaceImport);
@@ -217,6 +222,15 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
 
     case 'StyleStatement':
       each(node.parts);
+      break;
+
+    case 'NonNullExpression':
+      visit(node.expression);
+      break;
+
+    case 'TaggedTemplateExpression':
+      visit(node.tag);
+      visit(node.quasi);
       break;
 
     case 'TemplateLiteral':

@@ -7,6 +7,7 @@ import { type Binding, type ComponentInfo, type DecoratorInfo, Scope } from './c
 import { SharedStateChecker } from './shared-state.ts';
 import { awaited, isPromise, promiseOf } from './promise.ts';
 import {
+  ANY,
   createClass,
   func,
   typeToString,
@@ -48,6 +49,10 @@ export abstract class DeclarationChecker extends SharedStateChecker {
       switch (statement.kind) {
         case 'ImportDeclaration':
           this.declareImport(statement);
+          break;
+
+        case 'ExportFromDeclaration':
+          this.declareExportFrom(statement);
           break;
 
         case 'ClassDeclaration': {
@@ -164,6 +169,12 @@ export abstract class DeclarationChecker extends SharedStateChecker {
       const entry = this.scope.types.get(statement.name.name);
 
       if (entry?.kind === 'alias') this.resolveAlias(entry);
+    }
+
+    if (topLevel) {
+      for (const statement of statements) {
+        if (statement.kind === 'VariableDeclaration') this.typeEarly(statement);
+      }
     }
 
     for (const [node, binding] of functions) {
@@ -315,7 +326,7 @@ export abstract class DeclarationChecker extends SharedStateChecker {
     results: readonly ast.TypeNode[],
     async = false,
   ): FunctionType {
-    const types = results.map((result) => this.resolveType(result));
+    const types = this.resolveResults(results);
 
     if (async) {
       types.forEach((type, i) => {
@@ -328,11 +339,48 @@ export abstract class DeclarationChecker extends SharedStateChecker {
       });
     }
 
+    const last = params.at(-1);
+    const rest = last?.rest ? this.restElement(last) : undefined;
+    const plain = rest === undefined ? params : params.slice(0, -1);
+    const firstDefault = plain.findIndex((param) => param.defaultValue !== null);
+    const required = firstDefault === -1 ? plain.length : firstDefault;
+
+    for (const param of plain.slice(required)) {
+      if (param.defaultValue === null) {
+        this.error(
+          `"${param.name.name}" comes after a parameter with a default value, so it needs one too, e.g. ${param.name.name} = ...`,
+          param,
+        );
+      }
+    }
+
     return func(
-      params.map((param) => (param.type ? this.resolveType(param.type) : UNKNOWN)),
+      // `times = 1` has the type of its value.
+      plain.map((param) =>
+        param.type
+          ? this.resolveType(param.type)
+          : param.defaultValue
+            ? this.inferredType(this.checkValue(param.defaultValue), param.defaultValue)
+            : UNKNOWN,
+      ),
       async ? [this.promiseOf(types)] : types,
-      { iterator: isIterator(params) },
+      { iterator: isIterator(params), required, ...(rest ? { rest } : {}) },
     );
+  }
+
+  /** `...parts []any`: what each of the arguments it takes is, `any`. */
+  private restElement(param: ast.Parameter): Type {
+    const type = param.type ? this.resolveType(param.type) : ANY;
+
+    if (type.kind === 'array') return type.element;
+    if (type.kind !== 'any' && type.kind !== 'unknown') {
+      this.error(
+        `...${param.name.name} takes the arguments in an array: write its type as one, e.g. ...${param.name.name} []${typeToString(type)}`,
+        param.type ?? param,
+      );
+    }
+
+    return ANY;
   }
 
   /** `Promise<...>` of the results of an async function, with the global `Promise` type. */

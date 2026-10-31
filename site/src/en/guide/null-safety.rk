@@ -13,6 +13,13 @@ export comp NullSafety() {
             After <code>if todo != null</code> the type narrows to <code>Todo</code>. The familiar
             {" "}<code>?.</code> and <code>??</code> work with <code>?T</code> too.
         </p>
+        <p>
+            Where the program knows more than the compiler, <code>todo!</code> takes a value not
+            to be <code>null</code>, as in TypeScript; it is not checked at runtime. A function
+            whose result is <code>never</code>, one that throws or exits as
+            {" "}<code>process.exit</code>, does not return, so the code after its call is
+            narrowed as after <code>throw</code>.
+        </p>
         <Example name="null-safety" />
         <p>
             A type can be a union of several: <code>string | number</code>. The literal type

@@ -25,6 +25,13 @@ export comp Modules() {
             стектрейсы и отладчики показывали строки <code>.rk</code>-файла; <code>rook run</code>
             показывает их тоже.
         </p>
+        <p>
+            Модуль, который собирает API папки, передаёт дальше имена других:
+            {" "}<code>{'export { Rows } from "./rows.rk"'}</code> и
+            {" "}<code>{'export * from "./rows.rk"'}</code>. Кроме относительных путей, импорты
+            могут использовать алиасы из <code>package.json</code>, <code>#ui/button.rk</code>, и
+            из <code>tsconfig.json</code>, <code>@/ui/button.rk</code>: они тоже типизированы.
+        </p>
         <Callout kind="note">
             Песочница на этой странице модулей не загружает, поэтому пример ниже не запускается.
         </Callout>

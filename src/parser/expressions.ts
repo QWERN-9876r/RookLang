@@ -49,6 +49,18 @@ export abstract class ExpressionParser extends TypeParser {
       const precedence = BINARY_PRECEDENCE[operator];
 
       if (precedence < minPrecedence) return left;
+
+      // `await load<number>(1)` reads `await load` first.
+      const callee =
+        left.kind === 'UnaryExpression' && left.operator === 'await' ? left.argument : left;
+
+      if (
+        operator === '<' &&
+        (callee.kind === 'Identifier' || callee.kind === 'MemberExpression')
+      ) {
+        this.rejectTypeArguments();
+      }
+
       this.next();
 
       // `**` is right-associative, all other binary operators are left-associative.

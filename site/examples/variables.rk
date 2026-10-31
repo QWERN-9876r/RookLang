@@ -7,3 +7,17 @@ a, b = b, a                // swap the values
 
 count += prices.length
 console.log(count, title, a, b)
+
+// The fields of an object go into variables, renamed ones and the rest too
+const guava = { name: "Guava", price: 120, stock: 7 }
+const { name, price: cost, ...rest } = guava
+console.log(name, cost, rest.stock)
+
+// A method in an object literal is written as in a class
+const shop = {
+    open: true,
+    label(hour number) string {
+        return hour < 20 ? "Open" : "Closed"
+    },
+}
+console.log(shop.label(19))

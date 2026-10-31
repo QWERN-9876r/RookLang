@@ -27,6 +27,8 @@ const SKIPPED = new Set(['node_modules', 'dist', 'build', 'out', 'coverage']);
 const MAX_FILES = 5000;
 
 const parsed = new Map<string, { version: string; names: ExportedName[] }>();
+/** The modules being read, for `export ... from` that go round in a cycle. */
+const reading = new Set<string>();
 
 /** The names exported by the other `.rk` modules of the package of `filename`. */
 export function projectExports(filename: string): ExportedName[] {
@@ -96,15 +98,19 @@ function exportsOf(path: string): ExportedName[] {
   const cached = parsed.get(path);
 
   if (cached?.version === version) return cached.names;
+  if (reading.has(path)) return [];
 
   let names: ExportedName[];
 
+  reading.add(path);
   try {
     const { program } = parse(readFileSync(path, 'utf8'), { markup: markupFor(path) });
 
     names = program.body.flatMap((statement) => exported(statement, path));
   } catch {
     names = [];
+  } finally {
+    reading.delete(path);
   }
 
   parsed.set(path, { version, names });
@@ -119,6 +125,7 @@ function exported(statement: ast.Statement, path: string): ExportedName[] {
     spaces: ExportSpace[],
   ): ExportedName => ({ name: node.name, kind, spaces, path });
 
+  if (statement.kind === 'ExportFromDeclaration') return reexported(statement, path);
   if (!('exported' in statement) || !statement.exported) return [];
 
   switch (statement.kind) {
@@ -147,4 +154,19 @@ function exported(statement: ast.Statement, path: string): ExportedName[] {
     default:
       return [];
   }
+}
+
+/** `export { Rows } from "./rows.rk"`: the names of that module, as this one exports them. */
+function reexported(statement: ast.ExportFromDeclaration, path: string): ExportedName[] {
+  if (!statement.source.value.endsWith('.rk')) return [];
+
+  const names = exportsOf(resolve(dirname(path), statement.source.value));
+
+  if (!statement.specifiers) return names.map((each) => ({ ...each, path }));
+
+  return statement.specifiers.flatMap(({ imported, local }) =>
+    names
+      .filter((each) => each.name === imported.name)
+      .map((each) => ({ ...each, name: local.name, path })),
+  );
 }

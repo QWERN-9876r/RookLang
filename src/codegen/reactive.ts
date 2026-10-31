@@ -5,7 +5,7 @@ import { wrappedMarkup } from '../decorators.ts';
 import { containsReturn, returnedMarkup } from '../recursion.ts';
 import { forEachChild } from '../walk.ts';
 import type { Live, Source } from './live.ts';
-import { readNames, rootName, writeTargets } from './mutations.ts';
+import { calledNames, readNames, rootName, writeTargets } from './mutations.ts';
 
 // Reactivity of components: which markup depends on which state, and which code changes it.
 
@@ -92,21 +92,23 @@ export class Reactive implements Live {
       ...wrappedMarkup(component),
     ];
     const seen = new Set<string>();
-    const visit = (node: ast.Node): void => {
+    // A function the markup only gives away, `act={copy}`, runs later and keeps its updates.
+    const visit = (node: ast.Node, body = false): void => {
       const names = new Set<string>();
 
-      readNames(node, names);
+      if (body) forEachChild(node, (child) => calledNames(child, names));
+      else calledNames(node, names);
       for (const name of names) {
         const fn = this.functions.get(name);
 
         if (!fn || seen.has(name)) continue;
         seen.add(name);
         this.renderFunctions.add(fn);
-        visit(fn);
+        visit(fn, true);
       }
     };
 
-    markup.forEach(visit);
+    markup.forEach((node) => visit(node));
   }
 
   /** Whether a statement of the body declares a function that the live markup calls. */

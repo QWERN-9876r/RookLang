@@ -2,15 +2,8 @@ import { instanceMembers } from './classes.ts';
 import { arrayOf, func, nonNull, nullable, union } from './constructors.ts';
 import { instantiate } from './generics.ts';
 import { iteratedBy } from './iterables.ts';
-import { memberNames } from './lazy.ts';
-import {
-  VOID,
-  type FunctionType,
-  type Member,
-  type ObjectType,
-  type Type,
-  type TypeParam,
-} from './model.ts';
+import { LazyMap, memberNames } from './lazy.ts';
+import { VOID, type FunctionType, type ObjectType, type Type, type TypeParam } from './model.ts';
 import { typesEqual } from './relations.ts';
 
 // Type parameters: substituting type arguments and inferring them from the arguments of a call.
@@ -91,7 +84,8 @@ export function substitute(type: Type, bindings: Map<TypeParam, Type>, fallback?
       // A generic method of a generic interface keeps its own parameters: `map<U>` of `Box<T>`.
       // A default that uses the interface's parameters needs a parameter of its own:
       // `then<TResult1 = T>` of `Promise<Response>` has the default Response.
-      const own = new Map(bindings);
+      // The same bindings, when no parameter needs a copy, so that substituteObject knows a cycle.
+      let own = bindings;
       const typeParams = type.typeParams
         .filter((param) => !bindings.has(param))
         .map((param) => {
@@ -101,6 +95,7 @@ export function substitute(type: Type, bindings: Map<TypeParam, Type>, fallback?
 
           const fresh = freshParam(param, substitute(param.default, bindings));
 
+          if (own === bindings) own = new Map(bindings);
           own.set(param, fresh);
 
           return fresh;
@@ -173,13 +168,44 @@ function substituteObject(
   // A named interface without parameters cannot use them; an object type literal might.
   if (type.name !== null || !containsTypeParam(type)) return type;
 
-  const members = new Map<string, Member>();
+  // Type literals of .d.ts files may refer to themselves, as the chains of Vitest do
+  // (`describe.concurrent.skip`): members are substituted when they are used, as in instantiate,
+  // and the same bindings give the same copy, so a member that comes back gets it.
+  let copies = fallback === undefined ? substituted.get(bindings) : undefined;
 
-  for (const [name, member] of type.members)
-    members.set(name, { ...member, type: sub(member.type) });
+  if (fallback === undefined && !copies) {
+    copies = new Map();
+    substituted.set(bindings, copies);
+  }
 
-  return { ...type, members, call: type.call && (sub(type.call) as FunctionType) };
+  const copy = copies?.get(type);
+
+  if (copy) return copy;
+
+  let call: FunctionType | null | undefined;
+  const result: ObjectType = {
+    ...type,
+    members: new LazyMap(
+      () => memberNames(type.members),
+      (name) => {
+        const member = type.members.get(name);
+
+        return member && { ...member, type: sub(member.type) };
+      },
+    ),
+  };
+
+  Object.defineProperty(result, 'call', {
+    enumerable: true,
+    get: () => (call === undefined ? (call = type.call && (sub(type.call) as FunctionType)) : call),
+  });
+  copies?.set(type, result);
+
+  return result;
 }
+
+/** The copies of object type literals, by the bindings they were made with. */
+const substituted = new WeakMap<Map<TypeParam, Type>, Map<ObjectType, ObjectType>>();
 
 const MAX_STRUCTURAL_DEPTH = 3;
 

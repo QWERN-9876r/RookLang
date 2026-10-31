@@ -42,6 +42,12 @@ export abstract class ExpressionEmitter extends Emitter {
 
   protected abstract topic(node: ast.TopicExpression): string;
 
+  /** `{ a: 1, ...b, f() { ... } }`; implemented by CallEmitter. */
+  protected abstract objectLiteral(node: ast.ObjectLiteral): string;
+
+  /** sql`select ... ${id}`; implemented by CallEmitter. */
+  protected abstract taggedTemplate(node: ast.TaggedTemplateExpression): string;
+
   /** `go f(x)`; implemented by CallEmitter. */
   protected abstract go(node: ast.GoExpression): string;
 
@@ -157,9 +163,13 @@ export abstract class ExpressionEmitter extends Emitter {
       case 'ThisExpression':
         return ['this', PRIMARY];
 
-      // `as` is only for the checker.
+      // `as` and `user!` are only for the checker.
       case 'AsExpression':
+      case 'NonNullExpression':
         return this.expressionWithPrecedence(node.expression);
+
+      case 'TaggedTemplateExpression':
+        return [this.taggedTemplate(node), POSTFIX];
 
       case 'SuperExpression':
         return ['super', PRIMARY];
@@ -280,24 +290,6 @@ export abstract class ExpressionEmitter extends Emitter {
     });
 
     return `${text}\``;
-  }
-
-  private objectLiteral(node: ast.ObjectLiteral): string {
-    if (node.properties.length === 0) return '{}';
-
-    const properties = node.properties.map((property) => {
-      if (property.kind === 'SpreadElement') {
-        return `...${this.expression(property.argument, ARROW)}`;
-      }
-
-      const key = property.key.kind === 'StringLiteral' ? property.key.raw : property.key.name;
-      const value = this.expression(property.value, ARROW);
-
-      // A renamed shorthand (`{ delete }` → `delete$`) must keep its key.
-      return property.shorthand && value === key ? key : `${key}: ${value}`;
-    });
-
-    return `{ ${properties.join(', ')} }`;
   }
 
   private arrowFunction(node: ast.ArrowFunction): string {

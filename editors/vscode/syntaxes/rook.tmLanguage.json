@@ -155,7 +155,7 @@
         {
           "comment": "`queue` and `topic` only before a type or the `<` of `queue<T>()`; elsewhere they are names, `queue < n`.",
           "name": "storage.type.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|type|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
         },
         {
           "comment": "`extends`, and `data` and `abstract` only before `class`: `abstract data class Point`.",
@@ -222,7 +222,7 @@
         },
         {
           "name": "support.type.primitive.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)(?:number|bigint|byte|u?int(?:8|16|32|64)|float(?:32|64)|string|bool|any|void|error|Content)(?![\\w$])"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:number|bigint|byte|u?int(?:8|16|32|64)|float(?:32|64)|string|bool|any|void|never|error|Content)(?![\\w$])"
         },
         {
           "name": "variable.other.constant.rook",

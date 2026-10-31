@@ -144,10 +144,16 @@ export function func(
   results: Type[],
   options: { required?: number; rest?: Type; typeParams?: TypeParam[]; iterator?: boolean } = {},
 ): FunctionType {
+  let required = options.required ?? params.length;
+
+  // A parameter that takes `void` may be left out at the end, as in TypeScript: the `resolve()`
+  // of a `Promise<void>`.
+  while (required > 0 && takesVoid(params[required - 1]!)) required--;
+
   return {
     kind: 'function',
     params,
-    required: options.required ?? params.length,
+    required,
     rest: options.rest ?? null,
     results,
     typeParams: options.typeParams ?? [],
@@ -181,4 +187,9 @@ export function createClass(name: string): ClassInfo {
   info.value = { kind: 'classValue', info };
 
   return info;
+}
+
+/** `void`, or a union with it: `void | PromiseLike<void>`. */
+function takesVoid(type: Type): boolean {
+  return type.kind === 'void' || (type.kind === 'union' && type.types.some(takesVoid));
 }

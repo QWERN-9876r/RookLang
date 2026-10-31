@@ -7,6 +7,21 @@ import { ARROW, POSTFIX } from './syntax.ts';
 
 /** Function bodies and `defer`. */
 export abstract class FunctionEmitter extends WebComponentEmitter {
+  /** `a, times = 1, ...parts`: default values and the rest parameter are those of JS. */
+  protected override params(params: ast.Parameter[]): string {
+    const names = super.params(params).split(', ');
+
+    return params
+      .map((param, i) => {
+        if (param.rest) return `...${names[i]!}`;
+
+        return param.defaultValue
+          ? `${names[i]!} = ${this.expression(param.defaultValue, ARROW)}`
+          : names[i]!;
+      })
+      .join(', ');
+  }
+
   /** Parameters and body of a function, method or func literal. */
   protected override func(params: ast.Parameter[], body: ast.BlockStatement): [string, string] {
     const defers = findDefers(body);

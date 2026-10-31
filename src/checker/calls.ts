@@ -231,8 +231,13 @@ export abstract class CallChecker extends MemberChecker {
 
     // Arrow functions without parameter types are checked last: their parameter types may depend
     // on type parameters inferred from the other arguments (e.g. `reduce(f, initial)`).
-    const needsContext = (arg: ast.Expression | ast.SpreadElement) =>
-      arg.kind === 'ArrowFunction' && arg.params.some((param) => param.type === null);
+    // So are object literals with such functions in their fields: `serve({ fetch: req => ... })`.
+    const needsContext = (arg: ast.Expression | ast.SpreadElement): boolean =>
+      (arg.kind === 'ArrowFunction' && arg.params.some((param) => param.type === null)) ||
+      (arg.kind === 'ObjectLiteral' &&
+        arg.properties.some(
+          (property) => property.kind === 'Property' && needsContext(property.value),
+        ));
     const inferring = this.inferring;
 
     this.inferring = new Set(signature.typeParams);
@@ -322,8 +327,12 @@ export abstract class CallChecker extends MemberChecker {
         }
 
         // An expected type with parameters that are not inferred yet would reject the argument:
-        // `[1, 2]` for `[]T` is checked on its own, and T is inferred from it.
-        const expected = substitute(param, inferred);
+        // `[1, 2]` for `[]T` is checked on its own, and T is inferred from it. An object literal
+        // checked last takes what is still open as its default, or unknown, as in TypeScript.
+        const expected =
+          contextPass && arg.kind === 'ObjectLiteral'
+            ? substitute(param, withDefaults(signature.typeParams, inferred))
+            : substitute(param, inferred);
         const type = this.checkValue(
           arg,
           arg.kind === 'ArrowFunction' || !containsTypeParam(expected, this.inferring)
@@ -336,4 +345,18 @@ export abstract class CallChecker extends MemberChecker {
       });
     }
   }
+}
+
+/** The inferred type parameters, and the default, or unknown, of each of the others. */
+export function withDefaults(
+  params: readonly TypeParam[],
+  inferred: ReadonlyMap<TypeParam, Type>,
+): Map<TypeParam, Type> {
+  const bindings = new Map(inferred);
+
+  for (const param of params) {
+    if (!bindings.has(param)) bindings.set(param, param.default ?? UNKNOWN);
+  }
+
+  return bindings;
 }

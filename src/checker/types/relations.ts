@@ -241,7 +241,8 @@ function missingMember(
     const found = own.get(name);
 
     if (!found) {
-      if (!member.method && isNullable(member.type)) continue;
+      // `unix?: never` of a `.d.ts` is a field that must be left out, as in the options of Bun.serve.
+      if (!member.method && (isNullable(member.type) || member.type.kind === 'void')) continue;
 
       return { name, found: null, expected: member.type };
     }

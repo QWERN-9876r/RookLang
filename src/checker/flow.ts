@@ -198,11 +198,24 @@ export function mergeFlows(a: Flow, b: Flow): Flow {
 }
 
 /** Go's terminating statements: execution never continues after them. */
+/**
+ * Statements that call a function whose result is `never`, `process.exit(1)`: the checker marks
+ * them, and they end a block as `throw` does.
+ */
+const neverEnding = new WeakSet<ast.Statement>();
+
+export function markNeverEnding(node: ast.Statement): void {
+  neverEnding.add(node);
+}
+
 export function isTerminating(node: ast.Statement): boolean {
   switch (node.kind) {
     case 'ReturnStatement':
     case 'ThrowStatement':
       return true;
+
+    case 'ExpressionStatement':
+      return neverEnding.has(node);
 
     case 'BlockStatement': {
       const last = node.body.at(-1);

@@ -29,7 +29,7 @@ export abstract class DecoratorParser extends DeclarationParser {
     }
 
     const name = this.parseIdentifier('decorator name');
-    const params = this.parseParams(false, true);
+    const params = this.parseParams(false, { defaults: true });
     const needs = this.parseNeeds();
     const includes = this.parseIncludes();
     const body = this.withContext({ ...FUNCTION_BODY, inComponent: true }, () =>

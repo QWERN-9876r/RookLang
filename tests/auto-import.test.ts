@@ -99,6 +99,15 @@ describe('completion with imports', () => {
     ]);
   });
 
+  it('offers the names that a module passes on with export ... from', () => {
+    const barrel = project({
+      // A module that passes on its own names makes no cycle.
+      'index.rk': 'export { formatDate as format } from "./lib.rk"\nexport * from "./index.rk"\n',
+    });
+
+    expect(imported(barrel, 'func main() {\n    form‸\n}\n')).toContain('format ./index.rk');
+  });
+
   it('writes the path from the directory of the module', () => {
     expect(imported(dir, 'func main() {\n    form‸\n}\n', 'ui/form.rk')).toContain(
       'formatDate ../lib.rk',

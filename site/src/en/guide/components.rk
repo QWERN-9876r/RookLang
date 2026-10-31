@@ -33,7 +33,9 @@ export comp Components() {
             its state. The use writes the changes into its variable with
             {" "}<code>{"bind:open={menu}"}</code>, as <code>bind:value</code> of an input does,
             so it needs no pair of <code>open</code> and <code>onClose</code>. Without
-            {" "}<code>bind:</code> the property is the component's own state.
+            {" "}<code>bind:</code> the property is the component's own state. The item of a
+            {" "}<code>for</code> can be bound too, <code>{"bind:todo={todo}"}</code>: what the
+            component changes in it updates the list.
         </p>
         <Example name="component-bind" />
         <p>

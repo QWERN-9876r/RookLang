@@ -57,7 +57,10 @@ describe('parser', () => {
       'func f() {\n    comp A() {\n        return <p />\n    }\n}',
       'components can only be declared at the top level of a module',
     ],
-    ['func f(a number = 1) {}', 'expected ")", found "="'],
+    [
+      'func f(a number = 1, b number) {}',
+      '"b" comes after a parameter with a default value, so it needs one too, e.g. b = ...',
+    ],
   ])('reports %j', (source, message) => {
     expect(errors(source)).toEqual([message]);
   });

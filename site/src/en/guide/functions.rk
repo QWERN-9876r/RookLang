@@ -16,6 +16,12 @@ export comp Functions() {
             stops its own timer. If the type of the function depends on its body, as for
             {" "}<code>{"const f = () => f()"}</code>, the variable needs a written type.
         </p>
+        <p>
+            Parameters at the end may have default values, <code>times = 1</code>, and the last
+            one may take the rest of the arguments in an array, <code>...prices []number</code>, as
+            in JS. A function before a template, <code>{"money`${120}`"}</code>, is its tag: it
+            gets the strings and the values, which are checked against its parameters.
+        </p>
         <Example name="functions" />
     </>
 }

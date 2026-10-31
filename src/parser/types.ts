@@ -102,10 +102,21 @@ export abstract class TypeParser extends ClassParser {
         this.expect('(');
 
         const names: string[] = [];
-        const params = this.parseList(')', () => this.parseParamType(names));
+        const params = this.groupParams(
+          this.parseList(')', () => this.parseParamType(names)),
+          names,
+        );
+        const rest = this.restOf(params, names);
         const results = this.parseResults();
 
-        return { kind: 'FuncType', params, results, ...iterator(names), ...this.span(start) };
+        return {
+          kind: 'FuncType',
+          params,
+          ...(rest ? { rest } : {}),
+          results,
+          ...iterator(names),
+          ...this.span(start),
+        };
       }
 
       // `chan T`, `chan<- T` that only sends, `<-chan T` that only receives.
@@ -178,7 +189,10 @@ export abstract class TypeParser extends ClassParser {
   protected parseParenthesizedType(): ast.TypeNode {
     const start = this.next().start;
     const names: string[] = [];
-    const params = this.parseList(')', () => this.parseParamType(names));
+    const params = this.groupParams(
+      this.parseList(')', () => this.parseParamType(names)),
+      names,
+    );
 
     if (this.accept('=>')) {
       const result = this.parseType();
@@ -212,38 +226,6 @@ export abstract class TypeParser extends ClassParser {
     );
   }
 
-  /** The type of a parameter of a function type, after its name if it has one, kept in `names`. */
-  private parseParamType(names: string[]): ast.TypeNode {
-    names.push(this.check('Identifier') && this.startsNamedParam() ? this.next().text : '');
-
-    return this.parseType();
-  }
-
-  /** `paths []string` in `(paths []string) => Shape`: a name before the type of a parameter. */
-  private startsNamedParam(): boolean {
-    const next = this.peek(1);
-
-    switch (next.kind) {
-      case 'Identifier':
-      case '?':
-      case '{':
-      case '(':
-      case 'func':
-      case 'chan':
-      case '<-':
-      case 'String':
-      case 'Number':
-        return true;
-
-      // `x []number` is named.
-      case '[':
-        return this.peek(2).kind === ']';
-
-      default:
-        return false;
-    }
-  }
-
   /** `{ name string; x, y number; area() number }`, separated by newlines, `;` or `,`. */
   protected override parseTypeMembers(): ast.TypeMember[] {
     this.expect('{');
@@ -254,7 +236,12 @@ export abstract class TypeParser extends ClassParser {
       () => this.check('}'),
       () => {
         members.push(...this.parseTypeMember());
-        if (!this.accept(',') && !this.accept(';') && !this.check('}')) {
+        if (
+          !this.accept(',') &&
+          !this.accept(';') &&
+          !this.check('}') &&
+          !this.afterTypeArguments()
+        ) {
           this.fail(`expected newline, ";" or "}" after member, found ${describe(this.peek())}`);
         }
       },
@@ -290,8 +277,8 @@ export abstract class TypeParser extends ClassParser {
     const name = this.parsePropertyName('member name');
 
     if (this.check('(')) {
-      const params = this.parseParams(false);
-      const results = this.parseResults();
+      const params = this.parseParams(false, { rest: 'typed' });
+      const results = this.parseResults(true);
 
       return [{ kind: 'MethodSignature', name, params, results, ...this.span(start) }];
     }

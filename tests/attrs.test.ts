@@ -38,7 +38,7 @@ describe('syntax', () => {
       'comp A(...attrs string) {\n    return <p {...attrs} />\n}',
       '...attrs has no type and no default: it gets the type of the element it is spread on',
     ],
-    ['func f(...args) {}', '...args is only for components: it takes the attributes of an element'],
+    ['func f(...args) {}', '...args needs the type of its array, e.g. ...args []any'],
   ])('reports %j', (source, message) => {
     expect(errors(source)).toEqual([message]);
   });

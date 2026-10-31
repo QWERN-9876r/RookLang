@@ -232,16 +232,16 @@ export abstract class StatementParser extends SimpleStatementParser {
       case 'interface':
         return this.parseInterface(start, exported);
 
-      case 'type': {
-        const declaration = this.parseTypeAlias(start, exported);
-
-        this.endStatement();
-
-        return declaration;
-      }
-
       default: {
         if (this.isDecoratorDeclaration()) return this.parseDecoratorDeclaration(start, exported);
+        // `type` is a keyword only before the name of a type: `const type = blob.type` is a name.
+        if (this.checkWord('type') && this.peek(1).kind === 'Identifier') {
+          const declaration = this.parseTypeAlias(start, exported);
+
+          this.endStatement();
+
+          return declaration;
+        }
 
         // `data` and `abstract` are keywords only before `class`: elsewhere they are names.
         let words = this.checkWord('abstract') ? 1 : 0;
@@ -257,7 +257,9 @@ export abstract class StatementParser extends SimpleStatementParser {
 
   /** A statement ends with a newline or `;`, or right before the `}` that closes its block. */
   protected endStatement(): void {
-    if (this.accept(';') || this.check('}') || this.check('EOF')) return;
+    if (this.accept(';') || this.check('}') || this.check('EOF') || this.afterTypeArguments()) {
+      return;
+    }
 
     const token = this.peek();
 

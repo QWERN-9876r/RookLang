@@ -1,5 +1,7 @@
-# Checks the compiler and deploys the documentation site (site/) to GitHub Pages on every push to
-# main. In the repository settings: Settings → Pages → Source: GitHub Actions.
+# Checks the compiler and builds the documentation site (site/) on every push to main, and deploys it
+# to GitHub Pages when publish.yml has published a new version, or when it is run by hand: so the
+# site describes the version that npm installs, not what is not released yet. In the repository
+# settings: Settings → Pages → Source: GitHub Actions.
 name: Pages
 
 on:
@@ -37,6 +39,7 @@ jobs:
 
   deploy:
     needs: build
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

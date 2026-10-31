@@ -24,8 +24,15 @@ export class LibraryTypes implements Library {
     const lib = program.getSourceFile(ts.getDefaultLibFilePath(program.getCompilerOptions()));
 
     if (!lib) return;
-    for (const symbol of this.checker.getSymbolsInScope(lib, ts.SymbolFlags.Value)) {
-      this.values.set(symbol.name, symbol);
+    // `declare global { export import Bun = BunModule }` of bun-types is an alias of a module.
+    for (const symbol of this.checker.getSymbolsInScope(
+      lib,
+      ts.SymbolFlags.Value | ts.SymbolFlags.Alias,
+    )) {
+      const value =
+        symbol.flags & ts.SymbolFlags.Alias ? this.checker.getAliasedSymbol(symbol) : symbol;
+
+      if (value.flags & ts.SymbolFlags.Value) this.values.set(symbol.name, value);
     }
 
     for (const symbol of this.checker.getSymbolsInScope(lib, ts.SymbolFlags.Type)) {

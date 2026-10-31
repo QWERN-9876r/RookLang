@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { reach, recordCaptures } from '../goroutines.ts';
 import { assignedNames, freeNames } from '../names.ts';
 import { forEachChild } from '../walk.ts';
-import { CallChecker } from './calls.ts';
+import { TagChecker } from './tags.ts';
 import { awaited } from './promise.ts';
 import { notCopied } from './transfer.ts';
 import { UNKNOWN, type Type } from './types.ts';
@@ -13,7 +13,7 @@ import { UNKNOWN, type Type } from './types.ts';
 // code of the function must not need what a worker does not have: the variables of the module and
 // a document.
 
-export abstract class GoroutineChecker extends CallChecker {
+export abstract class GoroutineChecker extends TagChecker {
   /** The functions already checked for what their code reaches, so each is reported once. */
   private readonly reached = new Set<string>();
 

@@ -11,6 +11,9 @@ import { CONDITIONAL, indentMore, upperFirst } from './syntax.ts';
  * returns its update.
  */
 export abstract class ControlFlowEmitter extends ElementEmitter {
+  /** The lists of the `{for}` loops around the code, by the names of their items. */
+  protected readonly loopLists = new Map<string, ast.Expression>();
+
   /** Writes the code that creates the content and returns what to append; see the class. */
   protected override liveControl(
     statement: ControlStatement,
@@ -118,7 +121,24 @@ export abstract class ControlFlowEmitter extends ElementEmitter {
   ): string {
     const block = new Block(parent);
     const params = loop ? loopParameters(loop) : component ? [parameter(component)] : [];
+    const saved = loop && this.loopLists.get(loop.value.name);
 
+    // `bind:row={row}` in the block writes into the list.
+    if (loop) this.loopLists.set(loop.value.name, loop.iterable);
+    try {
+      return this.blockFunction(block, statements, params, loop);
+    } finally {
+      if (loop && saved) this.loopLists.set(loop.value.name, saved);
+      else if (loop) this.loopLists.delete(loop.value.name);
+    }
+  }
+
+  private blockFunction(
+    block: Block,
+    statements: readonly ast.Statement[],
+    params: ast.Parameter[],
+    loop?: ast.ForInStatement,
+  ): string {
     return this.withFunction('none', params, () =>
       this.withRendering(this.rendering + 1, () => {
         const paramList = this.params(params);

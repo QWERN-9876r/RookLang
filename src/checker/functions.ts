@@ -5,9 +5,12 @@ import { isUntyped, callSignature } from './helpers.ts';
 import { awaitedResults, isPromise } from './promise.ts';
 import { TaggedUnionChecker } from './tagged-unions.ts';
 import {
+  ANY,
+  arrayOf,
   commonType,
   containsTypeParam,
   func,
+  isNullable,
   nonNull,
   UNKNOWN,
   type FunctionType,
@@ -32,6 +35,8 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
       closure?: boolean;
       paramKind?: BindingKind;
       async?: boolean;
+      /** A callback whose result in a `.d.ts` is `void | T`: it may end without a value. */
+      mayEnd?: boolean;
       inspect?: (scope: Scope) => void;
     } = {},
   ): Type[] {
@@ -50,22 +55,40 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
       isConstructor: options.isConstructor ?? false,
       isComponent: options.isComponent ?? false,
       isAsync: async,
+      mayEnd: options.mayEnd === true || (declared?.length === 1 && declared[0]!.kind === 'any'),
     };
     try {
       // A generic function: its type parameters are types in its body.
       for (const typeParam of type.typeParams) this.scope.types.set(typeParam.name, typeParam);
-      params.forEach((param, i) =>
+      params.forEach((param, i) => {
+        // `...parts []any` is the array of the arguments; `times = 1` sees the parameters before it.
+        const paramType =
+          param.rest && type.rest ? arrayOf(type.rest) : (type.params[i] ?? UNKNOWN);
+
+        if (param.defaultValue && !options.isComponent) {
+          this.expectAssignable(
+            this.checkValue(param.defaultValue, paramType),
+            paramType,
+            param.defaultValue,
+          );
+        }
+
         // A bound property of a component, `bind active string`, changes as its state does.
         this.declareValue(
           param.name,
           param.bind ? 'state' : (options.paramKind ?? 'param'),
-          type.params[i] ?? UNKNOWN,
-        ),
-      );
+          paramType,
+        );
+      });
       if (body.kind === 'BlockStatement') {
         this.checkStatementList(body.body, false);
         options.inspect?.(this.scope);
-        if (declared && declared.length > 0 && !isTerminating(body)) {
+        if (declared?.length === 1 && declared[0]!.kind === 'never' && !isTerminating(body)) {
+          this.error(
+            'a function whose result is never must not reach its end: throw, or call one that never returns, e.g. process.exit(1)',
+            { start: body.end - 1, end: body.end },
+          );
+        } else if (declared && declared.length > 0 && !this.fn.mayEnd && !isTerminating(body)) {
           this.error('missing return at the end of the function', {
             start: body.end - 1,
             end: body.end,
@@ -150,17 +173,29 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
     const context = expected ? callSignature(nonNull(expected)) : null;
     // Callbacks passed to untyped JS functions get untyped parameters.
     const untypedContext = expected !== null && isUntyped(nonNull(expected));
-    const params = node.params.map((param, i) => {
+    const last = node.params.at(-1);
+    const plain = last?.rest ? node.params.slice(0, -1) : node.params;
+    const params = plain.map((param, i) => {
       if (param.type) return this.resolveType(param.type);
 
       const fromContext = context ? (context.params[i] ?? context.rest) : null;
 
       if (fromContext && !containsTypeParam(fromContext, this.inferring)) return fromContext;
       if (untypedContext) return nonNull(expected);
+      if (param.defaultValue)
+        return this.inferredType(this.checkValue(param.defaultValue), param.defaultValue);
       this.error(`cannot infer the type of parameter "${param.name.name}": add a type`, param);
 
       return UNKNOWN;
     });
+    // `(...parts) => ...` takes the rest of the context, or anything.
+    const restType = last?.rest
+      ? last.type
+        ? this.resolveType(last.type)
+        : arrayOf(context?.rest ?? ANY)
+      : null;
+    const rest = restType?.kind === 'array' ? restType.element : restType ? ANY : null;
+    const firstDefault = plain.findIndex((param) => param.defaultValue !== null);
     // Known result types from the context are checked; otherwise they are inferred. Those of an
     // async function must be a Promise.
     const contextResults =
@@ -170,7 +205,10 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
       (!node.async || (context.results.length === 1 && isPromise(context.results[0]!)))
         ? context.results
         : null;
-    const type = func(params, []);
+    const type = func(params, [], {
+      required: firstDefault === -1 ? params.length : firstDefault,
+      ...(rest ? { rest } : {}),
+    });
     const checkBody = () => {
       const inferring = this.inferring;
 
@@ -179,6 +217,7 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
         return this.checkFunction(node.params, type, contextResults, node.body, {
           closure: true,
           async: node.async,
+          mayEnd: contextResults?.length === 1 && isNullable(contextResults[0]!),
         });
       } finally {
         this.inferring = inferring;

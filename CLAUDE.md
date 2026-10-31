@@ -10,9 +10,9 @@ markup and components in `docs/components.md`.
 - The maintainer writes in Russian: answer in Russian.
 - **The maintainer decides the syntax.** Do not invent syntax or change the meaning of existing
   constructs on your own: offer a few options side by side, with a recommendation, and ask.
-- Commit and push only when asked. Pushing to `main` deploys the site
-  (https://qwern-9876r.github.io/RookLang/) through `.github/workflows/pages.yml`, so confirm
-  before every push.
+- Commit and push only when asked. Pushing a new version in `package.json` to `main` publishes it
+  to npm and the stores and deploys the site (https://qwern-9876r.github.io/RookLang/) for it
+  (`.github/workflows/publish.yml` runs `pages.yml`), so confirm before every push.
 - The working tree may hold the maintainer's own uncommitted edits (e.g. `examples/hello.rk`).
   Do not commit, stash or revert them: stage files by name, not with `git add -A`.
 - Commit messages: an English subject in the imperative ("Add @html-tag: ..."), then a body that

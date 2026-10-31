@@ -104,7 +104,10 @@ export abstract class LoopChecker extends BytesChecker {
 
     this.withScope(() => {
       if (node.key) this.declareValue(node.key, 'loop', key);
-      this.declareValue(node.value, 'loop', value);
+
+      const item = this.declareValue(node.value, 'loop', value);
+
+      if (iterable.kind === 'array') item.iterable = node.iterable;
       if (node.withKey) this.checkListKey(node.withKey);
       this.dropNarrowing(node.body);
 

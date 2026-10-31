@@ -14,7 +14,7 @@ import { isYieldCall } from '../iterators.ts';
 import { TYPED_ARRAYS, TYPED_ELEMENTS } from '../typed-arrays.ts';
 import { hasOptionalLink } from './analysis.ts';
 import { ExpressionEmitter } from './expressions.ts';
-import { ARROW, BINARY, POSTFIX } from './syntax.ts';
+import { ARROW, BINARY, POSTFIX, PRIMARY } from './syntax.ts';
 
 // Calls, `new`, array literals and conversions. A `[]byte` is a Uint8Array: a literal where the
 // checker found one expected becomes `new Uint8Array([...])`, and the conversions of Go between
@@ -62,6 +62,36 @@ export abstract class CallEmitter extends ExpressionEmitter {
    * given to it, after the local names it uses; the arguments are copied there. In the worker
    * module a literal runs in the same worker, with copies of those names as its first parameters.
    */
+  protected override objectLiteral(node: ast.ObjectLiteral): string {
+    if (node.properties.length === 0) return '{}';
+
+    const properties = node.properties.map((property) => {
+      if (property.kind === 'SpreadElement') {
+        return `...${this.expression(property.argument, ARROW)}`;
+      }
+
+      const key = property.key.kind === 'StringLiteral' ? property.key.raw : property.key.name;
+
+      // `fetch(req) { ... }`: a method of JS, whose `this` is the object.
+      if (property.method && property.value.kind === 'FuncExpression') {
+        const [params, body] = this.func(property.value.params, property.value.body);
+
+        return `${property.value.async ? 'async ' : ''}${key}(${params}) ${body}`;
+      }
+
+      const value = this.expression(property.value, ARROW);
+
+      // A renamed shorthand (`{ delete }` → `delete$`) must keep its key.
+      return property.shorthand && value === key ? key : `${key}: ${value}`;
+    });
+
+    return `{ ${properties.join(', ')} }`;
+  }
+
+  protected override taggedTemplate(node: ast.TaggedTemplateExpression): string {
+    return `${this.expression(node.tag, POSTFIX)}${this.expression(node.quasi, PRIMARY)}`;
+  }
+
   protected override go(node: ast.GoExpression): string {
     const { callee } = node.call;
     const literal = callee.kind === 'FuncExpression' ? callee : null;

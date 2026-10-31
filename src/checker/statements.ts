@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { guardedByError } from './error-results.ts';
 import { AssignmentChecker } from './assignments.ts';
 import { placeOf, type Binding } from './context.ts';
-import { isTerminating } from './flow.ts';
+import { isTerminating, markNeverEnding } from './flow.ts';
 import { isUntyped, isNumeric, ownStatements } from './helpers.ts';
 import {
   func,
@@ -36,7 +36,7 @@ export abstract class StatementChecker extends AssignmentChecker {
         break;
 
       case 'ExpressionStatement':
-        this.checkExpression(node.expression, null);
+        if (this.checkExpression(node.expression, null).kind === 'never') markNeverEnding(node);
         break;
 
       case 'JsxElementStatement':
@@ -112,6 +112,7 @@ export abstract class StatementChecker extends AssignmentChecker {
         break;
 
       case 'ImportDeclaration':
+      case 'ExportFromDeclaration':
       case 'FuncDeclaration':
       case 'ComponentDeclaration':
       case 'DecoratorDeclaration':
@@ -245,7 +246,34 @@ export abstract class StatementChecker extends AssignmentChecker {
           }
         });
         if (node.keyword === 'const' && !declared) this.linkError(node, bindings);
+        if (node.exported && !declared) this.componentInConstant(node);
       },
+    );
+  }
+
+  /**
+   * `export const Rows = Inner` of a component, without a type: its .d.ts would lose the
+   * properties, and other modules import a component by its name, with `export { ... } from`.
+   */
+  private componentInConstant(node: ast.VariableDeclaration): void {
+    const [value] = node.values;
+    const local = value?.kind === 'Identifier' ? value.name : null;
+
+    if (local === null || !this.lookupValue(local)?.component) return;
+
+    const imported = this.program.body.flatMap((statement) =>
+      statement.kind === 'ImportDeclaration'
+        ? statement.namedImports
+            .filter((specifier) => specifier.local.name === local)
+            .map(
+              (specifier) => `export { ${specifier.imported.name} } from ${statement.source.raw}`,
+            )
+        : [],
+    );
+
+    this.error(
+      `a component is exported by its name, not in a constant without a type: ${imported.length > 0 ? `write ${imported[0]!}` : 'write export comp where it is declared'}, or give the constant a type, e.g. export const ${node.names[0]!.name} comp(title string) = ${local}`,
+      node,
     );
   }
 
@@ -271,7 +299,9 @@ export abstract class StatementChecker extends AssignmentChecker {
     const { names, values } = node;
     let types: Type[];
 
-    if (node.body) {
+    if (node.pattern) {
+      types = this.patternTypes(node);
+    } else if (node.body) {
       types = [this.derivedBlockType(names[0]!.name, node.body.body, declared)];
     } else if (values.length === 0) {
       if (declared && !hasZeroValue(declared) && declared.kind !== 'unknown') {

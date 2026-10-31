@@ -106,7 +106,7 @@ export abstract class ClassParser extends DecoratorParser {
         if (modifier) this.error(`a constructor cannot be ${word}`, modifier.start, modifier.end);
       }
 
-      const params = this.parseParams(false, false, false, true);
+      const params = this.parseParams(false, { defaults: true, rest: 'typed', properties: true });
       const resultsStart = this.peek().start;
 
       if (this.parseResults().length > 0) {
@@ -219,7 +219,7 @@ export abstract class ClassParser extends DecoratorParser {
       this.error(`a ${accessor}ter cannot be async`, asyncToken.start, asyncToken.end);
     }
 
-    const params = this.parseParams(false);
+    const params = this.parseParams(false, { defaults: true, rest: 'typed' });
     const results = this.parseResults();
     const header = this.span(start);
 
@@ -285,7 +285,8 @@ export abstract class ClassParser extends DecoratorParser {
   }
 
   protected override parseTypeAlias(start: number, exported: boolean): ast.TypeAliasDeclaration {
-    this.expect('type');
+    // The word `type`, which the caller has seen.
+    this.next();
 
     const name = this.parseIdentifier('type name');
     const typeParams = this.parseTypeParams();

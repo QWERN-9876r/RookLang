@@ -17,3 +17,19 @@ const factorial = func(n number) number {
     return n <= 1 ? 1 : n * factorial(n - 1)
 }
 console.log(square(4), doubled, factorial(5))
+
+// Default values at the end, and the rest of the arguments in an array
+func greet(name string = "guest", times = 1) string {
+    return `Hi, ${name}! `.repeat(times)
+}
+
+func total(label string, ...prices []number) string {
+    return `${label}: ${prices.reduce((sum, p) => sum + p, 0)}`
+}
+console.log(greet(), greet("Ann", 2), total("cart", 120, 90))
+
+// A tag gets the strings of a template and its values
+func money(parts []string, ...values []number) string {
+    return parts.map((part, i) => i < values.length ? `${part}${values[i].toFixed(2)} ₽` : part).join("")
+}
+console.log(money`Guavas cost ${120} and limes ${90}`)

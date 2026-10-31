@@ -1,11 +1,11 @@
 import type * as ast from '../ast.ts';
 import { isKeyword, type StringToken, type TokenKind } from '../lexer/token.ts';
-import { ExpressionParser } from './expressions.ts';
+import { ObjectParser } from './objects.ts';
 import { FUNCTION_BODY, ParseError, describe, templateElement } from './syntax.ts';
 
 // Functions, `new`, literals of arrays, objects and templates, names.
 
-export abstract class LiteralParser extends ExpressionParser {
+export abstract class LiteralParser extends ObjectParser {
   /** Whether the `(` at the current position opens arrow function parameters: `(...) =>`. */
   protected override isArrowFunctionAhead(): boolean {
     let depth = 0;
@@ -44,7 +44,7 @@ export abstract class LiteralParser extends ExpressionParser {
         },
       ];
     } else {
-      params = this.parseParams(true);
+      params = this.parseParams(true, { defaults: true, rest: 'typed' });
     }
 
     this.expect('=>');
@@ -75,7 +75,7 @@ export abstract class LiteralParser extends ExpressionParser {
 
   protected override parseFuncExpression(async = false): ast.FuncExpression {
     const start = this.expect('func').start;
-    const params = this.parseParams(false);
+    const params = this.parseParams(false, { defaults: true, rest: 'typed' });
     const results = this.parseResults();
     const body = this.parseFunctionBody(async);
 
@@ -105,6 +105,9 @@ export abstract class LiteralParser extends ExpressionParser {
         ...this.span(callee.start),
       };
     }
+
+    // `new Promise<void>(...)`: the type arguments are inferred, as in calls.
+    if (this.check('<')) this.rejectTypeArguments();
 
     const args = this.check('(') ? this.parseArguments() : [];
 
@@ -287,34 +290,6 @@ export abstract class LiteralParser extends ExpressionParser {
     return { kind: 'ConversionExpression', type, argument, ...this.span(start) };
   }
 
-  protected override parseObjectLiteral(): ast.ObjectLiteral {
-    const start = this.expect('{').start;
-    const properties = this.nested(() => this.parseList('}', () => this.parseProperty()));
-
-    return { kind: 'ObjectLiteral', properties, ...this.span(start) };
-  }
-
-  protected parseProperty(): ast.Property | ast.SpreadElement {
-    const token = this.peek();
-
-    if (token.kind === '...') return this.parseElement() as ast.SpreadElement;
-
-    const key = token.kind === 'String' ? this.parseStringLiteral() : this.parsePropertyName();
-
-    if (this.accept(':')) {
-      const value = this.parseExpression();
-
-      return { kind: 'Property', key, value, shorthand: false, ...this.span(token.start) };
-    }
-
-    // Shorthand `{ name }` means `{ name: name }`, so the key must be a plain name.
-    if (key.kind !== 'Identifier' || token.kind !== 'Identifier') {
-      this.fail(`expected ":" after property name, found ${describe(this.peek())}`);
-    }
-
-    return { kind: 'Property', key, value: { ...key }, shorthand: true, ...this.span(token.start) };
-  }
-
   protected override parseTemplate(first: StringToken): ast.TemplateLiteral {
     this.next();
 
@@ -326,6 +301,17 @@ export abstract class LiteralParser extends ExpressionParser {
         expressions.push(this.nested(() => this.parseExpression()));
 
         const part = this.peek();
+
+        if (
+          (part.kind === '++' || part.kind === '--') &&
+          expressions.at(-1)?.kind === 'Identifier'
+        ) {
+          const name = (expressions.at(-1) as ast.Identifier).name;
+
+          this.fail(
+            `"${part.kind}" is a statement and cannot be used inside a template: use ${name} here and write ${name}${part.kind} on a line of its own`,
+          );
+        }
 
         if (part.kind !== 'TemplateMiddle' && part.kind !== 'TemplateTail') {
           this.fail(`expected "}" to close the template substitution, found ${describe(part)}`);

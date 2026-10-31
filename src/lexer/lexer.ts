@@ -38,7 +38,11 @@ class Lexer extends StyleLexer {
       }
 
       if (this.pos >= this.text.length) break;
+
+      const count = this.tokens.length;
+
       this.scanToken();
+      if (sawNewline && this.tokens.length > count) this.tokens[count]!.newlineBefore = true;
     }
 
     if (this.lastEndsStatement()) this.insertSemicolon();

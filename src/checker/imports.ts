@@ -1,22 +1,97 @@
 import type * as ast from '../ast.ts';
 import { CheckerBase } from './base.ts';
-import type { DecoratorInfo } from './context.ts';
+import type { DecoratorInfo, ModuleExports } from './context.ts';
 import { ANY, LazyMap, memberNames, UNKNOWN, type Member, type Type } from './types.ts';
 
 // Imports: the names of other modules, typed by their exports (`importModule` for `.rk` modules,
 // `importDeclarations` for the rest), or untyped when nothing is known about them.
 
 export abstract class ImportChecker extends CheckerBase {
-  protected declareImport(node: ast.ImportDeclaration): void {
-    const specifier = node.source.value;
-    const isRook = specifier.endsWith('.rk');
-    const result = isRook
+  /** `export { Rows } from "./rows.rk"`: what this module exports of another, by name here. */
+  protected readonly reexported: ModuleExports = {
+    values: new Map(),
+    types: new Map(),
+    decorators: new Map(),
+    components: new Map(),
+    shared: new Set(),
+  };
+
+  /** The exports of the module that an import or an `export ... from` names. */
+  private exportsOf(source: ast.StringLiteral): ModuleExports | null {
+    const specifier = source.value;
+    const result = specifier.endsWith('.rk')
       ? this.options.importModule?.(specifier)
       : this.options.importDeclarations?.(specifier);
 
-    if (result && 'error' in result) this.error(result.error, node.source);
+    if (result && 'error' in result) this.error(result.error, source);
 
-    const exports = result && 'exports' in result ? result.exports : null;
+    return result && 'exports' in result ? result.exports : null;
+  }
+
+  /**
+   * `export { Row, Rows } from "./rows.rk"`: the names go into the exports of this module, with
+   * what a component or a decorator brings. Without types of the module, nothing is known of them.
+   */
+  protected declareExportFrom(node: ast.ExportFromDeclaration): void {
+    const exports = this.exportsOf(node.source);
+
+    if (!exports) return;
+
+    const specifiers =
+      node.specifiers ??
+      [
+        ...new Set([
+          ...exports.values.keys(),
+          ...exports.types.keys(),
+          ...(exports.decorators?.keys() ?? []),
+          ...(exports.components?.keys() ?? []),
+        ]),
+      ].map((name): ast.ImportSpecifier => {
+        const id: ast.Identifier = { kind: 'Identifier', name, start: node.start, end: node.start };
+
+        return {
+          kind: 'ImportSpecifier',
+          imported: id,
+          local: id,
+          start: node.start,
+          end: node.start,
+        };
+      });
+    const into = this.reexported;
+
+    for (const { imported, local } of specifiers) {
+      const name = imported.name;
+      const value = exports.values.get(name);
+      const type = exports.types.get(name);
+      const decorator = exports.decorators?.get(name);
+      const component = exports.components?.get(name);
+
+      if ([value, type, decorator, component].every((each) => each === undefined)) {
+        this.error(`"${name}" is not exported by "${node.source.value}"`, imported);
+        continue;
+      }
+
+      // Their code and the hidden names it uses keep the name they have in their module.
+      if ((decorator || component) && local.name !== name) {
+        this.error(
+          `renaming ${component ? 'components' : 'decorators'} is not supported yet: export { ${name} }`,
+          local,
+        );
+        continue;
+      }
+
+      if (value !== undefined) into.values.set(local.name, value);
+      if (type !== undefined) into.types.set(local.name, type);
+      if (decorator) into.decorators!.set(name, decorator);
+      if (component) into.components!.set(name, component);
+      if (exports.shared?.has(name)) into.shared!.add(local.name);
+    }
+  }
+
+  protected declareImport(node: ast.ImportDeclaration): void {
+    const specifier = node.source.value;
+    const isRook = specifier.endsWith('.rk');
+    const exports = this.exportsOf(node.source);
 
     if (node.defaultImport && exports && !isRook) {
       // `import fs from "node:fs"`: the default export of a module with types.

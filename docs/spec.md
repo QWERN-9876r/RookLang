@@ -51,7 +51,12 @@ Hence, as in Go:
 **Unlike Go**, no semicolon is inserted if the next line starts
 
 - with `.` or `?.`, so the familiar chains of calls work;
+- with `?` or `:`, so a conditional expression can be split before its operators;
 - with a closing `)`, `]` or `}`, so a comma after the last item of a multi-line list is optional.
+
+A line may end with `>` too: after the type arguments of a declaration, `votes Map<string, number>`,
+the line break ends it, while `a >` with a value on the next line goes on, as other operators do.
+A line that ends with `x!` (see "null and null safety") ends there too.
 
 ```go
 const names = users
@@ -62,6 +67,10 @@ const point = {
     x: 1,
     y: 2
 }
+
+const label = count == 0
+    ? "empty"
+    : `${count} items`
 ```
 
 ### Literals
@@ -74,19 +83,27 @@ const point = {
   and after a value it divides: `a / b / c`. The compiler checks the pattern and the flags, as JS
   does when the module loads, so `/(/` is a compile error.
 - Arrays `[1, 2, ...rest]` and objects `{ name: "Ann", age, "content-type": t, ...defaults }`
-  (the shorthand `age` and spread are as in JS).
+  (the shorthand `age` and spread are as in JS). A method is written in an object as in a class,
+  `{ fetch(req Request) Response { ... } }`, with the types of a `func` literal, and is a method in
+  JS. Its `this` would be the object, not the class around it, so it cannot be used there.
+- A tagged template, `` sql`select * from users where id = ${id}` ``, calls the function before it
+  with the strings, a `TemplateStringsArray`, and the values, as in JS: the values are checked as
+  the arguments after the strings, `func sql(parts TemplateStringsArray, ...values []any)`. The tag
+  is on the same line as the template.
 
 ### Keywords
 
 ```
-func  comp  return  let  const  type  interface  class  extends  new  this  super
+func  comp  return  let  const  interface  class  extends  new  this  super
 if  else  for  in  break  continue  switch  case  default  defer
 try  catch  finally  throw  import  export  async  await  go  chan
 null  true  false  typeof  instanceof
 ```
 
 Inside a class declaration `static`, `private`, `protected`, `public`, `readonly`, `abstract` and
-`implements` are keywords too, and so are `get` and `set` before the name of a method; before
+`implements` are keywords too, and so are `get` and `set` before the name of a method; at the
+start of a statement before a name `type` declares a type, `type Id string`, and elsewhere it is a
+name, `const type = blob.type`; before
 `class` so are `data` and `abstract`, in `import` and `export` so is `from`, at the start of a statement in a component's body
 `state`, `derived`, `ref`, `style`, `mount` and `effect`, at the start of a top-level declaration `dec`, after its
 parameters `needs` and `includes`, in a decorator's body `public`, before `{` at the start of a statement
@@ -98,7 +115,7 @@ After `.` and in object keys, keywords can be used as ordinary names: `xs.map(f)
 `{ default: 1 }`.
 
 Predeclared identifiers (not keywords, they can be redeclared): the types `number`, `string`,
-`bool`, `any`, `error` and the functions `error()`, `close()` (of channels) and the others of
+`bool`, `any`, `error`, `void`, `never` and the functions `error()`, `close()` (of channels) and the others of
 goroutines and channels: `transfer()`, `after()`, `tick()`, `cancel()` and `stream()`.
 
 Names that start with `$$` are reserved for generated code (`$$defer`, `$$0`). Names that are valid
@@ -130,6 +147,17 @@ Multiple assignment, as in Go:
 ```go
 a, b = b, a                // → [a, b] = [b, a];
 ```
+
+The fields of an object go into variables as in JS, one level deep, in `const` and `let`:
+
+```go
+const { name, size: bytes, ...rest } = file    // rest has the other fields
+const { "content-type": mime } = headers
+```
+
+Each variable has the type of its field, and a field that the object does not have is an error. A
+method is not taken: without its object it would lose `this`. Arrays are unpacked with several
+values instead, `const first, second = pair()`.
 
 ### Zero values
 
@@ -205,6 +233,8 @@ only reports at compile time what would fail at run time.
 | `string`          | strings                                      | `string`            |
 | `bool`            | `true`, `false`                              | `boolean`           |
 | `any`             | anything, unchecked                          | —                   |
+| `void`            | no value: `Promise<void>`                    | `undefined`         |
+| `never`           | no value at all: a function that never ends  | —                   |
 | `error`           | an error or `null`                           | `Error` or `null`   |
 | `[]T`             | an array                                     | `Array`             |
 | `[]byte`          | bytes                                        | `Uint8Array`        |
@@ -230,6 +260,16 @@ methods of the needed types.
 - **A function type as an arrow,** `(paths []string) => Shape`, is the same as
   `func([]string) Shape`; the names of the parameters only document them, and `=> void` means no
   result. Parentheses with one type and no arrow still group: `[](string | number)`.
+- **The parameters of a function type** may have names, which only document them; as in Go, if one
+  has a name, all have, so `func(a, b number) number` takes two numbers. The rest of the arguments
+  is last, `func(string, ...[]any)`.
+- **`void`** is the value of a Promise without one, `Promise<void>`, and of a callback whose result
+  is not used. As the result of a function it is no result: `close() void` is `close()`. A function
+  whose result in a `.d.ts` is `any` or `void | T` may end without `return`, and a parameter that
+  takes `void` may be left out at the end, as the `resolve()` of a `Promise<void>`.
+- **`never`** is the result of a function that never ends: it throws or exits, as `process.exit`.
+  Its body must not reach its end, and the code after a call of it is not reached, so the call
+  narrows types as `throw` does (section 12).
 - **An object used as a map,** `{ [string]: number }`, has any keys with values of that type; the
   key is `string` or `number`. An object literal or another object fits it if all its fields do.
   `scores["ann"]` and `scores[name]` are a `number`, and `delete scores[name]` removes a key.
@@ -546,7 +586,11 @@ console.log(u.name)                  // and here: on null the function has retur
 - Narrowing works for local variables, parameters and paths of fields from them: in
   `if user.boss != null` the value `user.boss.name` can be read (section 12). A field of `this`
   (`this.user`) is first put into a `const`.
-- `error` always allows `null`; there is no need to write `?error`.
+- `error` always allows `null`; there is no need to write `?error`. A function that gets an error
+  already checked takes `Error`, which does not: `func describe(err Error) string`.
+- `x!` takes a value not to be `null`, as in TypeScript: `env.PORT!` is a `string`. Nothing is
+  checked at runtime, so a wrong `!` fails where the value is used; a check or `??` is safer. The
+  `!` is right after the value, so `!x` before one stays a negation.
 - `xs[i]` has the type `T`, not `?T`: the compiler does not catch indexes out of bounds (nor does
   TypeScript by default).
 - Values of type `any`, including everything imported from JS modules without types, are not
@@ -577,8 +621,30 @@ function greet(name) {
 Adjacent parameters of the same type can be grouped: `a, b number` is the same as
 `a number, b number`.
 
-An object result type goes in parentheses, or its `{` could not be told from the function's body:
-`func origin() ({ x, y number }) { ... }`.
+An object type is a result when the body follows it, `func origin() { x, y number } { ... }`; in
+parentheses, `({ x, y number })`, it is one anywhere.
+
+### Default values and the rest of the arguments
+
+```go
+func greet(name string = "you", times = 1) string {
+    return name.repeat(times)
+}
+
+func log(level string, ...parts []any) {
+    console.log(level, ...parts)
+}
+
+greet()                    // "you"
+log("info", "saved", 3)
+```
+
+- Parameters with default values come last and may be left out in a call. A default value without
+  a type gives the parameter its type, `times = 1`, and sees the parameters before it.
+- `...parts []any` takes the arguments after the others in an array; it is the last parameter, and
+  each argument is checked against the type of the elements.
+- Both are written the same way in functions, methods, constructors, `func` literals and arrow
+  functions, and stay the same in JS.
 
 ### Multiple results
 
@@ -2023,6 +2089,15 @@ compile time.
   folder, and `--out-dir build/` puts the `.js` files into a separate folder with the same
   structure. If any file has errors, no file is written.
 - `rook run` compiles the imported `.rk` files on the fly.
+- `export { Row, Rows } from "./rows.rk"` and `export * from "./rows.rk"` pass on names of another
+  module, as in JS, for a module that gathers the public API of a folder (`index.rk`). The names
+  are not declared in the module itself. Types, components, decorators and state go with what they
+  need; a component or a decorator keeps its name. A component is exported by its name, so
+  `export const Rows = Inner` of a component without a type is an error that shows this form.
+- Besides relative paths, `.rk` modules are found by the aliases that Vite and TypeScript know:
+  subpath imports of `package.json`, `"imports": { "#ui/*": "./src/ui/*" }`, and the `paths` of
+  `tsconfig.json`, `"@/*": ["./src/*"]`. Their imports are typed, and `rook build` writes them with
+  `.js`: `"#ui/button.rk"` → `"#ui/button.js"`.
 
 ### The runtime
 
@@ -2251,7 +2326,7 @@ document.body.append(<Card title="Profile"><p>Text</p></Card>)
   once, when the component is created, so the choice between the `return`s is made once: if what
   the condition reads changes later, the component stays the same. For markup that changes with
   state, use `{if ...}` in the markup.
-- **Properties.** These are parameters in Go syntax; only they can have default values. A property
+- **Properties.** These are parameters in Go syntax, with default values at the end. A property
   of type `?T` or with a default value may be left out. Attributes are checked like the arguments
   of a call: an extra attribute or a missing required property is an error.
 - **`children Content`** gets the markup between the tags.
@@ -2789,7 +2864,8 @@ The type of a local variable or a parameter narrows from `?T` to `T`, and so doe
 path of fields from one, `order.delivery` (see below):
 
 - inside `if x != null { ... }` and in the branches of `?:`;
-- after `if x == null { return }` (and `throw`, `break`, `continue`);
+- after `if x == null { return }` (and `throw`, `break`, `continue`, or a call of a function whose
+  result is `never`, as `process.exit(1)`);
 - on the right side of `x != null && x.ok` and `x == null || x.ok`;
 - in the body of the loop `for x != null { ... }`;
 - after an assignment of a value that cannot be `null`.

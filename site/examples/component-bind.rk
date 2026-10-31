@@ -7,13 +7,26 @@ comp Panel(bind open bool = false, title string, children Content) {
     </section>
 }
 
+interface Todo {
+    title string
+    done bool
+}
+
+// The item of a for is bound too: what the component changes updates the list
+comp Check(bind todo Todo) {
+    return <label><input type="checkbox" bind:checked={todo.done} /> {todo.title}</label>
+}
+
 comp Page() {
     state menu = false
+    state todos []Todo = [{ title: "Buy guavas", done: false }, { title: "Wash limes", done: true }]
     return <div>
         <button onClick={menu = !menu}>{menu ? "Hide" : "Show"} the menu</button>
         <Panel bind:open={menu} title="Menu">Close it with ×: the button above knows.</Panel>
         {/* Without bind: the property is the panel's own state */}
         <Panel open={true} title="Note">This one keeps its state to itself.</Panel>
+        {for todo in todos { <Check bind:todo={todo} /> }}
+        <p>{todos.filter(t => t.done).length} done</p>
     </div>
 }
 

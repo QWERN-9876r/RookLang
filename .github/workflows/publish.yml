@@ -1,5 +1,6 @@
 # Publishes the package to npm when main gets a version in package.json that npm does not have yet,
-# and tags that commit, e.g. v0.2.0. npm trusts this workflow instead of a token (trusted
+# tags that commit, e.g. v0.2.0, and deploys the site for it (pages.yml), so that the site describes
+# the version that npm installs. npm trusts this workflow instead of a token (trusted
 # publishing), and the release gets provenance. On npmjs.com: the package → Settings → Trusted
 # publishing → GitHub Actions, with this repository and the workflow file publish.yml.
 name: Publish
@@ -13,6 +14,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  actions: write
 
 # Two pushes in a row must not publish the same version twice.
 concurrency:
@@ -62,3 +64,9 @@ jobs:
             git tag "$tag"
             git push origin "$tag"
           fi
+      # The token of the workflow starts other workflows only with workflow_dispatch.
+      - if: steps.version.outputs.new == 'true'
+        name: Deploy the site of the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

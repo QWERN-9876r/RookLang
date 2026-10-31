@@ -12,3 +12,17 @@ const todo = todos.find(t => t.title == "Buy guavas")
 if todo != null {
     console.log(todo.done)     // here todo is already a Todo
 }
+
+// x! takes a value not to be null, as in TypeScript; nothing is checked at runtime,
+// so a check or ?? is safer
+const first = todos.find(t => !t.done)!
+console.log(first.title, todo?.title ?? "none")
+
+// A function whose result is never does not return: after its call, todo is a Todo
+func fail(message string) never {
+    throw error(message)
+}
+if todo == null {
+    fail("no such task")
+}
+console.log(todo.title)

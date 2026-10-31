@@ -66,7 +66,7 @@ describe('type checking', () => {
     name string
     age number
 }
-comp Form(user User) {
+comp Form(bind user User) {
     state count number
     state names []string
     state subscribed = false

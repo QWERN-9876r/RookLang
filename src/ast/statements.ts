@@ -2,6 +2,7 @@ import type {
   ClassDeclaration,
   ComponentDeclaration,
   DecoratorDeclaration,
+  ExportFromDeclaration,
   FuncDeclaration,
   ImportDeclaration,
   InterfaceDeclaration,
@@ -16,6 +17,7 @@ import type { JsxElementStatement } from './markup.ts';
 
 export type Statement =
   | ImportDeclaration
+  | ExportFromDeclaration
   | FuncDeclaration
   | ComponentDeclaration
   | DecoratorDeclaration
