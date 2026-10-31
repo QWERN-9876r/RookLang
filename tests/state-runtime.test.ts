@@ -223,6 +223,37 @@ document.body.append(<Cart />)`);
     );
   });
 
+  it('keeps updates in functions given to a child, after the parent sets them again', () => {
+    // The parent's update gives the child each function anew: the new one must update too.
+    const { body } = mountWithDom(`comp Plus(add func(), hidden bool = false) {
+    if hidden {
+        return <i />
+    }
+    return <button onClick={add()}>+</button>
+}
+comp Minus(actions { remove func() }) {
+    return <button onClick={actions.remove()}>-</button>
+}
+comp Cart() {
+    state items = 0
+    return <p>
+        <b>{items}</b>
+        <Plus add={() => { items++ }} />
+        <Plus add={items < 10 ? () => { items += 10 } : () => {}} />
+        <Minus actions={{ remove: () => { items-- } }} />
+        {for step in [100] { <Plus add={() => { items += step }} /> }}
+    </p>
+}
+document.body.append(<Cart />)`);
+    const [plus, plusTen, minus, plusHundred] = body.findAll('button');
+
+    for (const button of [plus, plus, plusTen, minus, minus, plusHundred, plusHundred]) {
+      button!.click();
+    }
+
+    expect(String(body.find('b'))).toBe('<b>210</b>');
+  });
+
   it('binds inputs to state in both directions', () => {
     const { body } = mountWithDom(`comp Signup() {
     state name = ""

@@ -8,6 +8,15 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
+## Unreleased
+
+### Fixed
+
+- A function literal given to a child component, `<Plus add={() => { items++ }} />`, updates the
+  markup each time it is called. When the state it read changed, the parent gave the child the
+  function again, written without its updates: from the second call on, the state changed but the
+  page did not. A function declared with `func` in the body was not affected.
+
 ## 0.4.1 — 2026-10-30
 
 ### Added

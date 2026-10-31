@@ -148,6 +148,40 @@ export function startsWithObjectLiteral(node: ast.Expression): boolean {
   }
 }
 
+/**
+ * Function literals that an expression gives as its value, not to a call: `() => count++`, the
+ * branches of `ok ? save : () => {}`, the fields of `{ onSave: () => {...} }`. They run later, when
+ * whoever gets them calls them; a callback given to a call, as to `items.map`, may run right away.
+ */
+export function functionValues(node: ast.Expression): ast.Expression[] {
+  switch (node.kind) {
+    case 'ArrowFunction':
+    case 'FuncExpression':
+      return [node];
+
+    case 'ConditionalExpression':
+      return [...functionValues(node.consequent), ...functionValues(node.alternate)];
+
+    case 'BinaryExpression':
+      return node.operator === '??' || node.operator === '||' || node.operator === '&&'
+        ? [...functionValues(node.left), ...functionValues(node.right)]
+        : [];
+
+    case 'ArrayLiteral':
+      return node.elements.flatMap((element) =>
+        element.kind === 'SpreadElement' ? [] : functionValues(element),
+      );
+
+    case 'ObjectLiteral':
+      return node.properties.flatMap((property) =>
+        property.kind === 'Property' ? functionValues(property.value) : [],
+      );
+
+    default:
+      return [];
+  }
+}
+
 /** The variable at the start of `a.b.c`, or `null`. */
 export function rootName(node: ast.Expression): string | null {
   if (node.kind === 'Identifier') return node.name;

@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { widenLiterals, type Type } from '../checker/types.ts';
 import { type Reactive, type Source, type Write, updatesOf } from './reactive.ts';
 import { StatementEmitter } from './statements.ts';
-import { startsWithObjectLiteral } from './analysis.ts';
+import { functionValues, startsWithObjectLiteral } from './analysis.ts';
 import { sharedWrites } from './shared.ts';
 import { ARROW } from './syntax.ts';
 
@@ -23,6 +23,8 @@ export abstract class UpdateEmitter extends StatementEmitter {
    * the markup, which would update it again; code that runs later (handlers) is not included.
    */
   protected rendering = 0;
+  /** Functions that live markup gives as values: they run later, not while it is rendered. */
+  private readonly later = new WeakSet<ast.Expression>();
 
   /**
    * After a statement that changes state of the module, the updates of the components that read
@@ -197,12 +199,26 @@ export abstract class UpdateEmitter extends StatementEmitter {
 
   /**
    * An expression that is evaluated again on updates: elements inside it are created in place,
-   * so that each evaluation creates new ones.
+   * so that each evaluation creates new ones. A function that it gives as a value, as to a property
+   * `onAdd={() => count++}`, runs later, so what it changes updates the markup as it does in the
+   * value the markup was created with.
    */
   protected liveExpression(node: ast.Expression, precedence = ARROW): string {
+    for (const value of functionValues(node)) this.later.add(value);
+
     return this.withRendering(this.rendering + 1, () =>
       this.withHoisting(false, () => this.expression(node, precedence)),
     );
+  }
+
+  protected override expression(
+    node: ast.Expression,
+    minPrecedence: number,
+    forceParens = false,
+  ): string {
+    return this.later.has(node)
+      ? this.withRendering(0, () => super.expression(node, minPrecedence, forceParens))
+      : super.expression(node, minPrecedence, forceParens);
   }
 }
 
