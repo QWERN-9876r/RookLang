@@ -8,7 +8,7 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
-## Unreleased
+## 0.4.2 — 2026-10-31
 
 ### Fixed
 

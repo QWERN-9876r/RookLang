@@ -66,15 +66,15 @@ the errors of the same version that `rook build` runs, and a new version is used
 installed, without reloading the window. Without an installed `rooklang`, the extension uses its
 own copy.
 
-The status bar shows which compiler checked the file being edited: `Rook 0.4.1` for the installed
+The status bar shows which compiler checked the file being edited: `Rook 0.4.2` for the installed
 one, `Rook (built-in)` for the copy of the extension; its tooltip says where it is. The output
 panel "Rook" says which version was loaded, or why it could not be, in which case the extension
 uses its own copy.
 
 The installed version may be older than the copy of the extension, which is that of the
-extension (0.4.1 in the extension 0.4.1). Then newer syntax shows as errors, as `rook build` would
+extension (0.4.2 in the extension 0.4.2). Then newer syntax shows as errors, as `rook build` would
 give them: the status bar marks the version with a warning, and the extension offers once to
-install its version in the project. "Update" runs `npm install rooklang@0.4.1` in a task, or
+install its version in the project. "Update" runs `npm install rooklang@0.4.2` in a task, or
 `bun add`, `pnpm add` or `yarn add` when the project has their lock file, and checks the files
 again with the new version; "Don't Show Again" stops asking until either version changes.
 
