@@ -8,6 +8,69 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
+## 0.5.0 — 2026-10-31
+
+What a team that builds a browser game in Rook, with Bun and Vite, found missing or broken.
+
+### Breaking
+
+- A component changes a property that is not bound neither by assigning it nor in place:
+  `todo.done = true`, `bind:value={todo.title}` and `items.push(x)` on a property are errors, since
+  the object is the parent's and its markup did not know of the change. Declare the property bound,
+  `comp TodoItem(bind todo Todo)`, and pass it with `bind:todo={todo}`; the item of a `{for}` loop
+  can now be bound so.
+- `export const Rows = Inner` of a component without a type is an error: its `.d.ts` lost the
+  properties. Write `export { Rows } from "./rows.rk"`, or give the constant a component type.
+
+### Added
+
+- Default values of the parameters of functions, methods, constructors, `func` literals and arrow
+  functions, as properties of components have them: `func greet(name string = "you", times = 1)`.
+- Rest parameters, `func log(level string, ...parts []any)`, and in function types,
+  `func(string, ...[]any)`.
+- Tagged templates, `` sql`select * from users where id = ${id}` ``, checked against the parameters
+  of the tag.
+- `export { Row, Rows } from "./rows.rk"` and `export * from "./rows.rk"`, with components,
+  decorators and state.
+- Object destructuring in `const` and `let`: `const { name, size: bytes, ...rest } = file`.
+- Methods in object literals: `{ fetch(req Request) Response { ... } }`.
+- `x!` takes a value not to be `null`, as in TypeScript.
+- `void`, for `Promise<void>` in interfaces and generics, and `never`, the result of a function
+  that never returns; a call of one narrows types as `throw` does, `process.exit(1)` included.
+- `bind:item={item}` for the item of a `{for}` loop: changes in place update the list, and a new
+  value replaces the item in it.
+- Imports of `.rk` and `.ts` modules by the aliases of `package.json` (`"imports"`, `#ui/button.rk`)
+  and of `tsconfig.json` (`"paths"`, `@/ui/button.rk`) are typed, and built with `.js`.
+- A conditional expression can be split with `?` and `:` at the start of the lines.
+- `func(a, b number) number` groups the parameters of a function type, as in Go.
+- An object type is the result of a function when its body follows, `func names() { [string]: string } { ... }`.
+- `type` is a keyword only before the name of a type at the start of a statement: variables,
+  parameters and fields can be named `type`.
+- The npm package has the changelog.
+
+### Fixed
+
+- A function of a component that changes state and that markup gives to a child, `act={copy}`,
+  or that an arrow given to it calls, `act={() => show("x")}`, updates the markup: it was taken for
+  code that renders, which updates nothing.
+- Importing `describe` and `it` from Vitest overflowed the stack, then took two minutes: the types of
+  `.d.ts` files that refer to themselves are substituted when they are used. Messages print a long
+  type inside another one as `{ ... }`.
+- The types of `@types/bun`: the global `Bun` and the module `bun` were untyped, and the options of
+  `Bun.serve({ fetch: req => ... })` give `req` its type.
+- A callback whose result in a `.d.ts` is `any` or `void | T`, `ws.onopen = () => { ... }`, and a
+  function whose result is `any` may end without `return`.
+- A line that ends with `>` of type arguments, `votes Map<string, number>`, ends the declaration.
+- A field of a class sees a constant of its module with a written type or a literal value,
+  `limit = LIMIT`.
+- Clearer errors for `` `${x++}` ``, type arguments in a call, `load<number>(1)`, and several
+  results of a conditional expression, `a ? two() : one()`.
+
+### The site
+
+- The site is deployed with each release of npm, not with each push to `main`, so it describes the
+  version that `npm install` gets.
+
 ## 0.4.2 — 2026-10-31
 
 ### Fixed

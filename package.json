@@ -1,6 +1,6 @@
 {
   "name": "rooklang",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "A language with JavaScript semantics, Go-style syntax, goroutines on real threads and static types that compiles to readable JavaScript",
   "keywords": [
     "rooklang",
@@ -60,7 +60,9 @@
   },
   "files": [
     "dist",
-    "src/runtime/*.js"
+    "src/runtime/*.js",
+    "CHANGELOG.md",
+    "CHANGELOG.ru.md"
   ],
   "scripts": {
     "rook": "node src/cli.ts",

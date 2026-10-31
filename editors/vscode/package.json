@@ -2,7 +2,7 @@
   "name": "rooklang",
   "displayName": "Rook Language",
   "description": "Rook support: highlighting, errors as you type, completion and auto-imports",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "publisher": "Qwern9876r",
   "preview": true,
   "icon": "icons/rook.png",
