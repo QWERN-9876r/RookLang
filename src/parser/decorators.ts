@@ -32,8 +32,9 @@ export abstract class DecoratorParser extends DeclarationParser {
     const params = this.parseParams(false, { defaults: true });
     const needs = this.parseNeeds();
     const includes = this.parseIncludes();
-    const body = this.withContext({ ...FUNCTION_BODY, inComponent: true }, () =>
-      this.parseDecoratorBody(),
+    const body = this.withContext(
+      { ...FUNCTION_BODY, inComponent: true, inAsync: this.server },
+      () => this.parseDecoratorBody(),
     );
 
     return {
@@ -49,7 +50,7 @@ export abstract class DecoratorParser extends DeclarationParser {
   }
 
   /** `needs cart, auth` after the parameters: `needs` is a keyword only here. */
-  protected parseNeeds(): ast.Identifier[] {
+  protected override parseNeeds(): ast.Identifier[] {
     if (!this.checkWord('needs')) return [];
     if (this.peek(1).kind !== 'Identifier') {
       this.fail('"needs" is followed by the decorators this one uses, e.g. needs cart');

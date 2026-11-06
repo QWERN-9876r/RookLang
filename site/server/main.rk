@@ -1,0 +1,115 @@
+// The server of the built site (npm run site), written with components of the server: the
+// package.json next to it has "rook": { "markup": "html" }, so markup here is a string of HTML
+// (docs/server.md). App answers each request with a file of site/dist, and @logged puts each
+// request into the log with the status of its answer.
+
+import { readFile } from "node:fs/promises"
+import { extname, resolve, sep } from "node:path"
+import { reply, serve } from "rooklang/server"
+
+const ROOT = resolve("site/dist")
+const PORT = Number(process.env.PORT ?? "3000")
+
+func contentType(path string) string {
+    switch extname(path) {
+    case ".html":
+        return "text/html; charset=utf-8"
+    case ".css":
+        return "text/css; charset=utf-8"
+    case ".js":
+        return "text/javascript; charset=utf-8"
+    case ".svg":
+        return "image/svg+xml"
+    case ".png":
+        return "image/png"
+    case ".xml":
+        return "application/xml; charset=utf-8"
+    case ".txt":
+        return "text/plain; charset=utf-8"
+    case ".webp":
+        return "image/webp"
+    case ".woff2":
+        return "font/woff2"
+    case ".wasm":
+        return "application/wasm"
+    case ".ttf":
+        return "font/ttf"
+    default:
+        return "application/octet-stream"
+    }
+}
+
+// The file path for the path of a URL; an error if it is malformed or leaves the site.
+func resolvePath(pathname string) (string, error) {
+    let decoded string
+    try {
+        decoded = decodeURIComponent(pathname.endsWith("/") ? pathname + "index.html" : pathname)
+    } catch {
+        return "", error("malformed URL")
+    }
+    const path string = resolve(ROOT, `.${decoded}`)
+    if !path.startsWith(ROOT + sep) {
+        return "", error("outside of the site")
+    }
+    return path, null
+}
+
+// Vite puts a hash of the content into the names of the files in assets/: a new version gets a new
+// name, so they can be cached forever. The rest (index.html) is no-cache: after a rebuild the
+// browser gets the new page right away.
+func cacheControl(path string) string {
+    if path.startsWith(ROOT + sep + "assets" + sep) {
+        return "public, max-age=31536000, immutable"
+    }
+    return "no-cache"
+}
+
+// The wrapper gets the answer of the component it is applied to, the 404 of NotFound too, so the
+// log has the status of every request.
+dec logged(request Request) {
+    const started = Date.now()
+    const url = new URL(request.url)
+    return (answer Response) => {
+        const time = Date.now() - started
+        console.log(`${request.method} ${url.pathname}${url.search} → ${answer.status} (${time} ms)`)
+        return answer
+    }
+}
+
+@logged(request)
+comp App(request Request) {
+    const pathname = new URL(request.url).pathname
+    const path, problem = resolvePath(pathname)
+    if problem != null {
+        return reply(`Bad request: ${problem.message}`, { status: 400 })
+    }
+    return <StaticFile path={path} pathname={pathname} />
+}
+
+comp StaticFile(path string, pathname string) {
+    // readFile fails if there is no such file.
+    const body = await readFile(path).catch(() => null)
+    if body == null {
+        return <NotFound pathname={pathname} />
+    }
+    const headers = { "Content-Type": contentType(path), "Cache-Control": cacheControl(path) }
+    return new Response(body, { headers: headers })
+}
+
+// A page of its own rather than plain text: the markup is HTML, escaped where it shows the path.
+comp NotFound(pathname string) {
+    const page = <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <title>Not found · Rook</title>
+        </head>
+        <body>
+            <h1>Not found</h1>
+            <p>The site has no page at <code>{pathname}</code>. <a href="/">Home</a></p>
+        </body>
+    </html>
+    return reply(page, { status: 404 })
+}
+
+serve(App, { port: PORT })
+console.log(`Rook site: http://localhost:${PORT}`)

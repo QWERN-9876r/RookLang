@@ -88,7 +88,7 @@ npm run format                        # prettier --write, eslint --fix for blank
 - `editors/vscode/README.md` is the page of the extension in the Marketplace, so it is written for
   its users; building the extension and working on it go to `editors/vscode/DEVELOPMENT.md`.
 
-- The site is itself a Rook program (`site/src`, server `site/server.rk`), built by Vite
+- The site is itself a Rook program (`site/src`, server `site/server/main.rk`, whose own `package.json` makes its markup HTML), built by Vite
   with the plugin `src/vite.ts`. `tests/site.test.ts` compiles it, compiles every example with the
   browser compiler and checks that each example exists in both languages and is used by the guide
   (`site/src/<lang>/guide/`, a file for each section) or by the page of examples

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { compile, complete } from '../src/browser.ts';
 import { build } from '../src/build.ts';
+import { markupOf } from '../site/src/server-programs.ts';
 
 // The documentation site (site/) is a real Rook program: building it checks the compiler on
 // real code. Its examples are compiled in the browser by src/browser.ts, so they are checked here
@@ -14,11 +15,11 @@ const site = (path: string) => new URL(`../site/${path}`, import.meta.url).pathn
 describe('documentation site', () => {
   it('compiles without errors', () => {
     const outDir = mkdtempSync(join(tmpdir(), 'rook-site-'));
-    const result = build([site('src'), site('server.rk')], { outDir });
+    const result = build([site('src'), site('server/main.rk')], { outDir });
 
     expect(result.errors.flatMap((error) => error.diagnostics)).toEqual([]);
     expect(result.outputs.map((output) => output.output.slice(outDir.length + 1)).sort()).toEqual([
-      'server.js',
+      'server/main.js',
       'src/code-view.js',
       'src/compiled-view.js',
       'src/console-view.js',
@@ -55,6 +56,7 @@ describe('documentation site', () => {
       'src/en/guide/reactivity.js',
       'src/en/guide/refs.js',
       'src/en/guide/select.js',
+      'src/en/guide/server-components.js',
       'src/en/guide/signals.js',
       'src/en/guide/streams.js',
       'src/en/guide/styles.js',
@@ -124,6 +126,7 @@ describe('documentation site', () => {
       'src/ru/guide/reactivity.js',
       'src/ru/guide/refs.js',
       'src/ru/guide/select.js',
+      'src/ru/guide/server-components.js',
       'src/ru/guide/signals.js',
       'src/ru/guide/streams.js',
       'src/ru/guide/styles.js',
@@ -173,7 +176,8 @@ describe('documentation site', () => {
   );
 
   it.each(all)('compiles the example %s in the browser compiler', (path) => {
-    const result = compile(readFileSync(site(path), 'utf8'), null, { markup: true });
+    const source = readFileSync(site(path), 'utf8');
+    const result = compile(source, null, { markup: markupOf(source) });
 
     expect(result.diagnostics).toEqual([]);
     expect(result.warnings).toEqual([]);

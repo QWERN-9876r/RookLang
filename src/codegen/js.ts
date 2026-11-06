@@ -1,7 +1,7 @@
 import type * as ast from '../ast.ts';
 import { declarationsOf } from './analysis.ts';
 import type { JsOptions } from './options.ts';
-import { FunctionEmitter } from './functions.ts';
+import { ServerComponentEmitter } from './server-components.ts';
 import { moduleGo, runtimeCode, runtimeNames } from './runtime.ts';
 
 export type { JsOptions } from './options.ts';
@@ -50,7 +50,7 @@ export function generateJs(program: ast.Program, options: JsOptions): string {
 }
 
 /** The whole module: its statements, plus the runtime that its code needs. */
-class JsGenerator extends FunctionEmitter {
+class JsGenerator extends ServerComponentEmitter {
   generate(): string {
     this.withScope(declarationsOf(this.program.body), () => {
       this.statements(this.program.body);

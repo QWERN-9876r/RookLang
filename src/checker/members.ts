@@ -1,7 +1,7 @@
 import type * as ast from '../ast.ts';
 import { bigintMember } from './bigint.ts';
 import { boolMember, numberMember, stringMember } from './builtins.ts';
-import { DecoratorMemberChecker } from './decorator-members.ts';
+import { ServerDecoratorChecker } from './server-decorators.ts';
 import { isUntyped, isNumeric } from './helpers.ts';
 import {
   ANY,
@@ -30,7 +30,7 @@ import {
 
 // Member access and indexing, with `?.` chains.
 
-export abstract class MemberChecker extends DecoratorMemberChecker {
+export abstract class MemberChecker extends ServerDecoratorChecker {
   /**
    * Member access, indexing and calls. Returns the type and whether an optional link (`?.`)
    * may short-circuit the chain: `a?.b.c()` is null as a whole when `a` is null.

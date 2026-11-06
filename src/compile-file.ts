@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { CompileResult } from './compile.ts';
+import type { CompileResult, Markup } from './compile.ts';
 import { formatDiagnostic } from './diagnostics.ts';
 import { compile } from './index.ts';
 import { SourceFile } from './source.ts';
@@ -15,7 +15,7 @@ export function compileFile(
   options: {
     rewriteImports: boolean;
     typeCheck: boolean;
-    markup?: boolean | undefined;
+    markup?: Markup | undefined;
     quiet?: boolean;
     /** Where the worker module of `go` is, and what its worker imports first (bun.ts). */
     workerUrl?: string;

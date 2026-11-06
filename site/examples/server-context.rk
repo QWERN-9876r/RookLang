@@ -1,0 +1,50 @@
+// A decorator of the server may wait, and an early return in its body
+// answers instead of the component: a guard
+import { reply, serve } from "rooklang/server"
+
+interface User {
+    name string
+    admin bool
+}
+
+async func userOf(request Request) ?User {
+    const name = request.headers.get("x-user")
+    return name == null ? null : { name: name, admin: name == "root" }
+}
+
+dec session(request Request) {
+    public const path = new URL(request.url).pathname
+    public const user = await userOf(request)
+}
+
+// needs session: @session is applied to a component above, App
+dec admin() needs session {
+    if !(@session.user?.admin ?? false) {
+        return reply("Forbidden", { status: 403 })
+    }
+}
+
+// Generic: gives what its children give, whatever it is
+comp Logger<T>(children Content<T>) T needs session {
+    const started = Date.now()
+    defer {
+        console.log(`${@session.path}: ${Date.now() - started} ms`)
+    }
+    return await children()
+}
+
+comp Header() needs session {
+    return <header>Signed in as {@session.user?.name ?? "guest"}</header>
+}
+
+@admin
+comp Dashboard() {
+    return <main><Header /><p>3 new orders</p></main>
+}
+
+@session(request)
+comp App(request Request) {
+    return <Logger><Dashboard /></Logger>
+}
+
+serve(App, { port: 3000 })

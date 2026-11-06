@@ -4,6 +4,7 @@ import {
   workerUrl,
   type CompileResult,
   type CoreCompileOptions,
+  type Markup,
 } from './compile.ts';
 import { completeModule, type CompletionList } from './completion.ts';
 import { markupFor } from './config.ts';
@@ -36,7 +37,7 @@ export interface CompileOptions {
   /** A module that a worker of Node or Bun imports first, to load `.rk` files (vite.ts, bun.ts). */
   nodeLoader?: string;
   /** Markup and components; by default as the package.json of the file says (src/config.ts). */
-  markup?: boolean;
+  markup?: Markup;
   /** Import the runtime from "rooklang/runtime", the default, or put it into the module. */
   runtime?: 'import' | 'inline';
 }
@@ -68,7 +69,7 @@ export function compile(source: string, options: CompileOptions = {}): CompileRe
 export function complete(
   source: string,
   offset: number,
-  options: { filename?: string; markup?: boolean } = {},
+  options: { filename?: string; markup?: Markup } = {},
 ): CompletionList {
   const { filename } = options;
   const list = completeModule(source, offset, {
@@ -85,7 +86,7 @@ export function complete(
 function filesOf(
   filename: string | undefined,
   typeCheck: boolean,
-  markup: boolean | undefined,
+  markup: Markup | undefined,
 ): Pick<CoreCompileOptions, 'importModule' | 'importDeclarations' | 'readStyleModule' | 'library'> {
   return {
     importModule: filename

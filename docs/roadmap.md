@@ -92,6 +92,8 @@ the open ones are listed in "Not decided yet" of [components.md](components.md).
 - A component that returns `null` for a wrapper.
 - Refs in `{if}`, `{switch}` and `{for}`, and one ref in several `return`s.
 - `rook build --explain`: where the compiler did not inline a component or added a proxy, and why.
+- Components on the server: markup as a string of HTML, components that return any value, children
+  that run only when asked, decorators as guards and context ([server.md](server.md)).
 - The CSS of components in a file of its own, and the class of a style only on the elements that
   its selectors can match.
 

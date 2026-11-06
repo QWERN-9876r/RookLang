@@ -1,0 +1,75 @@
+// Раздел «Компоненты на сервере» русского гайда; разделы перечислены в guide.rk.
+
+import { Example } from "../../example.rk"
+
+export comp ServerComponents() {
+    return <>
+        <p>
+            Та же разметка и те же компоненты пишут сервер. В пакете, где в
+            {" "}<code>package.json</code> стоит <code>{'"rook": { "markup": "html" }'}</code>,
+            разметка — строка HTML типа <code>Html</code>, а компоненты отвечают на запросы. Корень
+            получает <code>Request</code> веб-стандарта, и <code>serve(App)</code> из
+            {" "}<code>rooklang/server</code> запускает его на <code>node:http</code>;
+            {" "}<code>handler(App)</code> — функция из <code>Request</code> в
+            {" "}<code>Response</code> для Bun, Deno и Workers. Это экспериментальная часть, она
+            может измениться до 1.0.
+        </p>
+        <Example name="server-components" />
+        <ul>
+            <li>
+                Текст и атрибуты <b>экранируются</b>; <code>Html</code> вставляется как есть, а
+                {" "}<code>html(text)</code> помечает строку, которой вы доверяете, как HTML.
+                Атрибуты проверяются, как в браузере, а <code>{"<html>"}</code> получает doctype.
+                То, что есть только у страницы, — ошибка: <code>onClick</code>, <code>bind:</code>,
+                {" "}<code>ref</code>, <code>state</code>, <code>mount</code>.
+            </li>
+            <li>
+                Компонент — <b>асинхронная</b> функция: в теле можно писать <code>await</code>, а
+                тег — его результат, которого дождались. Компоненты, стоящие рядом в разметке,
+                рендерятся одновременно.
+            </li>
+            <li>
+                Компонент возвращает <b>любое значение</b>; тип выводится или пишется после свойств:
+                {" "}<code>comp PostList() []Post</code>. Ответ делается из значения корня:
+                {" "}<code>Response</code> как есть, <code>Html</code> как <code>text/html</code>,
+                строка как текст, <code>null</code> как 404, остальное как JSON.
+                {" "}<code>reply(value, {"{ status, headers }"})</code> задаёт статус и заголовки.
+            </li>
+            <li>
+                <code>Response</code> среди детей разметки <b>всплывает</b>: рендер
+                останавливается, и он становится ответом на запрос. Остальные компоненты всё равно
+                доходят до конца, так что их <code>defer</code> выполняется.
+            </li>
+        </ul>
+        <p>
+            Декораторы — это middleware. Их тела тоже могут ждать, а ранний <code>return</code> —
+            это <b>guard</b>: он отвечает вместо компонента. Декоратор, применённый к компоненту
+            выше, — <b>контекст</b> компонентов ниже: они называют его в <code>needs</code> и
+            читают его публичные члены.
+        </p>
+        <Example name="server-context" />
+        <ul>
+            <li>
+                <code>needs session</code> выполнен, если <code>@session</code> стоит на самом
+                компоненте или на любом компоненте выше него в дереве запроса; берётся ближайший.
+                Там, где компонент использован по имени, компилятор проверяет, что такой есть.
+            </li>
+            <li>
+                <code>dec admin() needs session</code> берёт <code>@session</code> сверху, поэтому
+                {" "}<code>@admin</code> работает на <code>Dashboard</code>, который сам
+                {" "}<code>@session</code> не применяет.
+            </li>
+            <li>
+                Дети — это <code>Content{"<T>"}</code>, функция, которая рендерит их при вызове:
+                {" "}<code>Logger</code> решает, когда они выполнятся, и отдаёт то, что дали они. Его
+                {" "}<code>T</code> выводится из детей тега, здесь это <code>Html | Response</code>
+                {" "}компонента <code>Dashboard</code> с его guard.
+            </li>
+            <li>
+                Обёртка, <code>{"return (page Html) => <main>{page}</main>"}</code>, получает то,
+                что отдаёт компонент, любого типа, как в браузере. Сервер этого сайта логирует ею
+                статус каждого ответа.
+            </li>
+        </ul>
+    </>
+}

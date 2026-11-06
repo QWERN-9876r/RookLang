@@ -8,6 +8,7 @@ export * from './classes.js';
 export * from './core.js';
 export * from './decode.js';
 export * from './go.js';
+export * from './html.js';
 export * from './markup.js';
 export * from './queue.js';
 export * from './select.js';

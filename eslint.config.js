@@ -80,10 +80,21 @@ export default defineConfig(
           'MutationObserver',
           'queueMicrotask',
           'ReadableStream',
+          'Response',
           'setInterval',
           'setTimeout',
           'structuredClone',
         ].map((name) => [name, 'readonly']),
+      ),
+    },
+  },
+  // "rooklang/server" runs on servers: Node, Bun, Deno and Workers, which have the Request and
+  // Response of the web, and `process` where there is node:http.
+  {
+    files: ['src/runtime/server.js'],
+    languageOptions: {
+      globals: Object.fromEntries(
+        ['console', 'Headers', 'process', 'Request', 'Response'].map((name) => [name, 'readonly']),
       ),
     },
   },

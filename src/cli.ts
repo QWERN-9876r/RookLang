@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { build, displayPath, type BuildOptions } from './build.ts';
 import { CompileError, compileFile } from './compile-file.ts';
+import type { Markup } from './compile.ts';
 import { markupFor } from './config.ts';
 import { formatDiagnostic, type Diagnostic } from './diagnostics.ts';
 import { tokenize } from './lexer/lexer.ts';
@@ -174,7 +175,7 @@ function printTokens(file: SourceFile): void {
   reportDiagnostics(file, diagnostics);
 }
 
-function printAst(file: SourceFile, markup: boolean): void {
+function printAst(file: SourceFile, markup: Markup): void {
   const { program, diagnostics } = parse(file.text, { markup });
   // Positions are left out and identifiers printed as plain names to keep the output readable.
   const compact = (key: string, value: unknown): unknown => {

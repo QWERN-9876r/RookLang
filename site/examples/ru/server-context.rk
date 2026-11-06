@@ -1,0 +1,50 @@
+// Декоратор на сервере может ждать, а ранний return в его теле
+// отвечает вместо компонента: это guard
+import { reply, serve } from "rooklang/server"
+
+interface User {
+    name string
+    admin bool
+}
+
+async func userOf(request Request) ?User {
+    const name = request.headers.get("x-user")
+    return name == null ? null : { name: name, admin: name == "root" }
+}
+
+dec session(request Request) {
+    public const path = new URL(request.url).pathname
+    public const user = await userOf(request)
+}
+
+// needs session: @session применён к компоненту выше, к App
+dec admin() needs session {
+    if !(@session.user?.admin ?? false) {
+        return reply("Доступ запрещён", { status: 403 })
+    }
+}
+
+// Обобщённый: отдаёт то, что дают его дети, что бы это ни было
+comp Logger<T>(children Content<T>) T needs session {
+    const started = Date.now()
+    defer {
+        console.log(`${@session.path}: ${Date.now() - started} мс`)
+    }
+    return await children()
+}
+
+comp Header() needs session {
+    return <header>Вы вошли как {@session.user?.name ?? "гость"}</header>
+}
+
+@admin
+comp Dashboard() {
+    return <main><Header /><p>3 новых заказа</p></main>
+}
+
+@session(request)
+comp App(request Request) {
+    return <Logger><Dashboard /></Logger>
+}
+
+serve(App, { port: 3000 })

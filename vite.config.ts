@@ -80,7 +80,7 @@ function examples(): Plugin {
 export default defineConfig({
   root: site,
   // Relative paths to the assets: GitHub Pages serves the site from /<repository>/, and
-  // site/server.rk from the root.
+  // site/server/main.rk from the root.
   base: './',
   build: {
     outDir: 'dist',

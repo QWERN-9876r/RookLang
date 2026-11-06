@@ -1,0 +1,54 @@
+// server-context.js
+
+import { reply, serve } from "rooklang/server";
+import { $$html, $$need, $$provide } from "rooklang/runtime";
+
+async function userOf(request) {
+  const name = request.headers.get("x-user");
+  return name == null ? null : { name: name, admin: name === "root" };
+}
+
+async function $$Logger({ children }, $$ctx) {
+  const { path: $$session$path, user: $$session$user } = $$need($$ctx, "session", "Logger");
+  const started = Date.now();
+  try {
+    return await children();
+  } finally {
+    console.log(`${$$session$path}: ${Date.now() - started} ms`);
+  }
+}
+
+async function $$Header($$props, $$ctx) {
+  const { path: $$session$path, user: $$session$user } = $$need($$ctx, "session", "Header");
+  return $$html`<header>Signed in as ${$$session$user?.name ?? "guest"}</header>`;
+}
+
+async function $$Dashboard($$props, $$ctx) {
+  const { path: $$session$path, user: $$session$user } = $$need($$ctx, "session", "Dashboard");
+  if (!($$session$user?.admin ?? false)) {
+    return reply("Forbidden", { status: 403 });
+  }
+
+  $$ctx = $$provide($$ctx, { admin: {} });
+  return await $$html`<main>${$$Header({}, $$ctx)}<p>3 new orders</p></main>`;
+}
+
+async function $$App({ request }, $$ctx) {
+  let $$session$request = request;
+  const $$session$path = new URL($$session$request.url).pathname;
+  const $$session$user = await userOf($$session$request);
+
+  $$ctx = $$provide($$ctx, { session: { path: $$session$path, user: $$session$user } });
+  return await $$Logger({ children: () => $$Dashboard({}, $$ctx) }, $$ctx);
+}
+
+serve($$App, { port: 3000 });
+
+// server-context.d.ts
+
+import { reply, serve } from "rooklang/server";
+interface User {
+    name: string;
+    admin: boolean;
+}
+export {};

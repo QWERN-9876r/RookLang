@@ -4,10 +4,10 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isMainThread } from 'node:worker_threads';
 import { displayPath } from './build.ts';
-import type { CompileResult } from './compile.ts';
+import type { CompileResult, Markup } from './compile.ts';
 import { compileFile } from './compile-file.ts';
 import { cachedFile, listFiles, withMap } from './run-cache.ts';
-import { RUNTIME_MODULE } from './runtime-module.ts';
+import { RUNTIME_MODULE, SERVER_MODULE } from './runtime-module.ts';
 
 // The plugin of Bun: `bun app.rk`, `import "./cart.rk"` from TypeScript and `bun test` compile the
 // `.rk` modules when they load, as `rook run` does in Node (loader.ts). `preload =
@@ -46,7 +46,7 @@ export interface RookBunOptions {
   /** Check types before generating code. Defaults to `true`. */
   typeCheck?: boolean;
   /** Markup and components; by default as the package.json of the file says. */
-  markup?: boolean;
+  markup?: Markup;
 }
 
 // The files next to this one: .ts in src, .js in the dist of the package.
@@ -54,9 +54,14 @@ const extension = extname(fileURLToPath(import.meta.url));
 // The worker of `go` registers the plugin with this module before it imports its module.
 const register = new URL(`./bun-register${extension}`, import.meta.url).href;
 // The compiled code imports the runtime of this compiler, wherever the program is, by its URL: a
-// worker of Bun does not give a plugin the bare `rooklang/runtime`, and looks for the package.
-const runtimeImport = `from "${RUNTIME_MODULE}";`;
-const runtime = `from ${JSON.stringify(import.meta.resolve(RUNTIME_MODULE))};`;
+// worker of Bun does not give a plugin the bare `rooklang/runtime`, and looks for the package. A
+// server imports rooklang/server the same way.
+const located = (code: string) =>
+  [RUNTIME_MODULE, SERVER_MODULE].reduce(
+    (text, name) =>
+      text.replaceAll(`from "${name}";`, `from ${JSON.stringify(import.meta.resolve(name))};`),
+    code,
+  );
 
 export function rook(options: RookBunOptions = {}): BunPlugin {
   return {
@@ -92,11 +97,8 @@ function load(path: string, worker: boolean, options: RookBunOptions): string {
   if (existsSync(file)) return readFileSync(file, 'utf8');
 
   const result = compile(path, options);
-  const code = withMap(result.code.replaceAll(runtimeImport, runtime), result.map);
-  const workerCode = withMap(
-    (result.worker ?? '').replaceAll(runtimeImport, runtime),
-    result.workerMap,
-  );
+  const code = withMap(located(result.code), result.map);
+  const workerCode = withMap(located(result.worker ?? ''), result.workerMap);
 
   if (isMainThread) {
     // The CSS modules it imports; the .rk modules are listed when they are loaded.

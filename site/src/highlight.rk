@@ -218,9 +218,12 @@ func isDecorator(tokens any, i number) bool {
     return false
 }
 
-// needs is a keyword only after the parameters of a decorator: dec cartBadge() needs cart, auth {
+// needs is a keyword only after the parameters of a decorator or a component, or the result of a
+// component: dec cartBadge() needs cart, auth {, comp Users() []User needs session {
+const BEFORE_NEEDS = [")", "Identifier", "]", ">"]
+
 func isNeeds(tokens any, i number) bool {
-    return tokens[i].text == "needs" && i > 0 && tokens[i - 1].kind == ")" &&
+    return tokens[i].text == "needs" && i > 0 && BEFORE_NEEDS.includes(tokens[i - 1].kind) &&
         tokens[i + 1].kind == "Identifier"
 }
 

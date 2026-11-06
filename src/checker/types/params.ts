@@ -122,6 +122,7 @@ export function substitute(type: Type, bindings: Map<TypeParam, Type>, fallback?
           ...param,
           type: substitute(param.type, bindings, fallback),
         })),
+        ...(type.result ? { result: substitute(type.result, bindings, fallback) } : {}),
       };
 
     default:

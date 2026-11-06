@@ -1,0 +1,51 @@
+// The markup of a server is a string of HTML: the package of this
+// program has "rook": { "markup": "html" } in its package.json
+import { reply, serve } from "rooklang/server"
+
+interface Post {
+    id string
+    title string
+    text string
+}
+
+const POSTS []Post = [
+    { id: "hello", title: "Hello", text: "The first post of the blog." },
+    { id: "rook", title: "Why Rook", text: "Go-style syntax, JS semantics." },
+]
+
+async func findPost(id string) ?Post {
+    return POSTS.find(post => post.id == id) ?? null
+}
+
+// Content is lazy: the children render when the component shows them
+comp Layout(title string, children Content) {
+    return <html lang="en">
+        <head><title>{title}</title></head>
+        <body><main>{children}</main></body>
+    </html>
+}
+
+// A component is async: it may wait. A Response among the children
+// goes up and becomes the answer to the whole request
+comp Article(id string) {
+    const post = await findPost(id)
+    if post == null {
+        return reply("No such post", { status: 404 })
+    }
+    return <article><h1>{post.title}</h1><p>{post.text}</p></article>
+}
+
+// It returns any value: this one is sent as JSON
+comp PostList() []Post {
+    return POSTS
+}
+
+comp App(request Request) {
+    const path = new URL(request.url).pathname
+    if path == "/api/posts" {
+        return <PostList />
+    }
+    return <Layout title="Blog"><Article id={path.slice(1)} /></Layout>
+}
+
+serve(App, { port: 3000 })

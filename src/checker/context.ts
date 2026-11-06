@@ -55,6 +55,8 @@ export interface CheckOptions {
   importDeclarations?: (specifier: string) => ImportResult;
   /** Types of the standard library and the DOM beyond the built-in ones. */
   library?: Library;
+  /** Markup of the server, `"markup": "html"`: strings of HTML and components that wait. */
+  server?: boolean;
   /**
    * For completion in editors: the name written where the cursor is. The result then lists what
    * can be written there (see completion.ts).
@@ -195,6 +197,8 @@ export interface DecoratorInfo {
   names: Set<string>;
   /** Names from the module that the decorator's code uses, computed when first needed. */
   freeNames: Set<string> | null;
+  /** On the server, what the early returns of the body give instead of the component: guards. */
+  guards?: Type[];
   /** `return (content Element) => ...`, with the type of what it gets from the component. */
   wrapper: { node: Wrapper; param: Type; result: Type | null } | null;
   /** The decorators after `needs` that exist; they are applied above it. */

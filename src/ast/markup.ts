@@ -174,6 +174,8 @@ export interface FuncType extends NodeBase {
 export interface ComponentType extends NodeBase {
   kind: 'ComponentType';
   params: Parameter[];
+  /** `comp(id string) []User`: on the server, what the component gives; `Html` without it. */
+  result?: TypeNode;
 }
 
 /** `string | number`; a member may be in parentheses: `[](string | number)`. */

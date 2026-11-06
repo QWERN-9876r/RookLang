@@ -2248,6 +2248,9 @@ of an app whose views are in React, Svelte or Vue. A package turns them on in it
 { "rook": { "markup": true } }
 ```
 
+`"markup": "html"` makes markup strings of HTML and components those of a server, which return
+any value: see [server.md](server.md).
+
 A file takes the setting of the nearest `package.json` above it, and so do the language server of
 VS Code and the Vite plugin. `rook build --markup` and `--no-markup` set it for all files, and so
 does `rook({ markup: true })` in Vite. Where it is off, markup, `comp`, `dec` and decorators are

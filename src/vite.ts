@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
-import { RUNTIME_MODULE } from './runtime-module.ts';
+import type { Markup } from './compile.ts';
+import { RUNTIME_MODULE, SERVER_MODULE } from './runtime-module.ts';
 import { formatDiagnostic } from './diagnostics.ts';
 import { compile } from './index.ts';
 import { SourceFile } from './source.ts';
@@ -26,7 +27,7 @@ export interface RookPluginOptions {
    * Markup and components, for every `.rk` file; by default as the package.json of the file
    * says, `"rook": { "markup": true }`.
    */
-  markup?: boolean;
+  markup?: Markup;
 }
 
 export function rook(options: RookPluginOptions = {}): Plugin {
@@ -49,7 +50,9 @@ export function rook(options: RookPluginOptions = {}): Plugin {
     },
     resolveId(source, importer) {
       // The runtime of the compiled code is the one of this compiler, whichever the project has.
-      if (source === RUNTIME_MODULE) return fileURLToPath(import.meta.resolve(RUNTIME_MODULE));
+      if (source === RUNTIME_MODULE || source === SERVER_MODULE) {
+        return fileURLToPath(import.meta.resolve(source));
+      }
 
       const [path = source] = source.split('?');
 

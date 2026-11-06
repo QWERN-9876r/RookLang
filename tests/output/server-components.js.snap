@@ -1,0 +1,46 @@
+// server-components.js
+
+import { reply, serve } from "rooklang/server";
+import { $$html } from "rooklang/runtime";
+
+const POSTS = [{ id: "hello", title: "Hello", text: "The first post of the blog." }, { id: "rook", title: "Why Rook", text: "Go-style syntax, JS semantics." }];
+
+async function findPost(id) {
+  return POSTS.find((post) => post.id === id) ?? null;
+}
+
+async function $$Layout({ title, children }, $$ctx) {
+  return await $$html`<!doctype html><html lang="en"><head><title>${title}</title></head><body><main>${children?.()}</main></body></html>`;
+}
+
+async function $$Article({ id }, $$ctx) {
+  const post = await findPost(id);
+  if (post == null) {
+    return reply("No such post", { status: 404 });
+  }
+  return $$html`<article><h1>${post.title}</h1><p>${post.text}</p></article>`;
+}
+
+async function $$PostList($$props, $$ctx) {
+  return POSTS;
+}
+
+async function $$App({ request }, $$ctx) {
+  const path = new URL(request.url).pathname;
+  if (path === "/api/posts") {
+    return await $$PostList({}, $$ctx);
+  }
+  return await $$Layout({ title: "Blog", children: () => $$html`${$$Article({ id: path.slice(1) }, $$ctx)}` }, $$ctx);
+}
+
+serve($$App, { port: 3000 });
+
+// server-components.d.ts
+
+import { reply, serve } from "rooklang/server";
+interface Post {
+    id: string;
+    title: string;
+    text: string;
+}
+export {};

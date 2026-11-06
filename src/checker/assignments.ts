@@ -242,7 +242,7 @@ export abstract class AssignmentChecker extends InitializerChecker {
 
     const { values } = node;
 
-    if (fn.isComponent) {
+    if (fn.isComponent && this.options.server !== true) {
       // A component may return early; whatever it returns is its markup.
       const [value] = values;
 

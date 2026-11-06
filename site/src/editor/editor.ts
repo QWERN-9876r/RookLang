@@ -2,6 +2,7 @@ import './features.ts';
 import * as monaco from 'monaco-editor/editor/editor.api';
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker';
 import { complete, compile, type Completion } from '../../../src/browser.ts';
+import { markupOf } from '../server-programs.ts';
 import { registerHighlighting } from './textmate.ts';
 import { applyPageTheme } from './theme.ts';
 
@@ -75,7 +76,10 @@ function setUp(): Promise<void> {
     monaco.languages.registerCompletionItemProvider(LANGUAGE, {
       triggerCharacters: ['.', '<'],
       provideCompletionItems(model, position) {
-        const list = complete(model.getValue(), model.getOffsetAt(position), { markup: true });
+        const source = model.getValue();
+        const list = complete(source, model.getOffsetAt(position), {
+          markup: markupOf(source),
+        });
         const start = model.getPositionAt(list.start);
         const end = model.getPositionAt(list.end);
         const range = new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column);
@@ -102,7 +106,8 @@ function setUp(): Promise<void> {
 
 /** The errors and warnings of the compiler, under the code they are about. */
 function check(model: monaco.editor.ITextModel): void {
-  const result = compile(model.getValue(), null, { markup: true });
+  const source = model.getValue();
+  const result = compile(source, null, { markup: markupOf(source) });
   const marker =
     (severity: monaco.MarkerSeverity) =>
     (diagnostic: (typeof result.diagnostics)[number]): monaco.editor.IMarkerData => ({

@@ -50,8 +50,9 @@ export comp Tools() {
             {" "}<a href={REPOSITORY}>репозитории на GitHub</a>. Спецификация языка с обоснованиями
             решений — в <code>docs/spec.ru.md</code>, концепция компонентов — в
             {" "}<code>docs/components.ru.md</code>. Эта страница тоже написана на Rook: её
-            код — в <code>site/src</code>, а сервер — <code>site/server.rk</code>. Из корня
-            репозитория:
+            код — в <code>site/src</code>, а сервер, написанный
+            {" "}<a href="../server-components/">серверными компонентами</a>, —
+            {" "}<code>site/server/main.rk</code>. Из корня репозитория:
         </p>
         <CodeBlock
             code={REPOSITORY_COMMANDS}

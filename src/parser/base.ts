@@ -34,6 +34,9 @@ export abstract class ParserBase {
 
   protected abstract parseThrow(): ast.ThrowStatement;
 
+  /** `needs cart, auth` after the parameters of a decorator, or a component of the server. */
+  protected abstract parseNeeds(): ast.Identifier[];
+
   protected abstract parseTry(): ast.TryStatement;
 
   protected abstract parseComponent(
@@ -149,9 +152,13 @@ export abstract class ParserBase {
   /** Markup and components: the entries turn them off unless the package turns them on. */
   protected readonly markup: boolean;
 
-  constructor(tokens: Token[], markup = true) {
+  /** Markup of the server, `"markup": "html"`: components and decorators may wait. */
+  protected readonly server: boolean;
+
+  constructor(tokens: Token[], markup: boolean | 'html' = true) {
     this.tokens = tokens;
-    this.markup = markup;
+    this.markup = markup !== false;
+    this.server = markup === 'html';
   }
 
   /** Fails at markup, a component or a decorator when they are off, saying how to turn them on. */

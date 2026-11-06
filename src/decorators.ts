@@ -13,6 +13,15 @@ export { decoratedName, publicMembers } from './decorator-names.ts';
 
 const argumentDeclarations = new WeakSet<ast.VariableDeclaration>();
 const wrappedContents = new WeakSet<ast.Expression>();
+const ownStarts = new WeakMap<ast.ComponentDeclaration, number>();
+
+/**
+ * Where the component's own body starts in an applied component, after the bodies of its
+ * decorators: on the server, what they give goes to the context of the components below there.
+ */
+export function ownBodyStart(component: ast.ComponentDeclaration): number {
+  return ownStarts.get(component) ?? 0;
+}
 
 /**
  * Whether a declaration of an applied component gets an argument of a decorator. When the
@@ -214,11 +223,15 @@ export function decorate(
       ? mapReturns(component.body.body, (node) => [...inside, ...wrapped(node, chain)])
       : component.body.body;
 
-  return {
+  const applied: ast.ComponentDeclaration = {
     ...component,
     decorators: [],
     body: { ...component.body, body: [...setup, ...body] },
   };
+
+  ownStarts.set(applied, setup.length);
+
+  return applied;
 }
 
 /** The parameters of a decorator and the declarations of its body: the names it renames. */

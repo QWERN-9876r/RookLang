@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import type { Markup } from './compile.ts';
 
 // The settings of a package, in the "rook" field of its package.json:
 //
@@ -9,10 +10,11 @@ import { dirname, join, resolve } from 'node:path';
 // language of the logic of an app whose views are in React, Svelte or Vue. A file takes the
 // settings of the nearest package.json above it, with or without the field; a file without a
 // name, those of the current directory. The CLI (--markup, --no-markup) and the Vite plugin
-// (`rook({ markup: true })`) may set them for all files instead.
+// (`rook({ markup: true })`) may set them for all files instead. `"markup": "html"` makes markup
+// strings of HTML and components those of the server (docs/server.md).
 
 interface PackageSettings {
-  markup: boolean;
+  markup: Markup;
 }
 
 const DEFAULTS: PackageSettings = { markup: false };
@@ -20,8 +22,8 @@ const DEFAULTS: PackageSettings = { markup: false };
 /** package.json files read, with the time they were changed: the language server runs long. */
 const read = new Map<string, { changed: number; settings: PackageSettings }>();
 
-/** Whether markup and components are on for a file. */
-export function markupFor(filename: string | undefined): boolean {
+/** Whether markup and components are on for a file, and whether they are those of the server. */
+export function markupFor(filename: string | undefined): Markup {
   return settingsFor(resolve(filename ? dirname(filename) : '.')).markup;
 }
 
@@ -60,7 +62,7 @@ function readSettings(path: string): PackageSettings | null {
   }
 
   const markup = typeof field === 'object' && field !== null && 'markup' in field && field.markup;
-  const settings = { markup: markup === true };
+  const settings = { markup: markup === 'html' ? ('html' as const) : markup === true };
 
   read.set(path, { changed, settings });
 

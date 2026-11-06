@@ -164,7 +164,7 @@ small IDE.
 - [site/src/editor/](site/src/editor/): the editor of the playground, the one of VS Code (Monaco)
   with the grammar of the VS Code extension, the compiler's errors under the code and its
   completion; TypeScript for the browser, checked with [site/tsconfig.json](site/tsconfig.json);
-- [site/server.rk](site/server.rk): a static server on `node:http` with a log through `defer`.
+- [site/server/main.rk](site/server/main.rk): a static server written with components of the server, with a log through a decorator.
 
 Vite builds the site ([vite.config.ts](vite.config.ts)): the plugin [src/vite.ts](src/vite.ts)
 compiles `.rk` modules with type checking, the playground's compiler comes straight from
@@ -178,7 +178,7 @@ site from npm ([site/src/fonts.css](site/src/fonts.css)).
 
 ```sh
 npm run site:dev    # the Vite dev server: changes show up right away
-npm run site        # builds the site to site/dist and runs site/server.rk at http://localhost:3000
+npm run site        # builds the site to site/dist and runs site/server/main.rk at http://localhost:3000
 ```
 
 ## Vite

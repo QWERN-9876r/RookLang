@@ -3,7 +3,7 @@ import { attributeName, htmlTagName, RESERVED_PROPERTIES, tagNameProblem } from 
 import { freeNames } from '../names.ts';
 import { endlessRecursion } from '../recursion.ts';
 import type { ComponentInfo } from './context.ts';
-import { CONTENT } from './dom.ts';
+import { isContent } from './resolution.ts';
 import { lookupIn, ownStatements, isUntyped, callSignature } from './helpers.ts';
 import { ComponentBindingChecker } from './component-bindings.ts';
 import { ATTRIBUTES } from './forwarding.ts';
@@ -32,7 +32,7 @@ export abstract class ComponentChecker extends ComponentBindingChecker {
       const name = param.name.name;
       const type = param.type ? this.resolveType(param.type) : UNKNOWN;
 
-      if (name === 'children' && type !== CONTENT && type.kind !== 'unknown') {
+      if (name === 'children' && !isContent(type)) {
         this.error('the "children" property has the type Content', param.type ?? param);
       }
 

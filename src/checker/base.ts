@@ -35,9 +35,9 @@ import {
 
 // The type checker is a chain of layers, one per area, like the code generator: base → imports →
 // shared state → declarations → class members → classes → resolution → initializers → assignments → statements → control flow →
-// tagged unions → functions → expressions → array literals → operators → markup → forwarding → component bindings → components → component values →
-// refs → styles → decorator wrappers → decorator exports → decorators → decorator includes → decorator members →
-// members → calls → tags → goroutines → channels → signals → queues → topics → decode → try → bytes → loops → go for →
+// tagged unions → functions → expressions → array literals → operators → markup → server markup → forwarding → component bindings → components →
+// server components → component values → refs → styles → decorator wrappers → decorator exports → decorators → decorator includes → decorator members →
+// server decorators → members → calls → tags → goroutines → channels → signals → queues → topics → decode → try → bytes → loops → go for →
 // iterators → closing → completion → Checker (checker.ts). Statements, expressions and markup
 // check each other recursively, so methods of later layers that earlier ones call are declared
 // here as abstract. This layer has the state of a check, diagnostics, scopes and names, and the DOM types.

@@ -3,6 +3,7 @@
 // on disk here.
 
 import { loadCompiler } from "./compiler.ts"
+import { markupOf } from "./server-programs.ts"
 import { text } from "./i18n.rk"
 import styles from "./sandbox.module.css"
 
@@ -49,10 +50,11 @@ func withCompiler(use func(?Compile)) {
     loadCompiler().then(
         module => {
             compiler = (source, workerUrl, inline) => {
-                // The page is the DOM: its programs have markup and components.
+                // The page is the DOM: its programs have markup and components, but for those of
+                // a server, whose markup is HTML.
                 const url = workerUrl == "" ? null : workerUrl
                 const runtime "import" | "inline" = inline ? "inline" : "import"
-                const result = module.compile(source, url, { markup: true, runtime: runtime })
+                const result = module.compile(source, url, { markup: markupOf(source), runtime: runtime })
                 return {
                     code: result.code,
                     errors: result.diagnostics.map(d => `${text().position(d.line, d.column)}: ${d.message}`),

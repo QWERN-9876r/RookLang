@@ -8,6 +8,50 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
+## 0.6.0 — 2026-11-06
+
+Components on the server: the markup and the components of the browser write a backend too. This
+part is experimental and may change in any release before 1.0; the design, with the reasons for
+its decisions and what is not decided yet, is in [docs/server.md](docs/server.md).
+
+### Added
+
+- `"rook": { "markup": "html" }` in `package.json` makes markup a string of HTML, of type `Html`:
+  text and attributes are escaped, attributes are checked as in the browser, and `<html>` gets a
+  doctype. What only a page has, `onClick`, `bind:`, `ref`, `state` and `mount`, is an error with
+  a hint. A server in the same repository as the browser code gets a `package.json` of its own.
+- Components of the server are async functions: their bodies may `await`, a tag is the result of
+  the component, waited for, and components side by side in markup render at the same time.
+- A component of the server returns any value; its type is inferred, or written after the
+  properties, `comp Users() []User`. A `Response` among the children of markup goes up and is the
+  answer to the request; the other components still end, and their `defer` runs.
+- Children are lazy, `Content<T>`: a function that renders them when called. Components take type
+  parameters, `comp Logger<T>(children Content<T>) T`, inferred from the children of the tag, and a
+  component type has a result, `comp(id string) Html`.
+- Decorators of the server may `await`, an early `return` in their body is a guard that answers
+  instead of the component, and a wrapper takes and gives a value of any type.
+- `needs` on a component, `comp Header() needs session`, takes `@session` from a component above it
+  in the tree of the request, and so does a decorator that needs another one. Where a component is
+  used by its name, the compiler checks that one is there.
+- `rooklang/server`: `handler(App)` is a function from `Request` to `Response` for Bun, Deno and
+  Workers, `serve(App, { port })` runs it on `node:http`, `reply(value, { status, headers })` makes
+  a response of a value, and `html(text)` marks trusted text as HTML. The answer is made from the
+  value of the root: a `Response` as it is, `Html` as `text/html`, a string as text, `null` as 404,
+  the rest as JSON.
+- `rook run`, the Vite plugin and the plugin of Bun take `rooklang/server` from the compiler that
+  runs, as they take `rooklang/runtime`.
+- The browser compiler takes `{ markup: "html" }`, and knows `Request`, `Response` and `Headers` as
+  types without `lib.dom`.
+- The VS Code extension highlights `needs` after the result of a component,
+  `comp Users() []User needs session`.
+
+### The site
+
+- A section of the guide, "Components on the server", with two examples: a blog with a layout, a
+  404 that goes up and JSON, and a session, a guard and a generic logger.
+- The server of the site, `site/server/main.rk`, is written with components of the server.
+- A program of the site that imports `rooklang/server` is compiled with markup as HTML.
+
 ## 0.5.0 — 2026-10-31
 
 What a team that builds a browser game in Rook, with Bun and Vite, found missing or broken.

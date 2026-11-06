@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { markupOf } from '../site/src/server-programs.ts';
 import { compile } from '../src/index.ts';
 
 // What the compiler writes for the examples of the site and of examples/, kept in
@@ -24,7 +25,7 @@ const examples = FOLDERS.flatMap(({ folder, prefix }) => {
 /** The module, its worker module if it has `go`, and its declarations, one after another. */
 function output(name: string, source: string): string {
   const { code, worker, declarations, diagnostics } = compile(source, {
-    markup: true,
+    markup: markupOf(source),
     declarations: true,
     workerUrl: `./${name}.worker.js`,
   });

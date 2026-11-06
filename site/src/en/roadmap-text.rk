@@ -202,6 +202,10 @@ export comp RoadmapText() {
             <li>Refs in <code>{"{if}"}</code>, <code>{"{switch}"}</code> and <code>{"{for}"}</code>, and one ref in several returns.</li>
             <li><code>rook build --explain</code>: where the compiler did not inline, and why.</li>
             <li>
+                Components on the server: markup as a string of HTML, components that return any
+                value, decorators as guards and context.
+            </li>
+            <li>
                 The CSS of components in a file of its own, and the class of a style only on the
                 elements that its selectors can match.
             </li>

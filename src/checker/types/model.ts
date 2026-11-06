@@ -79,6 +79,8 @@ export interface FunctionType {
 export interface ComponentType {
   kind: 'component';
   params: ComponentParam[];
+  /** On the server, what the component gives (docs/server.md). */
+  result?: Type;
 }
 
 export interface ComponentParam {

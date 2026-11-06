@@ -163,7 +163,7 @@ Node.js ≥ 24 (`nvm use`). Компилятор написан на TypeScript,
 - [site/src/editor/](site/src/editor/) — редактор песочницы, тот же, что в VS Code (Monaco), с
   грамматикой расширения VS Code, ошибками компилятора прямо в коде и его автодополнением;
   TypeScript для браузера, проверяется по [site/tsconfig.json](site/tsconfig.json);
-- [site/server.rk](site/server.rk) — статический сервер на `node:http` с логом через `defer`.
+- [site/server/main.rk](site/server/main.rk) — статический сервер на серверных компонентах с логом через декоратор.
 
 Сайт собирает Vite ([vite.config.ts](vite.config.ts)): `.rk`-модули компилирует плагин
 [src/vite.ts](src/vite.ts) с проверкой типов, компилятор для песочницы берётся прямо из
@@ -176,7 +176,7 @@ Geist Mono идут вместе с сайтом из npm ([site/src/fonts.css](
 
 ```sh
 npm run site:dev    # сервер разработки Vite: изменения видны сразу
-npm run site        # собирает сайт в site/dist и запускает site/server.rk на http://localhost:3000
+npm run site        # собирает сайт в site/dist и запускает site/server/main.rk на http://localhost:3000
 ```
 
 ## Vite

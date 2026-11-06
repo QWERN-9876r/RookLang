@@ -71,7 +71,7 @@ export function typeToString(type: Type): string {
           `${param.name} ${typeToString(param.optional && param.name !== 'children' ? nullable(param.type) : param.type)}`,
       );
 
-      return `comp(${params.join(', ')})`;
+      return `comp(${params.join(', ')})${type.result ? ` ${typeToString(type.result)}` : ''}`;
     }
 
     case 'object': {

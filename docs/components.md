@@ -11,6 +11,9 @@
 > Markup and components are off by default; a package turns them on with
 > `"rook": { "markup": true }` in its `package.json` (see "Markup" in [spec.md](spec.md)).
 
+> Components on the server, where markup is a string of HTML and a component may return any value,
+> are designed in [server.md](server.md).
+
 ## Goals
 
 1. **An element in code is a real DOM node.** `<a href="/">…</a>` is an expression that creates an
@@ -1187,6 +1190,9 @@ attrs?.($$button4);
 > Implemented: declarations, arguments, public members, `mount`, wrappers, `needs`,
 > `includes` and exporting. Not yet: renaming a decorator on import, a `return` inside the `if` or
 > `for` of a wrapper, and an exported decorator that includes others.
+
+> On the server a decorator can also wait, answer instead of the component (a guard) and give
+> context to the components below it: see [server.md](server.md).
 
 A decorator adds logic to a component: its own state, functions, `mount` and a wrapper around
 what the component returns. Components are not only markup, and the logic many of them share

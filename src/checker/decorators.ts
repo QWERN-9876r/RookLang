@@ -111,7 +111,8 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
 
       this.expectAssignable(this.checkValue(param.defaultValue, type), type, param.defaultValue);
     });
-    for (const statement of ownStatements(node.body)) {
+    // On the server the body runs in the function of the component, where defer works.
+    for (const statement of this.server ? [] : ownStatements(node.body)) {
       if (statement.kind === 'DeferStatement') {
         this.error('defer is not supported in decorators yet', statement);
       }
@@ -217,9 +218,10 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
       );
     }
 
-    // The body of a decorator may read the state of those it needs right away.
+    // The body of a decorator may read the state of those it needs right away; on the server a
+    // component above may give them.
     for (const needed of decorator.needed) {
-      if (applied.has(needed)) continue;
+      if (applied.has(needed) || this.server) continue;
 
       const other = needed.node.name.name;
 

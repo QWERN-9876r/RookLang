@@ -22,13 +22,19 @@ import { reexportedNames } from './reexports.ts';
 // Compiling one module, without access to files: the browser uses this directly (src/browser.ts),
 // Node adds reading imported modules from disk (src/index.ts).
 
+/**
+ * Markup and components: off, on (`true`, the DOM of the browser), or `"html"`, strings of HTML
+ * and the components of the server (docs/server.md).
+ */
+export type Markup = boolean | 'html';
+
 export interface CoreCompileOptions {
   /** Replace `.rk` with `.js` in relative import paths. Defaults to `true`. */
   rewriteImports?: boolean;
   /** Check types before generating code. Defaults to `true`. */
   typeCheck?: boolean;
   /** Markup and components; read unless false (the entries decide it, see src/config.ts). */
-  markup?: boolean;
+  markup?: Markup;
   /** The exports of an imported `.rk` module; without it, imports are untyped (`any`). */
   importModule?: ((specifier: string) => ImportResult) | undefined;
   /** The exports of other imports, from TypeScript declarations; without it, they are untyped. */
@@ -125,6 +131,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     styleModules,
     runtime: options.runtime,
     dataClasses,
+    server: options.markup === 'html',
     ...importedCode(program, options.importModule),
     reexports: reexportedNames(program, options.importModule),
   };
@@ -192,6 +199,7 @@ export function prepareCheck(
       ...(importModule ? { importModule } : {}),
       importDeclarations: importStyles,
       ...(library ? { library } : {}),
+      ...(options.markup === 'html' ? { server: true } : {}),
     },
   };
 }

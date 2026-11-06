@@ -1,6 +1,7 @@
 import type * as ast from '../ast.ts';
 import { CheckerBase } from './base.ts';
 import type { DecoratorInfo, ModuleExports } from './context.ts';
+import { SERVER_MODULE, serverExports } from './server.ts';
 import { ANY, LazyMap, memberNames, UNKNOWN, type Member, type Type } from './types.ts';
 
 // Imports: the names of other modules, typed by their exports (`importModule` for `.rk` modules,
@@ -19,6 +20,11 @@ export abstract class ImportChecker extends CheckerBase {
   /** The exports of the module that an import or an `export ... from` names. */
   private exportsOf(source: ast.StringLiteral): ModuleExports | null {
     const specifier = source.value;
+
+    if (specifier === SERVER_MODULE) {
+      return serverExports(this.libraryType('Request'), this.libraryType('Response'));
+    }
+
     const result = specifier.endsWith('.rk')
       ? this.options.importModule?.(specifier)
       : this.options.importDeclarations?.(specifier);
@@ -26,6 +32,11 @@ export abstract class ImportChecker extends CheckerBase {
     if (result && 'error' in result) this.error(result.error, source);
 
     return result && 'exports' in result ? result.exports : null;
+  }
+
+  /** A type of the library, e.g. Response, or any without it. */
+  private libraryType(name: string): Type {
+    return this.options.library?.type(name) ?? ANY;
   }
 
   /**

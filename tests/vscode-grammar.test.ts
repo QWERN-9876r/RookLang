@@ -112,6 +112,20 @@ describe('VS Code grammar', () => {
     );
     expect(scopeOf('const needs = 1', 'needs')).toBe('variable.other.readwrite');
 
+    // A component of a server: type parameters, a result, and what it needs from above.
+    const logger = 'comp Logger<T>(children Content<T>) T needs session, auth {';
+
+    expect(scopeOf(logger, 'Logger')).toBe('entity.name.type.component');
+    expect(scopesOf(logger, 'T')).toEqual(Array(3).fill('entity.name.type'));
+    expect(scopeOf(logger, 'needs')).toBe('storage.modifier.needs');
+    expect(scopeOf(logger, 'session')).toBe('entity.name.function.decorator');
+    expect(scopeOf(logger, 'auth')).toBe('entity.name.function.decorator');
+    expect(scopeOf('comp Users() []User needs session {', 'needs')).toBe('storage.modifier.needs');
+    expect(scopeOf('comp Users() ?User needs session {', 'session')).toBe(
+      'entity.name.function.decorator',
+    );
+    expect(scopeOf('const page comp(id string) Html = Home', 'Html')).toBe('entity.name.type');
+
     const shop = 'dec shop(n number) needs auth includes counter(n + 1), cart {';
 
     expect(scopeOf(shop, 'includes')).toBe('storage.modifier.includes');
@@ -362,7 +376,7 @@ describe('VS Code grammar', () => {
     const files = [
       ...readdirSync(join(root, 'examples')).map((name) => join(root, 'examples', name)),
       ...readdirSync(join(root, 'site/src')).map((name) => join(root, 'site/src', name)),
-      join(root, 'site/server.rk'),
+      join(root, 'site/server/main.rk'),
     ].filter((path) => path.endsWith('.rk'));
 
     expect(files.length).toBeGreaterThan(3);

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { isMainThread } from 'node:worker_threads';
 import type * as Build from './build.ts';
 import type * as CompileFile from './compile-file.ts';
-import { RUNTIME_MODULE } from './runtime-module.ts';
+import { RUNTIME_MODULE, SERVER_MODULE } from './runtime-module.ts';
 import { cachedFile, listFiles, withMap } from './run-cache.ts';
 
 // `rook run` imports this module first (`node --import`): Node then imports `.rk` files,
@@ -31,8 +31,10 @@ function cached(url: string): string | null {
   return cache ? cachedFile(cache, url) : null;
 }
 
-// The compiled code imports the runtime of this compiler, wherever the program is.
+// The compiled code imports the runtime of this compiler, wherever the program is, and so does a
+// server its rooklang/server.
 const runtime = import.meta.resolve(RUNTIME_MODULE);
+const server = import.meta.resolve(SERVER_MODULE);
 const require = createRequire(import.meta.url);
 // The files next to this one: .ts in src, .js in the dist of the package.
 const extension = extname(fileURLToPath(import.meta.url));
@@ -40,6 +42,7 @@ const extension = extname(fileURLToPath(import.meta.url));
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier === RUNTIME_MODULE) return { url: runtime, shortCircuit: true };
+    if (specifier === SERVER_MODULE) return { url: server, shortCircuit: true };
 
     return nextResolve(specifier, context);
   },

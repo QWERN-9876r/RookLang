@@ -51,6 +51,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       visit(node.name);
       each(node.decorators);
       each(node.params);
+      if (node.result) visit(node.result);
       visit(node.body);
       break;
 

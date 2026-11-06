@@ -1,0 +1,77 @@
+// The section "Components on the server" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp ServerComponents() {
+    return <>
+        <p>
+            The same markup and components write a server. A package with
+            {" "}<code>{'"rook": { "markup": "html" }'}</code> in its <code>package.json</code> gets
+            markup that is a string of HTML, of type <code>Html</code>, and components that answer
+            requests. The root takes the <code>Request</code> of the web standard, and
+            {" "}<code>serve(App)</code> of <code>rooklang/server</code> runs it on
+            {" "}<code>node:http</code>; <code>handler(App)</code> is a function from
+            {" "}<code>Request</code> to <code>Response</code> for Bun, Deno and Workers. This is
+            experimental and may change before 1.0.
+        </p>
+        <Example name="server-components" />
+        <ul>
+            <li>
+                Text and attributes are <b>escaped</b>; an <code>Html</code> goes in as it is, and
+                {" "}<code>html(text)</code> marks a string you trust as HTML. Attributes are
+                checked as in the browser, and <code>{"<html>"}</code> gets a doctype. What only a
+                page has is an error: <code>onClick</code>, <code>bind:</code>, <code>ref</code>,
+                {" "}<code>state</code>, <code>mount</code>.
+            </li>
+            <li>
+                A component is an <b>async</b> function: its body may <code>await</code>, and a tag
+                is its result, waited for. Components side by side in markup render at the same
+                time.
+            </li>
+            <li>
+                A component returns <b>any value</b>; its type is inferred, or written after the
+                properties: <code>comp PostList() []Post</code>. The answer is made from the value
+                of the root: a <code>Response</code> as it is, <code>Html</code> as
+                {" "}<code>text/html</code>, a string as text, <code>null</code> as 404, the rest as
+                JSON. <code>reply(value, {"{ status, headers }"})</code> gives a status and
+                headers.
+            </li>
+            <li>
+                A <code>Response</code> among the children of markup <b>goes up</b>: the render
+                stops, and it is the answer to the request. The other components still end, so
+                their <code>defer</code> runs.
+            </li>
+        </ul>
+        <p>
+            Decorators are the middleware. Their bodies may wait too, and an early
+            {" "}<code>return</code> is a <b>guard</b>: it answers instead of the component. A
+            decorator applied to a component above is the <b>context</b> of the components below:
+            they name it with <code>needs</code> and read its public members.
+        </p>
+        <Example name="server-context" />
+        <ul>
+            <li>
+                <code>needs session</code> is satisfied by <code>@session</code> on the component
+                itself or on any component above it in the tree of the request; the nearest one
+                is taken. Where a component is used by its name, the compiler checks that one is
+                there.
+            </li>
+            <li>
+                <code>dec admin() needs session</code> takes <code>@session</code> from above, so
+                {" "}<code>@admin</code> works on <code>Dashboard</code>, which does not apply
+                {" "}<code>@session</code> itself.
+            </li>
+            <li>
+                The children are <code>Content{"<T>"}</code>, a function that renders them when
+                called: <code>Logger</code> decides when they run, and gives what they give. Its
+                {" "}<code>T</code> is inferred from the children of the tag, here the
+                {" "}<code>Html | Response</code> of <code>Dashboard</code> with its guard.
+            </li>
+            <li>
+                A wrapper, <code>{"return (page Html) => <main>{page}</main>"}</code>, gets what the
+                component gives, of any type, as in the browser. The server of this site uses one
+                to log the status of every answer.
+            </li>
+        </ul>
+    </>
+}

@@ -42,7 +42,8 @@ interface FunctionContext {
  *       → StatementEmitter → UpdateEmitter → AttributeEmitter → CreationEmitter → ElementEmitter
  *       → ControlFlowEmitter → ComponentPropsEmitter → ComponentValueEmitter
  *       → EarlyReturnEmitter → RefEmitter
- *       → StyleEmitter → ComponentEmitter → WebComponentEmitter → FunctionEmitter → JsGenerator
+ *       → StyleEmitter → ComponentEmitter → WebComponentEmitter → FunctionEmitter
+ *       → HtmlMarkupEmitter → ServerComponentEmitter → JsGenerator
  */
 export abstract class Emitter {
   protected readonly program: ast.Program;
@@ -182,7 +183,14 @@ export abstract class Emitter {
 
     // A small component of another module is inlined, unless generateJs chose to call it.
     for (const [name, component] of options.components ?? []) {
-      if (!component.inline || options.functions?.has(name) || this.valueNames.has(name)) continue;
+      if (
+        !component.inline ||
+        options.server ||
+        options.functions?.has(name) ||
+        this.valueNames.has(name)
+      ) {
+        continue;
+      }
 
       const localized = localize(name, component.node.name.name, component.inline, keepType);
 
@@ -216,8 +224,12 @@ export abstract class Emitter {
     const functionComponents = recursiveComponents(this.components);
 
     for (const [name, component] of this.components) {
-      // Other modules call an exported component, so it is a function here too.
-      if (component.exported || this.valueNames.has(name)) functionComponents.add(component);
+      // Other modules call an exported component, so it is a function here too; on the server
+      // every component is one.
+      if (component.exported || this.valueNames.has(name) || options.server) {
+        functionComponents.add(component);
+      }
+
       if (!component.htmlTag) continue;
       functionComponents.add(component);
       this.webComponents.set(htmlTagName(component), component);

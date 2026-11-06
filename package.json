@@ -1,6 +1,6 @@
 {
   "name": "rooklang",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A language with JavaScript semantics, Go-style syntax, goroutines on real threads and static types that compiles to readable JavaScript",
   "keywords": [
     "rooklang",
@@ -56,6 +56,7 @@
       "default": "./dist/bun-register.js"
     },
     "./runtime": "./src/runtime/index.js",
+    "./server": "./src/runtime/server.js",
     "./package.json": "./package.json"
   },
   "files": [
@@ -68,7 +69,7 @@
     "rook": "node src/cli.ts",
     "site:dev": "vite",
     "site:build": "vite build && node scripts/prerender.ts",
-    "site": "npm run site:build && node src/cli.ts run site/server.rk",
+    "site": "npm run site:build && node src/cli.ts run site/server/main.rk",
     "site:images": "node scripts/og-image.ts",
     "vscode:build": "node scripts/build-vscode.ts",
     "vscode:package": "npm run vscode:build && cd editors/vscode && npx --yes @vscode/vsce@4 package --no-dependencies --baseContentUrl https://github.com/QWERN-9876r/RookLang/blob/HEAD/editors/vscode --baseImagesUrl https://github.com/QWERN-9876r/RookLang/raw/HEAD/editors/vscode --out rooklang.vsix",

@@ -1,6 +1,7 @@
 import { readFileSync, statSync } from 'node:fs';
 import { resolveRookModule } from './aliases.ts';
 import { check, type ImportResult, type ModuleExports } from './checker/checker.ts';
+import type { Markup } from './compile.ts';
 import { markupFor } from './config.ts';
 import { parse } from './parser/parser.ts';
 import { importDeclarations, libraryFor } from './typescript/importer.ts';
@@ -13,7 +14,7 @@ const loading = new Set<string>();
 export function loadModuleExports(
   fromFile: string,
   specifier: string,
-  markup?: boolean,
+  markup?: Markup,
 ): ImportResult {
   // A relative path, or an alias of package.json or tsconfig.json (aliases.ts).
   const path = specifier.endsWith('.rk') ? resolveRookModule(fromFile, specifier) : null;

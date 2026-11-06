@@ -219,16 +219,27 @@ export abstract class DeclarationParser extends ParamParser {
       );
     }
 
+    // `comp Logger<T>(children Content<T>) T`: on the server a wrapper gives what it wraps.
+    const typeParams = this.server ? this.parseTypeParams() : [];
     const params = this.parseParams(false, { defaults: true, rest: 'attrs' });
-    const body = this.withContext({ ...FUNCTION_BODY, inComponent: true }, () =>
-      this.parseComponentBody(),
+    // On the server a component gives any value, `comp Users() []User`, and may wait.
+    const result =
+      this.server && !this.check('{') && !this.checkWord('needs') ? this.parseType() : undefined;
+    // `needs session`: a decorator of a component above gives its members (docs/server.md).
+    const needs = this.server ? this.parseNeeds() : [];
+    const body = this.withContext(
+      { ...FUNCTION_BODY, inComponent: true, inAsync: this.server },
+      () => this.parseComponentBody(),
     );
 
     return {
       kind: 'ComponentDeclaration',
       exported,
       name,
+      ...(typeParams.length > 0 ? { typeParams } : {}),
       params,
+      ...(result ? { result } : {}),
+      ...(needs.length > 0 ? { needs } : {}),
       body,
       htmlTag,
       decorators,

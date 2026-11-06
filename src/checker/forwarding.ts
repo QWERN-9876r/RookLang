@@ -3,7 +3,7 @@ import { attrsParam, attrsSpreads, attrsTarget } from '../attrs.ts';
 import { isComponentUse, type Repeated } from '../refs.ts';
 import { isSvgElement } from '../svg.ts';
 import type { ComponentInfo } from './context.ts';
-import { MarkupChecker } from './markup.ts';
+import { ServerMarkupChecker } from './server-markup.ts';
 import type { ObjectType } from './types.ts';
 
 // Attributes passed on: `...attrs`, the last property of a component, takes the attributes of a
@@ -27,7 +27,7 @@ const WHERE: Record<Repeated, string> = {
   block: 'a block of the body',
 };
 
-export abstract class ForwardingChecker extends MarkupChecker {
+export abstract class ForwardingChecker extends ServerMarkupChecker {
   /**
    * An attribute of a use that is not a property: checked as an attribute of the element that
    * `{...attrs}` is spread on. False when the component takes no attributes.

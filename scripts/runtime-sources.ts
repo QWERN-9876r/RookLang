@@ -9,10 +9,13 @@ import * as prettier from 'prettier';
 const dir = new URL('../src/runtime/', import.meta.url);
 const target = new URL('sources.ts', dir);
 
-/** The text of each file but index.js, which only exports the others. */
+/**
+ * The text of each file but index.js, which only exports the others, and server.js, which is
+ * "rooklang/server": a module imports it, the runtime does not put it in.
+ */
 export function runtimeFiles(): Record<string, string> {
   const names = readdirSync(dir)
-    .filter((name) => name.endsWith('.js') && name !== 'index.js')
+    .filter((name) => name.endsWith('.js') && name !== 'index.js' && name !== 'server.js')
     .sort();
 
   return Object.fromEntries(names.map((name) => [name, readFileSync(new URL(name, dir), 'utf8')]));

@@ -2245,6 +2245,9 @@ export declare class Stack<T> {
 { "rook": { "markup": true } }
 ```
 
+`"markup": "html"` делает разметку строками HTML, а компоненты — серверными, которые возвращают
+любое значение: см. [server.ru.md](server.ru.md).
+
 Файл берёт настройку ближайшего `package.json` над ним, так же делают языковой сервер VS Code и
 плагин Vite. `rook build --markup` и `--no-markup` задают её для всех файлов, как и
 `rook({ markup: true })` в Vite. Там, где она выключена, разметка, `comp`, `dec` и декораторы —

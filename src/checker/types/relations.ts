@@ -208,6 +208,11 @@ function componentAssignable(
   target: ComponentType,
   assuming: [Type, Type][],
 ): boolean {
+  // On the server a component gives a value, which must be what the type says.
+  if (target.result && source.result && !assignable(source.result, target.result, assuming)) {
+    return false;
+  }
+
   return (
     source.params.every((param, i) => i < target.params.length || param.optional) &&
     target.params.every((expected, i) => {

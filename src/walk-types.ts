@@ -41,6 +41,7 @@ export function forEachTypeChild(node: TypeChildNode, visit: (child: ast.Node) =
 
     case 'ComponentType':
       each(node.params);
+      if (node.result) visit(node.result);
       break;
 
     case 'ObjectType':

@@ -23,8 +23,8 @@
           }
         },
         {
-          "comment": "`needs` is a keyword only after the parameters of a decorator: `dec cartBadge() needs cart, auth {`.",
-          "begin": "(?<=\\))\\s*(needs)(?=\\s+[A-Za-z_$])",
+          "comment": "`needs` is a keyword only after the parameters of a decorator or a component, or the result of a component: `dec cartBadge() needs cart, auth {`, `comp Users() []User needs session {`.",
+          "begin": "(?:(?<=\\))\\s*|(?<=[\\w$\\]>])\\s+)(needs)(?=\\s+[A-Za-z_$])",
           "beginCaptures": { "1": { "name": "storage.modifier.needs.rook" } },
           "end": "(?=\\{|\\s+includes\\s)",
           "patterns": [

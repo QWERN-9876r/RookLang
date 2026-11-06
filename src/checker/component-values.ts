@@ -1,9 +1,11 @@
 import type * as ast from '../ast.ts';
-import { ComponentChecker } from './components.ts';
+import { ServerComponentChecker } from './server-components.ts';
 import type { ComponentInfo } from './context.ts';
 import { isUntyped } from './helpers.ts';
+import { HTML } from './server.ts';
 
 import {
+  ANY,
   isNullable,
   typeToString,
   UNKNOWN,
@@ -16,7 +18,7 @@ import {
 // from a value, `<section.content />`, or `<Page />` when `Page` is a variable. Such a tag passes
 // the properties by their positions in the type, so the component is a function in its module.
 
-export abstract class ComponentValueChecker extends ComponentChecker {
+export abstract class ComponentValueChecker extends ServerComponentChecker {
   /** `Card` as a value: `comp(title string, kind ?Kind)`, without `...attrs`. */
   protected override componentValue(info: ComponentInfo): ComponentType {
     const params: ComponentParam[] = info.node.params.flatMap((param) => {
@@ -25,7 +27,10 @@ export abstract class ComponentValueChecker extends ComponentChecker {
       return param.rest || !prop ? [] : [{ name: param.name.name, ...prop }];
     });
 
-    return { kind: 'component', params };
+    // On the server the value is a function that gives what the component does.
+    if (!this.server) return { kind: 'component', params };
+
+    return { kind: 'component', params, result: this.componentResult(info, new Set()) };
   }
 
   /** `<section.content title="Hi" />`: the attributes are checked against the type of the value. */
@@ -49,7 +54,11 @@ export abstract class ComponentValueChecker extends ComponentChecker {
           `<${name}> is ${typeToString(type)}, not a component: give it a type like comp(title string)`,
           tag,
         );
-      } else if (type.kind === 'any' && (node.attributes.length > 0 || node.children.length > 0)) {
+      } else if (
+        type.kind === 'any' &&
+        !this.server &&
+        (node.attributes.length > 0 || node.children.length > 0)
+      ) {
         // The tag passes the properties by position, which only the type knows.
         this.error(
           `<${name}> is any, so the order of its properties is not known: give it a type like comp(title string)`,
@@ -59,12 +68,13 @@ export abstract class ComponentValueChecker extends ComponentChecker {
 
       this.checkValueTagAttributes(node, null);
 
-      return this.dom.node;
+      return this.server ? ANY : this.dom.node;
     }
 
     this.checkValueTagAttributes(node, type);
 
-    return this.dom.node;
+    // On the server the properties go as an object, and the tag gives what the component does.
+    return this.server ? (type.result ?? HTML) : this.dom.node;
   }
 
   private checkValueTagAttributes(node: ast.ElementExpression, type: ComponentType | null): void {

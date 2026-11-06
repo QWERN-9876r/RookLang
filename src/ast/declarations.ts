@@ -100,7 +100,13 @@ export interface ComponentDeclaration extends NodeBase {
   kind: 'ComponentDeclaration';
   exported: boolean;
   name: Identifier;
+  /** `comp Logger<T>(children Content<T>) T`: on the server, inferred from the children. */
+  typeParams?: TypeParameter[];
   params: Parameter[];
+  /** `comp Users() []User`: on the server a component may give any value (docs/server.md). */
+  result?: TypeNode;
+  /** `needs session`: on the server, decorators that a component above it applies. */
+  needs?: Identifier[];
   body: BlockStatement;
   /** `@html-tag` before `comp`: the component is also a web component. */
   htmlTag: HtmlTag | null;

@@ -144,8 +144,15 @@ export abstract class TypeParser extends ClassParser {
         this.next();
 
         const params = this.parseParams(false);
+        // On the server the type may write what the component gives: `comp(id string) []User`.
+        const result = this.server && this.canStartType() ? this.parseType() : undefined;
 
-        return { kind: 'ComponentType', params, ...this.span(start) };
+        return {
+          kind: 'ComponentType',
+          params,
+          ...(result ? { result } : {}),
+          ...this.span(start),
+        };
       }
 
       case '{': {

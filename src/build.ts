@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import type { Markup } from './compile.ts';
 import type { Diagnostic } from './diagnostics.ts';
 import { compile } from './index.ts';
 import { sourceMapComment, type SourceMap } from './source-map.ts';
@@ -13,7 +14,7 @@ export interface BuildOptions {
   /** Write a `.d.ts` next to each `.js`, for TypeScript code. Defaults to `typeCheck`. */
   declarations?: boolean;
   /** Markup and components for every file; by default as its package.json says (config.ts). */
-  markup?: boolean;
+  markup?: Markup;
   /** Write a source map next to each `.js`, `app.js.map`. Defaults to `true`. */
   sourceMap?: boolean;
 }

@@ -4,6 +4,7 @@ import { chanOf } from './channel.ts';
 import { ClassChecker } from './classes.ts';
 import type { AliasEntry } from './context.ts';
 import { CONTENT } from './dom.ts';
+import { contentOf, contentResult, HTML } from './server.ts';
 import {
   ANY,
   arrayOf,
@@ -35,6 +36,18 @@ export abstract class TypeResolver extends ClassChecker {
   protected override resolveType(node: ast.TypeNode): Type {
     switch (node.kind) {
       case 'TypeReference':
+        // On the server the children are a function of what they give: `Content<[]User>`.
+        if (
+          this.options.server === true &&
+          node.name.name === 'Content' &&
+          this.lookupType('Content') === CONTENT &&
+          node.typeArgs.length <= 1
+        ) {
+          const [arg] = node.typeArgs;
+
+          return contentOf(arg ? this.resolveType(arg) : HTML);
+        }
+
         return this.resolveTypeName(node.name, node.typeArgs);
 
       case 'ArrayType': {
@@ -96,7 +109,7 @@ export abstract class TypeResolver extends ClassChecker {
       const name = param.name.name;
       const type = param.type ? this.resolveType(param.type) : UNKNOWN;
 
-      if (name === 'children' && type !== CONTENT && type.kind !== 'unknown') {
+      if (name === 'children' && !isContent(type)) {
         this.error('the "children" property has the type Content', param.type ?? param);
       }
 
@@ -107,7 +120,14 @@ export abstract class TypeResolver extends ClassChecker {
       params.push({ name, type, optional: isNullable(type) || name === 'children' });
     }
 
-    return { kind: 'component', params };
+    // On the server a component gives a value: Html, unless the type says what.
+    if (this.options.server !== true) return { kind: 'component', params };
+
+    return {
+      kind: 'component',
+      params,
+      result: node.result ? this.resolveType(node.result) : HTML,
+    };
   }
 
   /**
@@ -290,4 +310,9 @@ export abstract class TypeResolver extends ClassChecker {
 
     return type;
   }
+}
+
+/** The type of `children`: Content, or Content<T> of the server. */
+export function isContent(type: Type): boolean {
+  return type === CONTENT || type.kind === 'unknown' || contentResult(type) !== null;
 }

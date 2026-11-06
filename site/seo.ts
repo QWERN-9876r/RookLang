@@ -280,7 +280,7 @@ export function sitemap(pages: string[]): string {
 /**
  * robots.txt. Crawlers read it only at the root of a host, so on GitHub Pages, where the site is
  * in a folder, it does nothing, and the sitemap is given to search engines by hand; it serves when
- * the site is at the root of a host, as with site/server.rk or a domain of its own.
+ * the site is at the root of a host, as with site/server/main.rk or a domain of its own.
  */
 export const ROBOTS = `User-agent: *\nAllow: /\n\nSitemap: ${SITE}sitemap.xml\n`;
 

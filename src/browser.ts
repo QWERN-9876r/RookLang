@@ -1,4 +1,4 @@
-import { compileModule } from './compile.ts';
+import { compileModule, type Markup } from './compile.ts';
 import { completeModule, type CompletionList } from './completion.ts';
 import type { Diagnostic } from './diagnostics.ts';
 import { SourceFile } from './source.ts';
@@ -33,7 +33,7 @@ export interface BrowserCompileResult {
 
 export interface BrowserOptions {
   /** Markup and components; off by default, as in a package without them. */
-  markup?: boolean;
+  markup?: Markup;
   /**
    * Import the runtime from "rooklang/runtime", the default, or put it into the module: code that
    * runs without imports, as in the playground, needs it there.

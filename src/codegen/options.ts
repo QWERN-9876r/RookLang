@@ -31,6 +31,8 @@ export interface JsOptions {
     | undefined;
   /** How the module gets the runtime it uses: imported, by default, or in it (runtime.ts). */
   runtime?: RuntimeMode | undefined;
+  /** Markup of the server, `"markup": "html"`: templates of HTML and async components. */
+  server?: boolean | undefined;
   /** The data classes of the module, whose imports stay even if only types use them. */
   dataClasses?: ReadonlySet<string> | undefined;
   /** State of other modules that this one imports, `local → name there`: it only reads it. */

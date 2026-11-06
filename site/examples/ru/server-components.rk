@@ -1,0 +1,51 @@
+// Разметка на сервере — строка HTML: в package.json пакета этой
+// программы стоит "rook": { "markup": "html" }
+import { reply, serve } from "rooklang/server"
+
+interface Post {
+    id string
+    title string
+    text string
+}
+
+const POSTS []Post = [
+    { id: "hello", title: "Привет", text: "Первая запись блога." },
+    { id: "rook", title: "Почему Rook", text: "Синтаксис Go, семантика JS." },
+]
+
+async func findPost(id string) ?Post {
+    return POSTS.find(post => post.id == id) ?? null
+}
+
+// Content ленивый: дети рендерятся, когда компонент их показывает
+comp Layout(title string, children Content) {
+    return <html lang="ru">
+        <head><title>{title}</title></head>
+        <body><main>{children}</main></body>
+    </html>
+}
+
+// Компонент асинхронный: он может ждать. Response среди детей
+// всплывает и становится ответом на весь запрос
+comp Article(id string) {
+    const post = await findPost(id)
+    if post == null {
+        return reply("Такой записи нет", { status: 404 })
+    }
+    return <article><h1>{post.title}</h1><p>{post.text}</p></article>
+}
+
+// Он возвращает любое значение: это уйдёт как JSON
+comp PostList() []Post {
+    return POSTS
+}
+
+comp App(request Request) {
+    const path = new URL(request.url).pathname
+    if path == "/api/posts" {
+        return <PostList />
+    }
+    return <Layout title="Блог"><Article id={path.slice(1)} /></Layout>
+}
+
+serve(App, { port: 3000 })
