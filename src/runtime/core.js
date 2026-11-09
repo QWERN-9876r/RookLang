@@ -1,6 +1,11 @@
 // What the code of any module may need: `for` over a value of unknown type, `defer`, and wrapped
 // errors.
 
+/** `{for i in 0..n}` of markup, which goes over an array: the numbers from `from` up to `to`. */
+export function $$numbers(from, to) {
+  return Array.from({ length: Math.max(0, Math.ceil(to - from)) }, (_, i) => from + i);
+}
+
 // `for v in x` over an untyped value: a Map gives its values, as a typed one does.
 export function $$values(iterable) {
   if (typeof iterable === 'function') return iterable();

@@ -127,6 +127,11 @@ export interface Context {
   inGoFor: boolean;
   /** In an async function or at the top level of the module, where `await` is allowed. */
   inAsync: boolean;
+  /**
+   * In a `return` of a decorator on the server: where the function literal that may be its
+   * wrapper starts, which may wait, or -1.
+   */
+  wrapperAt: number;
   /** In an if/for/switch header, where `{` starts the block rather than an object literal. */
   noObjectLiteral: boolean;
   /** Inside a component, for the error about `state` in a nested block. */
@@ -152,6 +157,7 @@ export const FUNCTION_BODY: Partial<Context> = {
   inDefer: false,
   inGoFor: false,
   inAsync: false,
+  wrapperAt: -1,
   noObjectLiteral: false,
   inMarkup: false,
   labels: [],

@@ -141,6 +141,9 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
     case 'TaggedTemplateExpression':
       return `(tag ${sx(node.tag)} ${sx(node.quasi)})`;
 
+    case 'RangeExpression':
+      return `(.. ${sx(node.from)} ${sx(node.to)})`;
+
     case 'CallExpression':
       return `(${node.optional ? '?call' : 'call'} ${[node.callee, ...node.arguments].map(sx).join(' ')})`;
 

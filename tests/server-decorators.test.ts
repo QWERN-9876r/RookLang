@@ -184,4 +184,82 @@ describe('context: needs of a component above', () => {
 
     expect(String(logged[0])).toContain('Header needs @session from a component above it');
   });
+
+  it('gives its public parameters to the components below', async () => {
+    const handle = await handlerOf(`
+      import { handler } from "rooklang/server"
+      dec http(public request Request, public ip string) {
+          public const path = new URL(request.url).pathname
+      }
+      comp Who() needs http {
+          return <i>{@http.ip} {@http.request.method} {@http.path}</i>
+      }
+      @http(request, "10.0.0.1")
+      comp App(request Request) {
+          return <p><Who /></p>
+      }
+      export const handle = handler(App)
+    `);
+
+    expect(await (await handle(get('/home'))).text()).toBe('<p><i>10.0.0.1 GET /home</i></p>');
+  });
+
+  it('is read by the arguments of the decorators of a component that needs it', async () => {
+    const source = `
+      import { handler, reply } from "rooklang/server"
+      dec api(public secret string) {
+      }
+      dec guard(secret string, request Request) {
+          if request.headers.get("x-key") != secret {
+              return reply("no", { status: 401 })
+          }
+      }
+      @guard(@api.secret, request)
+      comp Page(request Request) needs api {
+          return <p>ok</p>
+      }
+      @api("k")
+      comp App(request Request) {
+          return <main><Page request={request} /></main>
+      }
+      export const handle = handler(App)
+    `;
+    const handle = await handlerOf(source);
+    const keyed = (key: string) => new Request('http://localhost/', { headers: { 'x-key': key } });
+
+    expect(await (await handle(keyed('k'))).text()).toBe('<main><p>ok</p></main>');
+    expect((await handle(keyed('x'))).status).toBe(401);
+    expect(serverErrors(source.replace(' needs api', ''))).toEqual([
+      '@api.secret in an argument comes from a component above: add "needs api" to Page',
+    ]);
+  });
+
+  it('is known to a guard of a component in a table of the module', async () => {
+    // The table checks Page before the turn of the decorators: @admin needs the members of
+    // @session by then.
+    const handle = await handlerOf(`${SESSION}
+      dec admin() needs session {
+          if @session.path == "/secret" {
+              return reply("Forbidden", { status: 403 })
+          }
+      }
+      @admin
+      comp Page() needs session {
+          return <p>{@session.path}</p>
+      }
+      interface Route {
+          page comp() Html | Response
+      }
+      const ROUTES []Route = [{ page: Page }]
+      @session(request)
+      comp App(request Request) {
+          const route = ROUTES[0]
+          return <main><route.page /></main>
+      }
+      export const handle = handler(App)
+    `);
+
+    expect((await handle(get('/secret'))).status).toBe(403);
+    expect(await (await handle(get('/home'))).text()).toBe('<main><p>/home</p></main>');
+  });
 });

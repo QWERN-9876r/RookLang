@@ -243,14 +243,14 @@ for x in ch {
 }
 close(ch)`);
 
-    expect(code).toContain('const ch = $$Channel.make(2, 0);');
-    expect(code).toContain('await $$Channel.send(ch, 1);');
+    expect(code).toContain('const ch = $$channels.make(2, 0);');
+    expect(code).toContain('await $$channels.send(ch, 1);');
     // The zero value is for Channel.EMPTY, which has none of its own.
-    expect(code).toContain('const v = await $$Channel.receive(ch, false, 0);');
-    expect(code).toContain('const [w, ok] = await $$Channel.receive(ch, true, 0);');
-    expect(code).toContain('for await (const x of $$Channel.range(ch)) {');
-    expect(code).toContain('$$Channel.close(ch);');
-    expect(code.split('\n')[0]).toBe('import { $$Channel } from "rooklang/runtime";');
+    expect(code).toContain('const v = await $$channels.receive(ch, false, 0);');
+    expect(code).toContain('const [w, ok] = await $$channels.receive(ch, true, 0);');
+    expect(code).toContain('for await (const x of $$channels.range(ch)) {');
+    expect(code).toContain('$$channels.close(ch);');
+    expect(code.split('\n')[0]).toBe('import { $$channels } from "rooklang/runtime";');
   });
 
   it('gives the worker module the same runtime, which asks the thread that made a channel', () => {
@@ -260,8 +260,8 @@ close(ch)`);
 }
 go fill(chan<string>())`);
 
-    expect(worker).toContain('import { $$Channel, $$serve } from "rooklang/runtime";');
-    expect(worker).toContain('await $$Channel.send(c, "x");');
+    expect(worker).toContain('import { $$channels, $$serve } from "rooklang/runtime";');
+    expect(worker).toContain('await $$channels.send(c, "x");');
   });
 });
 

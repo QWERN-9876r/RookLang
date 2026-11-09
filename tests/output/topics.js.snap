@@ -1,12 +1,12 @@
 // topics.js
 
-import { $$Channel, $$Topic, $$element, $$mount } from "rooklang/runtime";
+import { $$channels, $$element, $$mount, $$topics } from "rooklang/runtime";
 
 // <Cart>
 let $$cart1, $$mountNode2;
 {
   let items = [];
-  const cart = $$Topic.make("guide-cart", null);
+  const cart = $$topics.make("guide-cart", null);
 
   function apply(e) {
     if (e.kind === "add") {
@@ -20,11 +20,11 @@ let $$cart1, $$mountNode2;
 
   function change(e) {
     apply(e);
-    $$Topic.publish(cart, e);
+    $$topics.publish(cart, e);
   }
 
   async function follow() {
-    for await (const e of $$Channel.range($$Topic.listen(cart))) {
+    for await (const e of $$channels.range($$topics.listen(cart))) {
       apply(e);
     }
   }
@@ -32,7 +32,7 @@ let $$cart1, $$mountNode2;
   const $$cleanups4 = [];
   $$mount(() => $$mountNode2, () => {
     follow();
-    $$cleanups4.push(() => $$Channel.close(cart));
+    $$cleanups4.push(() => $$channels.close(cart));
   }, $$cleanups4);
 
   const $$div5 = $$element("div", { className: "card" });

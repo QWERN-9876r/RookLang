@@ -1,5 +1,6 @@
 import type * as ast from '../ast.ts';
-import { CallChecker, withDefaults } from './calls.ts';
+import { withDefaults } from './calls.ts';
+import { RouteChecker } from './routes.ts';
 import { callSignature, isUntyped, signaturesOf } from './helpers.ts';
 import {
   ANY,
@@ -19,7 +20,7 @@ import {
 // of the template, a TemplateStringsArray, and its values, which are checked as the arguments that
 // follow the strings.
 
-export abstract class TagChecker extends CallChecker {
+export abstract class TagChecker extends RouteChecker {
   protected override checkTaggedTemplate(node: ast.TaggedTemplateExpression): Type {
     const tag = this.checkValue(node.tag);
     const values = node.quasi.expressions;

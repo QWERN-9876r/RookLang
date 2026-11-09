@@ -134,7 +134,9 @@ export abstract class ComponentValueEmitter extends ComponentPropsEmitter {
     const setter = `$$set${upperFirst(base)}${id}`;
 
     this.line(`const [${result}, ${setter}] = ${call};`);
-    live.depend(sources, `${setter}(${withoutTrailingUndefined(settable).join(', ')});`);
+    // A component with fewer properties than the type, `comp()` as `comp(id string)`, may have
+    // none to set again, and then no setter.
+    live.depend(sources, `${setter}?.(${withoutTrailingUndefined(settable).join(', ')});`);
 
     return result;
   }

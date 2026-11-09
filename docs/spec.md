@@ -239,7 +239,7 @@ only reports at compile time what would fail at run time.
 | `[]T`             | an array                                     | `Array`             |
 | `[]byte`          | bytes                                        | `Uint8Array`        |
 | `[]float64`, ...  | numbers of a fixed size                      | `Float64Array`, ... |
-| `queue T`         | values in order, taken out at both ends      | `$$Queue`           |
+| `queue T`         | values in order, taken out at both ends      | `$$deque`           |
 | `?T`              | a value of type `T` or `null`                | a value or `null`   |
 | `func(A, B) R`    | a function                                   | a function          |
 | `(a A) => R`      | the same function type, written as an arrow  | a function          |
@@ -395,13 +395,13 @@ let waiting queue number         // an empty queue
 ```
 
 ```js
-const jobs = new $$Queue(["build", "test"]);
+const jobs = new $$deque(["build", "test"]);
 jobs.push("deploy");
 jobs.unshift("lint");
 const next = jobs.shift();
 const last = jobs.pop();
 // ...
-let waiting = new $$Queue();
+let waiting = new $$deque();
 ```
 
 `queue T` keeps values of type `T` in order, and they go in and out at both ends. It has the
@@ -426,7 +426,7 @@ another iterable, which it copies.
   compares it. `queue<number>` as a type is an error that says to write `queue number`.
 - **The zero value** is an empty queue, a new one for each variable and field, as `[]` is for an
   array; a closed `chan queue T` gives an empty queue too.
-- **In JS** a queue is an instance of the class `$$Queue`, which the module gets when its code
+- **In JS** a queue is an instance of the class `$$deque`, which the module gets when its code
   uses queues: the values are a ring in an array, copied into one twice as large when it is full
   and into one half as large when it is mostly empty. Its fields are data, so a queue goes to
   another thread as a copy, if its values can be copied, and is a queue there too. TypeScript code
@@ -814,6 +814,15 @@ async func sleep(ms number) {
 }
 ```
 
+Without a declared type, what it gives is inferred from the calls of `resolve` in the callback:
+`new Promise(resolve => resolve(1))` is a `Promise<number>`, and calls with a number and a string
+make it `Promise<number | string>`. A `resolve` that is not called, or is passed on, as a pause is
+written, `await new Promise(resolve => setTimeout(resolve, 5))`, gets values the callback does not
+show: then the promise gives nothing, `Promise<void>`, and a value given to `resolve` elsewhere is
+an error that asks for the type. That is so for the parameters of the functions that a callback
+gets, as `resolve`; a parameter of the callback itself, `apply(x => ...)` of
+`func apply<T>(f func(T))`, still needs its type.
+
 ### Goroutines
 
 ```go
@@ -962,12 +971,12 @@ close(results)                          // every result is received
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-const results = $$Channel.make(0, 0);
+const jobs = $$channels.make(10, 0);
+const results = $$channels.make(0, 0);
 // ...
-await $$Channel.send(jobs, n);
+await $$channels.send(jobs, n);
 // ...
-console.log(await $$Channel.receive(results, false, 0));
+console.log(await $$channels.receive(results, false, 0));
 ```
 
 Channels pass values between goroutines, as in Go. `chan T` is the type of a channel of `T`, and
@@ -1034,7 +1043,7 @@ default:
 
 ```js
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
   switch ($$case) {
     case 0: {
       const job = $$received;
@@ -1081,9 +1090,9 @@ close(ticks)
 ```
 
 ```js
-const ticks = $$Channel.tick(100);
+const ticks = $$channels.tick(100);
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: $$Channel.after(500), zero: 0 }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: done, zero: 0 }, { channel: $$channels.after(500), zero: 0 }], false);
 // ...
 $$cancel(task);
 ```
@@ -1130,9 +1139,9 @@ case reason = <-done(request.signal):       // the client has gone
 ```
 
 ```js
-const stop = $$Channel.signal("SIGINT", "SIGTERM");
+const stop = $$channels.signal("SIGINT", "SIGTERM");
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: results, zero: "" }, { channel: $$Channel.done(request.signal) }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: results, zero: "" }, { channel: $$channels.done(request.signal) }], false);
 ```
 
 A server stops when the process manager tells it to, with a signal, and a request stops when its
@@ -1179,9 +1188,9 @@ const err = <-failed
 ```
 
 ```js
-const [chunks, failed] = $$Channel.fromStream(text, 4, "");
+const [chunks, failed] = $$channels.fromStream(text, 4, "");
 const words = await $$go("countWords", [chunks]);
-const err = await $$Channel.receive(failed);
+const err = await $$channels.receive(failed);
 ```
 
 A `ReadableStream`, such as the body of a `fetch` response, goes into a channel, and a channel
@@ -1239,11 +1248,11 @@ func stop() {
 ```
 
 ```js
-const cart = $$Topic.make("cart", null);
+const cart = $$topics.make("cart", null);
 // ...
-$$Topic.publish(cart, { kind: "add", id });
+$$topics.publish(cart, { kind: "add", id });
 // ...
-for await (const e of $$Channel.range($$Topic.listen(cart))) {
+for await (const e of $$channels.range($$topics.listen(cart))) {
 ```
 
 A topic passes values between the tabs of a site, as a channel passes them between goroutines:
@@ -1297,16 +1306,16 @@ let none chan string = Channel.EMPTY    // what `let none chan string` gives
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
-const n = await $$Channel.receive(jobs);
-$$Channel.close(jobs);
-let none = $$Channel.EMPTY;
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
+const n = await $$channels.receive(jobs);
+$$channels.close(jobs);
+let none = $$channels.EMPTY;
 ```
 
 `Channel` and `Topic` are predeclared objects with the functions that channels and topics compile
 to, by name, for code that needs them as values: to pass `Channel.close` on, or to receive without
-`await` in the same line. In JS they are `$$Channel` and `$$Topic` of the runtime, so a program
+`await` in the same line. In JS they are `$$channels` and `$$topics` of the runtime, so a program
 may declare names `Channel` and `Topic` of its own, which hide them.
 
 - **`Channel`:** `EMPTY`; `make(size, zero)`, a channel with room for `size` values that gives
@@ -1379,6 +1388,7 @@ The condition narrows the variables, as any condition does: in `if const u = fin
 | Rook                               | JS                                                              |
 | ---------------------------------- | --------------------------------------------------------------- |
 | `for let i = 0; i < n; i++ { }`    | `for (let i = 0; i < n; i++) { }`                               |
+| `for i in 0..n { }`                | `for (let i = 0, $$end = n; i < $$end; i++) { }`                |
 | `for x in items { }`               | `for (const x of items) { }`                                    |
 | `for i, x in items { }` (an array) | `for (let i = 0; i < items.length; i++) { const x = items[i] }` |
 | `for k, v in scores { }` (a Map)   | `for (const [k, v] of scores.entries()) { }`                    |
@@ -1392,6 +1402,13 @@ An array or a typed array with an index goes over its indexes, which is faster t
 of `entries()`: the array is read once, as `entries()` would read it, so a loop that assigns the
 variable of the array goes on over the old one. Without the index, `for _, x in items`, it is
 `for...of`.
+
+**A range,** `for i in 0..n`, goes over the numbers from the first up to the second, without it:
+`0..3` gives 0, 1 and 2, and `5..2` nothing. Both ends are numbers and are computed once, before the
+loop, as in Go: a loop that changes `n` goes on to the old end. The variable is a number that the
+body cannot assign, as any variable of `for ... in`. A range is written only after `in`, with one
+variable (`for i, x in 0..n` is an error), and not with `go for`, which goes over an array. In
+`{for}` of markup it is the array of the numbers, `$$numbers(0, n)`.
 
 `for x in items` goes over the **values**, like `for...of` in JS or `for x in` in Python and Rust,
 not over the keys like `for...in` in JS. In Go, `for i := range xs` with one variable gives the
@@ -2107,16 +2124,18 @@ jobs <- 1
 ```
 
 ```js
-import { $$Channel } from "rooklang/runtime";
+import { $$channels } from "rooklang/runtime";
 
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
 ```
 
 What the code cannot do with JS alone, such as channels, goroutines, queues, `defer` inside a loop
 and the blocks of markup, is done by functions of a small library, the runtime: `rooklang/runtime`
 in the package. A module imports the ones its code uses, by their names, which start with `$$`
-like all names of generated code; a module that needs none imports nothing.
+like all names of generated code; a module that needs none imports nothing. After `$$` they start
+with a small letter (`$$channels`, `$$deque`), and the functions of components with a capital one
+(`$$Card`), so a component may have any name.
 
 - **One runtime for all modules:** a channel or a queue that one module makes works the same in
   another, which imports the same runtime. Each thread has its own copy; what threads share goes
@@ -2616,7 +2635,7 @@ $$label3.htmlFor = input.id;
   declared, outside the document.
 - **A ref to a component,** `<Card ref={card} />`, points to the element at the top of what `Card`
   creates, through the wrappers of its decorators. The ref creates that element, and `Card` fills
-  it in: an inlined one directly, a function through its last argument, `$$root`. A component with
+  it in: an inlined one directly, a function through `this`, `{ $$root }`. A component with
   several `return`s, one that returns a fragment, or a wrapper that returns some other expression
   cannot be pointed to: the element is not known in advance. A component cannot have a property
   named `ref`.

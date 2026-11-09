@@ -75,7 +75,8 @@ export abstract class DecoratorIncludeChecker extends DecoratorChecker {
             `@${current} gets "${member}" from both @${other} and @${name}: rename one of them`,
             use,
           );
-        } else if (info.members.has(member)) {
+        } else if (info.members.has(member) || info.names.has(member)) {
+          // Its own name, a parameter too, and the member would be one variable in the component.
           this.error(
             `@${current} declares "${member}", which it also gets from @${name}: rename one of them`,
             use,

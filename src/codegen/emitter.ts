@@ -1,5 +1,5 @@
 import type * as ast from '../ast.ts';
-import { decorate, type DecoratorSource } from '../decorators.ts';
+import { decorate, decoratorSources } from '../decorators.ts';
 import { htmlTagName } from '../html-tag.ts';
 import { type LocalizedPackage, localize } from './imported.ts';
 import { assignedNames, collectValueNames } from '../names.ts';
@@ -38,7 +38,8 @@ interface FunctionContext {
  * current function. The generator is split into layers, each adding to the previous one:
  *
  *     Emitter → ExpressionEmitter → CallEmitter → DecodeEmitter → TryEmitter
- *       → SimpleStatementEmitter → ControlStatementEmitter → ParallelLoopEmitter
+ *       → SimpleStatementEmitter → ControlStatementEmitter → RangeLoopEmitter
+ *       → ParallelLoopEmitter
  *       → StatementEmitter → UpdateEmitter → AttributeEmitter → CreationEmitter → ElementEmitter
  *       → ControlFlowEmitter → ComponentPropsEmitter → ComponentValueEmitter
  *       → EarlyReturnEmitter → RefEmitter
@@ -104,14 +105,8 @@ export abstract class Emitter {
     this.options = options;
     this.shared = sharedState(program, options.shared);
 
-    const decorators = new Map<string, DecoratorSource>(options.decorators);
+    const decorators = decoratorSources(program, options.decorators);
     const imported = [...(options.decorators?.values() ?? [])];
-
-    for (const statement of program.body) {
-      if (statement.kind === 'DecoratorDeclaration') {
-        decorators.set(statement.name.name, { node: statement, moduleNames: [] });
-      }
-    }
 
     // Those that the applied ones include are applied too.
     const apply = (name: string): void => {
@@ -170,7 +165,12 @@ export abstract class Emitter {
       if (statement.kind === 'TypeAliasDeclaration') {
         this.typeAliases.set(statement.name.name, statement.type);
       } else if (statement.kind === 'ComponentDeclaration') {
-        this.components.set(statement.name.name, decorate(statement, decorators, keepType));
+        const server = options.server === true;
+
+        this.components.set(
+          statement.name.name,
+          decorate(statement, decorators, keepType, undefined, server),
+        );
       }
     }
 

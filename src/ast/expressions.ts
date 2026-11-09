@@ -39,7 +39,18 @@ export type Expression =
   | ConversionExpression
   | MakeExpression
   | NonNullExpression
-  | TaggedTemplateExpression;
+  | TaggedTemplateExpression
+  | RangeExpression;
+
+/**
+ * `0..n` after `in` of a `for`, the only place it is written: the numbers from `from` up to `to`,
+ * without `to`. The end is computed once, before the loop.
+ */
+export interface RangeExpression extends NodeBase {
+  kind: 'RangeExpression';
+  from: Expression;
+  to: Expression;
+}
 
 /** `user!`: the value is taken not to be null, as in TypeScript; nothing is checked at runtime. */
 export interface NonNullExpression extends NodeBase {

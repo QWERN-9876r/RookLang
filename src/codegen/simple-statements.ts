@@ -315,14 +315,14 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
 
       // An empty queue, as `[]` is an empty array.
       case 'QueueType':
-        return 'new $$Queue()';
+        return 'new $$deque()';
 
       // Closed, the same for all types: what is sent to them goes nowhere.
       case 'ChanType':
-        return '$$Channel.EMPTY';
+        return '$$channels.EMPTY';
 
       case 'TopicType':
-        return '$$Topic.EMPTY';
+        return '$$topics.EMPTY';
 
       case 'FuncType':
       case 'ComponentType':

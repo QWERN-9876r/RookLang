@@ -29,7 +29,8 @@ export abstract class DecoratorParser extends DeclarationParser {
     }
 
     const name = this.parseIdentifier('decorator name');
-    const params = this.parseParams(false, { defaults: true });
+    // `dec http(public request Request)`: the parameter is a public member too.
+    const params = this.parseParams(false, { defaults: true, properties: 'public' });
     const needs = this.parseNeeds();
     const includes = this.parseIncludes();
     const body = this.withContext(
@@ -108,7 +109,13 @@ export abstract class DecoratorParser extends DeclarationParser {
       () => this.check('}'),
       () => {
         if (this.isPublicModifier()) body.push(this.parsePublicMember());
-        else body.push(this.parseComponentStatement());
+        else if (this.server && this.check('return')) {
+          // On the server the wrapper runs in the async function of the component, as the body
+          // does: `return (page Content<Html>) => { const value, err = try await page() ... }`.
+          const wrapperAt = this.peek(1).start;
+
+          body.push(this.withContext({ wrapperAt }, () => this.parseComponentStatement()));
+        } else body.push(this.parseComponentStatement());
       },
     );
     this.expect('}');

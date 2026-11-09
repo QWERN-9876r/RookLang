@@ -1,30 +1,30 @@
 // channel-objects.js
 
-import { $$Channel, $$Topic } from "rooklang/runtime";
+import { $$channels, $$topics } from "rooklang/runtime";
 
-let none = $$Channel.EMPTY;
-const [n, ok] = await $$Channel.receive(none, true, 0);
+let none = $$channels.EMPTY;
+const [n, ok] = await $$channels.receive(none, true, 0);
 console.log("from EMPTY:", n, ok);
 
-const lines = $$Channel.make(3, "");
-await $$Channel.send(lines, "one");
-await $$Channel.send(lines, "two");
-console.log("received:", await $$Channel.receive(lines));
+const lines = $$channels.make(3, "");
+await $$channels.send(lines, "one");
+await $$channels.send(lines, "two");
+console.log("received:", await $$channels.receive(lines));
 
-const channels = [lines, $$Channel.make(1, "")];
-channels.forEach($$Channel.close);
-for await (const line of $$Channel.range(lines)) {
+const channels = [lines, $$channels.make(1, "")];
+channels.forEach($$channels.close);
+for await (const line of $$channels.range(lines)) {
   console.log("left after close:", line);
 }
 
-let quiet = $$Topic.EMPTY;
-$$Topic.publish(quiet, "nobody hears this");
+let quiet = $$topics.EMPTY;
+$$topics.publish(quiet, "nobody hears this");
 
-const cart = $$Topic.make("guide-objects", 0);
-$$Topic.publish(cart, 1);
-const values = $$Topic.listen(cart);
-$$Topic.close(cart);
-const [last, open] = await $$Channel.receive(values, true, 0);
+const cart = $$topics.make("guide-objects", 0);
+$$topics.publish(cart, 1);
+const values = $$topics.listen(cart);
+$$topics.close(cart);
+const [last, open] = await $$channels.receive(values, true, 0);
 console.log("after Topic.close:", last, open);
 
 // channel-objects.d.ts

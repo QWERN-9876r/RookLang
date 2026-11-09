@@ -10,6 +10,7 @@ import {
 } from './context.ts';
 import { DecoratorMemberChecker } from './decorator-members.ts';
 import { isUntyped, ownStatements } from './helpers.ts';
+import { contentResult } from './server.ts';
 import {
   commonType,
   isAssignable,
@@ -49,8 +50,12 @@ export abstract class ServerDecoratorChecker extends DecoratorMemberChecker {
       inspect?: (scope: Scope) => void;
     } = {},
   ): Type[] {
-    // The body of a decorator runs in the async function of the component: it may wait.
-    const waits = this.server && this.decorator !== null && body === this.decorator.node.body;
+    // The body of a decorator and its wrapper run in the async function of the component: they
+    // may wait.
+    const waits =
+      this.server &&
+      this.decorator !== null &&
+      (body === this.decorator.node.body || body === this.decorator.wrapper?.node.fn.body);
 
     return super.checkFunction(
       params,
@@ -125,9 +130,11 @@ export abstract class ServerDecoratorChecker extends DecoratorMemberChecker {
       if (!wrapper) continue;
 
       const name = decorator.node.name.name;
+      // `(page Content<Html>) => ...` gets the body, which gives the Html.
+      const takes = contentResult(wrapper.param) ?? wrapper.param;
 
-      if (!isUntyped(type) && !isUntyped(wrapper.param) && !isAssignable(type, wrapper.param)) {
-        const expected = typeToString(wrapper.param);
+      if (!isUntyped(type) && !isUntyped(takes) && !isAssignable(type, takes)) {
+        const expected = typeToString(takes);
         const use = info.node.decorators.find((each) => each.name.name === name);
 
         this.error(
@@ -145,9 +152,32 @@ export abstract class ServerDecoratorChecker extends DecoratorMemberChecker {
     return decorators.flatMap((each) => each.guards ?? []).reduce(commonType, type);
   }
 
+  /**
+   * The arguments of the decorators of a component read what it needs:
+   * `@guard(@api.secret) comp Page() needs api`. Its members are taken before the bodies of the
+   * decorators run.
+   */
+  protected override checkDecoratorUses(info: ComponentInfo): void {
+    const saved = this.argumentsOf;
+
+    this.argumentsOf = this.server ? info : null;
+    try {
+      super.checkDecoratorUses(info);
+    } finally {
+      this.argumentsOf = saved;
+    }
+  }
+
+  /** The component whose decorators' arguments are checked, on the server. */
+  private argumentsOf: ComponentInfo | null = null;
+
+  private applies(component: ComponentInfo, name: string): boolean {
+    return withIncluded(component.decorators).some((each) => each.node.name.name === name);
+  }
+
   /** `@session.user` in a component that takes @session from a component above. */
   protected override findDecoratorMember(node: ast.DecoratorMember): PublicMember | null {
-    const { component } = this;
+    const component = this.component ?? (this.decorator ? null : this.argumentsOf);
     const name = node.decorator.name;
     const info = this.decorators.get(name);
     const needed =
@@ -156,6 +186,16 @@ export abstract class ServerDecoratorChecker extends DecoratorMemberChecker {
       component !== null &&
       (component.node.needs ?? []).some((each) => each.name === name) &&
       !withIncluded(component.decorators).some((each) => each.node.name.name === name);
+
+    // `@guard(@api.secret) comp Page()`: what the arguments read comes from above, by `needs`.
+    if (!needed && info && !this.component && component && !this.applies(component, name)) {
+      this.error(
+        `@${name}.${node.member.name} in an argument comes from a component above: add "needs ${name}" to ${component.node.name.name}`,
+        node,
+      );
+
+      return null;
+    }
 
     if (!needed || !info) return super.findDecoratorMember(node);
     this.ensureChecked(info);
@@ -172,9 +212,18 @@ export abstract class ServerDecoratorChecker extends DecoratorMemberChecker {
     }
   }
 
-  /** A decorator of this module checked before the component that needs it. */
-  private ensureChecked(info: DecoratorInfo): void {
+  /**
+   * A decorator of this module checked before the component that needs it, after the decorators
+   * it needs or includes: a value at the top of the module, `const PAGES = [Page]`, checks a
+   * component before the turn of the decorators, and the members of those must be known by then.
+   */
+  private ensureChecked(info: DecoratorInfo, path: DecoratorInfo[] = []): void {
     if (this.checkedDecorators.has(info) || this.importedDecorators.has(info)) return;
+    // A cycle is reported where the decorators are ordered, orderByNeeds.
+    if (path.includes(info)) return;
+    for (const used of [...info.needed, ...info.included])
+      this.ensureChecked(used, [...path, info]);
+
     this.atModuleLevel(() => this.checkDecoratorBody(info));
   }
 }

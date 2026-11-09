@@ -12,13 +12,16 @@ for name, price in prices {
     console.log(name, price)
 }
 
-// Цикл один — for: и как while, и с тремя частями
+// Цикл один — for: и как while, и по диапазону, и с тремя частями
 let left = 3
 for left > 0 {
     left--
 }
-for let i = 0; i < 2; i++ {
+for i in 0..2 {
     console.log("шаг", i)
+}
+for let i = 10; i > 0; i -= 5 {
+    console.log("вниз", i)
 }
 
 // В switch нет break; без выражения он работает как цепочка if

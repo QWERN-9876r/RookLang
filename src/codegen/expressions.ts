@@ -171,6 +171,13 @@ export abstract class ExpressionEmitter extends Emitter {
       case 'TaggedTemplateExpression':
         return [this.taggedTemplate(node), POSTFIX];
 
+      // A loop over a range is a loop of JS (forInStatement); `{for}` of markup takes an array.
+      case 'RangeExpression':
+        return [
+          `$$numbers(${this.expression(node.from, ARROW)}, ${this.expression(node.to, ARROW)})`,
+          POSTFIX,
+        ];
+
       case 'SuperExpression':
         return ['super', PRIMARY];
 

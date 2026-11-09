@@ -1,6 +1,6 @@
 // timers.js
 
-import { $$Channel, $$cancel, $$goWorker } from "rooklang/runtime";
+import { $$cancel, $$channels, $$goWorker } from "rooklang/runtime";
 
 async function $$startWorker() {
   if (typeof Worker === "function") {
@@ -32,15 +32,15 @@ function countPrimes(limit) {
   return count;
 }
 
-const ticks = $$Channel.tick(100);
-const done = $$Channel.make(1, 0);
+const ticks = $$channels.tick(100);
+const done = $$channels.make(1, 0);
 const task = $$go("$$goroutine0", []);
-const timeout = $$Channel.after(450);
+const timeout = $$channels.after(450);
 
 let waiting = true;
 while (waiting) {
   {
-    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: ticks, zero: 0 }, { channel: timeout, zero: 0 }], false);
+    const [$$case, $$received, $$ok] = await $$channels.select([{ channel: done, zero: 0 }, { channel: ticks, zero: 0 }, { channel: timeout, zero: 0 }], false);
     switch ($$case) {
       case 0: {
         const n = $$received;
@@ -61,7 +61,7 @@ while (waiting) {
     }
   }
 }
-$$Channel.close(ticks);
+$$channels.close(ticks);
 
 try {
   await task;
@@ -71,7 +71,7 @@ try {
 
 // timers.worker.js
 
-import { $$Channel, $$serve } from "rooklang/runtime";
+import { $$channels, $$serve } from "rooklang/runtime";
 
 function countPrimes(limit) {
   let count = 0;
@@ -90,10 +90,10 @@ function countPrimes(limit) {
   return count;
 }
 
-const done = $$Channel.make(1, 0);
+const done = $$channels.make(1, 0);
 async function $$goroutine0() {
-  await $$Channel.send(done, countPrimes(100_000_000));
-  $$Channel.close(done);
+  await $$channels.send(done, countPrimes(100_000_000));
+  $$channels.close(done);
 }
 
 const $$goroutines = { $$goroutine0 };

@@ -2,12 +2,14 @@ import type * as ast from '../ast.ts';
 import { forEachChild } from '../walk.ts';
 import { CONTENT } from './dom.ts';
 import {
+  containsTypeParam,
   isAssignable,
   nonNull,
   unionMembers,
   widenLiterals,
   type FunctionType,
   type Type,
+  type TypeParam,
 } from './types.ts';
 import type { Scope } from './context.ts';
 import { type Binding } from './context.ts';
@@ -134,6 +136,20 @@ export function signaturesOf(signature: FunctionType): FunctionType[] {
   return [signature, ...(signature.overloads ?? [])];
 }
 
+/**
+ * The signature that gives a function literal the types of its parameters: of the type, or of the
+ * only function in a union, as `props` of serve() is properties or a function that gives them.
+ */
+export function contextSignature(type: Type): FunctionType | null {
+  const signature = callSignature(type);
+
+  if (signature || type.kind !== 'union') return signature;
+
+  const functions = type.types.map(callSignature).filter((each) => each !== null);
+
+  return functions.length === 1 ? functions[0]! : null;
+}
+
 export function callSignature(type: Type): FunctionType | null {
   if (type.kind === 'function') return type;
   if (type.kind === 'object') return type.call;
@@ -227,5 +243,35 @@ export function assignsField(body: ast.BlockStatement, name: string): boolean {
           target.object.kind === 'ThisExpression' &&
           target.property.name === name,
       ),
+  );
+}
+
+/**
+ * The open type parameters that a callback cannot give: those of the functions it gets and not of
+ * what it returns, as T of `resolve` in `new Promise(resolve => setTimeout(resolve, 5))`. Nothing
+ * in the callback says what they are; the expected type does, when there is one:
+ * `const done Promise<number> = new Promise(...)`. A parameter of the callback itself,
+ * `apply(x => ...)`, is not one of them: there the type of `x` has to be written.
+ */
+export function givenToCallback(
+  param: Type,
+  signature: FunctionType,
+  inferred: ReadonlyMap<TypeParam, Type>,
+): TypeParam[] {
+  const callback = callSignature(nonNull(param));
+
+  if (!callback) return [];
+
+  const typesOf = (fn: FunctionType) => (fn.rest ? [...fn.params, fn.rest] : fn.params);
+  const gets = typesOf(callback).map((type) => callSignature(nonNull(type)));
+  const has = (types: readonly Type[], each: TypeParam) =>
+    types.some((type) => containsTypeParam(type, new Set([each])));
+
+  return signature.typeParams.filter(
+    (each) =>
+      !inferred.has(each) &&
+      gets.some((fn) => fn !== null && has(typesOf(fn), each)) &&
+      !has(callback.results, each) &&
+      !typesOf(callback).some((type, i) => gets[i] === null && has([type], each)),
   );
 }

@@ -22,7 +22,7 @@ export comp ChannelObjects() {
             closed: receiving gives the zero value of the type at once and <code>ok</code> is
             {" "}<code>false</code>, <code>for</code> over them ends at once, and what is sent to
             them goes nowhere. So <code>let results chan number</code> is safe to use before it
-            gets a channel. In JS they are <code>$$Channel</code> and <code>$$Topic</code> of the
+            gets a channel. In JS they are <code>$$channels</code> and <code>$$topics</code> of the
             runtime, so a program may declare <code>Channel</code> and <code>Topic</code> of its
             own.
         </p>

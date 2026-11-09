@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
+import { CallbackCallChecker } from './callback-calls.ts';
 import { isUntyped, signaturesOf, callSignature } from './helpers.ts';
-import { MemberChecker } from './members.ts';
 import {
   ANY,
   classInstance,
@@ -22,7 +22,7 @@ import {
 
 // Calls and `new`: overloads, arguments, and the inference of type arguments.
 
-export abstract class CallChecker extends MemberChecker {
+export abstract class CallChecker extends CallbackCallChecker {
   protected override checkCall(
     node: ast.CallExpression,
     callee: Type,
@@ -326,6 +326,15 @@ export abstract class CallChecker extends MemberChecker {
           return;
         }
 
+        if (this.collectArgument(arg, param, i)) return;
+
+        // What only the functions an arrow function gets have comes from their calls in it:
+        // `new Promise(resolve => resolve(1))` gives a number.
+        const stands =
+          contextPass && arg.kind === 'ArrowFunction'
+            ? this.openCallback(arg, param, signature, inferred)
+            : null;
+
         // An expected type with parameters that are not inferred yet would reject the argument:
         // `[1, 2]` for `[]T` is checked on its own, and T is inferred from it. An object literal
         // checked last takes what is still open as its default, or unknown, as in TypeScript.
@@ -333,12 +342,16 @@ export abstract class CallChecker extends MemberChecker {
           contextPass && arg.kind === 'ObjectLiteral'
             ? substitute(param, withDefaults(signature.typeParams, inferred))
             : substitute(param, inferred);
-        const type = this.checkValue(
+        const checked = this.checkValue(
           arg,
           arg.kind === 'ArrowFunction' || !containsTypeParam(expected, this.inferring)
             ? expected
             : null,
         );
+        const type =
+          stands && arg.kind === 'ArrowFunction'
+            ? this.closeCallback(arg, checked, stands, inferred)
+            : checked;
 
         inferTypeParams(param, type, inferred);
         this.expectAssignable(type, substitute(param, inferred), arg, ` in argument ${i + 1}`);

@@ -3,7 +3,7 @@
 // template that markup compiles to, which waits for the components among its values.
 
 /** Markup that is already HTML: put into other markup as it is, where a string is escaped. */
-export class $$Html {
+export class $$safeHtml {
   constructor(text) {
     this.text = text;
   }
@@ -18,9 +18,15 @@ export class $$Html {
 }
 
 /** Thrown when a Response is among the children of markup: handler() of server.js sends it. */
-export class $$Answer {
+export class $$answer {
   constructor(response) {
     this.response = response;
+  }
+
+  // `try` of try.js lets it go up by this mark: try.js is in every bundle and does not import this
+  // file of the server.
+  get [Symbol.for('rooklang.answer')]() {
+    return true;
   }
 }
 
@@ -37,20 +43,20 @@ export function $$escape(text) {
  * side by side, and gives a Promise then. Without them it is Html at once.
  */
 export function $$html(strings, ...values) {
-  if (!values.some(isPending)) return new $$Html(joined(strings, values));
+  if (!values.some(isPending)) return new $$safeHtml(joined(strings, values));
 
-  return settled(values).then((done) => new $$Html(joined(strings, done)));
+  return settled(values).then((done) => new $$safeHtml(joined(strings, done)));
 }
 
 /** ` name="value"` of an attribute: nothing for null and false, the name alone for true. */
 export function $$attr(name, value) {
   if (typeof value === 'boolean' && name.startsWith('aria-')) value = String(value);
-  if (value === null || value === undefined || value === false) return new $$Html('');
-  if (value === true) return new $$Html(` ${name}`);
+  if (value === null || value === undefined || value === false) return new $$safeHtml('');
+  if (value === true) return new $$safeHtml(` ${name}`);
   // `class={[styles.tab, active ? styles.active : null]}`
   if (Array.isArray(value)) value = value.filter((each) => each != null && each !== '').join(' ');
 
-  return new $$Html(` ${name}="${$$escape(value)}"`);
+  return new $$safeHtml(` ${name}="${$$escape(value)}"`);
 }
 
 /** `{...attributes}` of an element: each field is an attribute. */
@@ -59,7 +65,7 @@ export function $$attrs(attributes) {
     .filter(([, value]) => typeof value !== 'function')
     .map(([name, value]) => $$attr(name, value).text);
 
-  return new $$Html(parts.join(''));
+  return new $$safeHtml(parts.join(''));
 }
 
 /**
@@ -118,10 +124,10 @@ function joined(strings, values) {
 
 function rendered(value) {
   if (value === null || value === undefined || typeof value === 'boolean') return '';
-  if (value instanceof $$Html) return value.text;
+  if (value instanceof $$safeHtml) return value.text;
   if (Array.isArray(value)) return value.map(rendered).join('');
   // A redirect, a 404: the rendering of the whole request stops, and this is the answer.
-  if (typeof Response !== 'undefined' && value instanceof Response) throw new $$Answer(value);
+  if (typeof Response !== 'undefined' && value instanceof Response) throw new $$answer(value);
 
   return $$escape(value);
 }

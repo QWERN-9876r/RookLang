@@ -3,7 +3,7 @@ import { arrayName, arrayUses, partOf, writesArray } from '../go-for.ts';
 import { goCaptures, goTarget } from '../goroutines.ts';
 import { declaredIn } from '../names.ts';
 import type { BindingKind } from './analysis.ts';
-import { ControlStatementEmitter } from './control-statements.ts';
+import { RangeLoopEmitter } from './range-loops.ts';
 import { ARROW } from './syntax.ts';
 
 // `go for i, v in items { ... }`: `await $$goFor("$$goroutine0", items, ...)` splits the array into
@@ -12,7 +12,7 @@ import { ARROW } from './syntax.ts';
 // element, and `items[i]` is `items[$$i]`, the index in the part. The part goes back if the body
 // writes into it; a typed array is moved back, not copied.
 
-export abstract class ParallelLoopEmitter extends ControlStatementEmitter {
+export abstract class ParallelLoopEmitter extends RangeLoopEmitter {
   protected override forInStatement(node: ast.ForInStatement): void {
     const loop = partOf(node);
 

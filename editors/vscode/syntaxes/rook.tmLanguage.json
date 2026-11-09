@@ -266,7 +266,8 @@
         },
         {
           "name": "constant.numeric.decimal.rook",
-          "match": "(?<![\\w$.])(?:\\d[\\d_]*n|(?:\\d[\\d_]*(?:\\.\\d[\\d_]*)?|\\.\\d[\\d_]*)(?:[eE][+-]?\\d[\\d_]*)?)(?![\\w$])"
+          "comment": "Not after the dot of a member, `x.0`, but after the two dots of a range, `0..20`.",
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:\\d[\\d_]*n|(?:\\d[\\d_]*(?:\\.\\d[\\d_]*)?|\\.\\d[\\d_]*)(?:[eE][+-]?\\d[\\d_]*)?)(?![\\w$])"
         }
       ]
     },
@@ -298,6 +299,7 @@
       "patterns": [
         { "name": "storage.type.function.arrow.rook", "match": "=>" },
         { "name": "keyword.operator.spread.rook", "match": "\\.\\.\\." },
+        { "name": "keyword.operator.range.rook", "match": "\\.\\." },
         { "name": "punctuation.accessor.optional.rook", "match": "\\?\\." },
         {
           "name": "keyword.operator.assignment.compound.rook",

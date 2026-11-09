@@ -1,5 +1,5 @@
 import type * as ast from '../ast.ts';
-import { ownBodyStart, publicMembers, type DecoratorSource } from '../decorators.ts';
+import { decoratorSources, ownBodyStart, publicMembers } from '../decorators.ts';
 import { decoratedName } from '../decorator-names.ts';
 import { appliedDecorators, neededDecorators } from '../server-context.ts';
 import { HtmlMarkupEmitter } from './html-markup.ts';
@@ -84,13 +84,7 @@ export abstract class ServerComponentEmitter extends HtmlMarkupEmitter {
         (statement): statement is ast.ComponentDeclaration =>
           statement.kind === 'ComponentDeclaration' && statement.name.name === component.name.name,
       ) ?? component;
-    const sources = new Map<string, DecoratorSource>(this.options.decorators);
-
-    for (const statement of this.program.body) {
-      if (statement.kind === 'DecoratorDeclaration') {
-        sources.set(statement.name.name, { node: statement, moduleNames: [] });
-      }
-    }
+    const sources = decoratorSources(this.program, this.options.decorators);
 
     const declarations = new Map([...sources].map(([name, source]) => [name, source.node]));
     const members = (decorator: ast.DecoratorDeclaration) => [

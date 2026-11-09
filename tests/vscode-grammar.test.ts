@@ -23,6 +23,16 @@ describe('VS Code grammar', () => {
     expect(scopeOf(source, '0')).toBe('constant.numeric.decimal');
   });
 
+  it('colours ranges and the public parameters of decorators', () => {
+    const range = 'for i in 0..20 {\n    console.log(xs.0, i)\n}';
+
+    expect(scopeOf(range, '..')).toBe('keyword.operator.range');
+    expect(scopeOf(range, '0')).toBe('constant.numeric.decimal');
+    expect(scopeOf(range, '20')).toBe('constant.numeric.decimal');
+    expect(scopeOf('const third = 1.5..3', '3')).toBe('constant.numeric.decimal');
+    expect(scopeOf('dec http(public request Request) {', 'public')).toBe('storage.modifier');
+  });
+
   it('colours bigints, bytes and iterators', () => {
     expect(scopesOf('let big bigint = 10n * 0xffn', 'bigint')).toEqual(['support.type.primitive']);
     expect(scopeOf('let big = 10n * 0xffn', '10n')).toBe('constant.numeric.decimal');

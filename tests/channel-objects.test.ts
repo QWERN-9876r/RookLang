@@ -44,8 +44,8 @@ let q chan []number = Channel.EMPTY
 const s topic ?string = Topic.EMPTY
 let n chan chan number`);
 
-    expect(code).toContain('let c = $$Channel.EMPTY;');
-    expect(code).toContain('let t = $$Topic.EMPTY;');
+    expect(code).toContain('let c = $$channels.EMPTY;');
+    expect(code).toContain('let t = $$topics.EMPTY;');
     expect(errors('const x chan number = Topic.EMPTY')).toEqual([
       'cannot use topic any as chan number',
     ]);

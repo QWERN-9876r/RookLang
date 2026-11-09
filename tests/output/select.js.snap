@@ -1,20 +1,20 @@
 // select.js
 
-import { $$Channel } from "rooklang/runtime";
+import { $$channels } from "rooklang/runtime";
 
 async function search(query, ms, out) {
-  await $$Channel.receive($$Channel.after(ms), false, 0);
-  await $$Channel.send(out, `results for "${query}" in ${ms} ms`);
-  $$Channel.close(out);
+  await $$channels.receive($$channels.after(ms), false, 0);
+  await $$channels.send(out, `results for "${query}" in ${ms} ms`);
+  $$channels.close(out);
 }
 
-const fast = $$Channel.make(1, "");
-const slow = $$Channel.make(1, "");
+const fast = $$channels.make(1, "");
+const slow = $$channels.make(1, "");
 search("guava", 100, fast);
 search("papaya", 2000, slow);
 
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: fast, zero: "" }, { channel: slow, zero: "" }], false);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: fast, zero: "" }, { channel: slow, zero: "" }], false);
   switch ($$case) {
     case 0: {
       const text = $$received;
@@ -30,7 +30,7 @@ search("papaya", 2000, slow);
 }
 
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: slow, zero: "" }, { channel: $$Channel.after(500), zero: 0 }], false);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: slow, zero: "" }, { channel: $$channels.after(500), zero: 0 }], false);
   switch ($$case) {
     case 0: {
       const text = $$received;
@@ -45,7 +45,7 @@ search("papaya", 2000, slow);
 }
 
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: slow, zero: "" }], true);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: slow, zero: "" }], true);
   switch ($$case) {
     case 0: {
       const text = $$received;
@@ -59,13 +59,13 @@ search("papaya", 2000, slow);
   }
 }
 
-let lime = $$Channel.make(1, "");
-let kiwi = $$Channel.make(1, "");
+let lime = $$channels.make(1, "");
+let kiwi = $$channels.make(1, "");
 search("lime", 80, lime);
 search("kiwi", 40, kiwi);
 while (lime != null || kiwi != null) {
   {
-    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: lime, zero: "" }, { channel: kiwi, zero: "" }], false);
+    const [$$case, $$received, $$ok] = await $$channels.select([{ channel: lime, zero: "" }, { channel: kiwi, zero: "" }], false);
     switch ($$case) {
       case 0: {
         const text = $$received;

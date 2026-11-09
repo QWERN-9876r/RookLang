@@ -234,6 +234,11 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       visit(node.quasi);
       break;
 
+    case 'RangeExpression':
+      visit(node.from);
+      visit(node.to);
+      break;
+
     case 'TemplateLiteral':
       node.quasis.forEach((quasi, i) => {
         visit(quasi);

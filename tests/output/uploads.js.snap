@@ -1,6 +1,6 @@
 // uploads.js
 
-import { $$Channel, $$element, $$list, $$mount, $$style } from "rooklang/runtime";
+import { $$channels, $$element, $$list, $$mount, $$style } from "rooklang/runtime";
 
 const $$styles = [];
 
@@ -105,7 +105,7 @@ const TIMEOUT = 2000;
 async function upload(file, signal) {
   const fate = Math.random();
   {
-    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: $$Channel.after(fate < 1 / 6 ? 60_000 : file.size), zero: 0 }, { channel: $$Channel.done(signal) }], false);
+    const [$$case, $$received, $$ok] = await $$channels.select([{ channel: $$channels.after(fate < 1 / 6 ? 60_000 : file.size), zero: 0 }, { channel: $$channels.done(signal) }], false);
     switch ($$case) {
       case 0: {
         break;
@@ -151,7 +151,7 @@ let $$uploads1, $$mountNode2;
     for (let attempt = 1; attempt <= TRIES; attempt++) {
       set(i, by, "uploading", attempt === 1 ? "" : `try ${attempt}`);
       const start = performance.now();
-      const err = await upload(FILES[i], $$Channel.abortSignal($$Channel.after(TIMEOUT)));
+      const err = await upload(FILES[i], $$channels.abortSignal($$channels.after(TIMEOUT)));
       if (err == null) {
         const ms = `${Math.round(performance.now() - start)} ms`;
         set(i, by, "done", attempt === 1 ? ms : `try ${attempt}, ${ms}`);
@@ -160,13 +160,13 @@ let $$uploads1, $$mountNode2;
       const last = attempt === TRIES;
       set(i, by, last ? "failed" : "retrying", err.message);
       if (!last) {
-        await $$Channel.receive($$Channel.after(300 * attempt), false, 0);
+        await $$channels.receive($$channels.after(300 * attempt), false, 0);
       }
     }
   }
 
   async function uploader(by, queue) {
-    for await (const i of $$Channel.range(queue)) {
+    for await (const i of $$channels.range(queue)) {
       await deliver(i, by);
     }
   }
@@ -176,11 +176,11 @@ let $$uploads1, $$mountNode2;
     $$updateRunning4();
     rows = FILES.map(queued);
     $$updateRows3();
-    const queue = $$Channel.make(FILES.length, 0);
+    const queue = $$channels.make(FILES.length, 0);
     for (let i = 0; i < FILES.length; i++) {
-      await $$Channel.send(queue, i);
+      await $$channels.send(queue, i);
     }
-    $$Channel.close(queue);
+    $$channels.close(queue);
     await Promise.all([uploader(1, queue), uploader(2, queue), uploader(3, queue)]);
     running = false;
     $$updateRunning4();

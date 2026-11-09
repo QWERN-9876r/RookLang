@@ -30,6 +30,11 @@ export function publicMembers(
     }
   }
 
+  // `dec http(public request Request)`: it changes when its argument does, as a property does.
+  for (const param of decorator.params) {
+    if (param.property) members.set(param.name.name, true);
+  }
+
   for (const statement of decorator.body.body) {
     if (statement.kind === 'FuncDeclaration' && statement.isPublic) {
       members.set(statement.name.name, false);

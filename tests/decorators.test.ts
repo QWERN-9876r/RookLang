@@ -153,6 +153,29 @@ describe('types', () => {
     ]);
   });
 
+  it('makes a parameter with "public" a member, read-only outside', () => {
+    const titled = `dec titled(public title string, public size number = 1) {
+    public const upper = title.toUpperCase()
+}
+@titled("hi")
+comp Card() {
+`;
+
+    expect(
+      errors(`${titled}    const t string = @titled.title + @titled.upper
+    const n number = @titled.size
+    return <p />
+}`),
+    ).toEqual([]);
+    expect(errors(`${titled}    @titled.title = "x"\n    return <p />\n}`)).toEqual([
+      '"title" of @titled is read-only outside it; give @titled a public function that changes it',
+    ]);
+    expect(errors('dec a(private x string, readonly y string, public z string) {\n}')).toEqual([
+      'a parameter of a decorator is a public member with "public" alone, e.g. dec http(public request Request)',
+      'a parameter of a decorator is a public member with "public" alone, e.g. dec http(public request Request)',
+    ]);
+  });
+
   it('reads state and constants and calls functions', () => {
     expect(
       use('    const x = @counter.count\n    @counter.add()\n    const f = @counter.add'),

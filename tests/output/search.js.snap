@@ -1,8 +1,8 @@
 // search.js
 
 import {
-  $$Channel,
   $$branches,
+  $$channels,
   $$decodeJson,
   $$element,
   $$list,
@@ -105,7 +105,7 @@ const FRUITS = [{ name: "Guava", price: 3.2 }, { name: "Kiwi", price: 0.6 }, { n
 
 async function request(query, signal) {
   {
-    const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: $$Channel.after(200 + Math.random() * 1000), zero: 0 }, { channel: $$Channel.done(signal) }], false);
+    const [$$case, $$received, $$ok] = await $$channels.select([{ channel: $$channels.after(200 + Math.random() * 1000), zero: 0 }, { channel: $$channels.done(signal) }], false);
     switch ($$case) {
       case 0: {
         break;
@@ -136,7 +136,7 @@ let $$search1, $$mountNode2;
     const signal = controller.signal;
 
     {
-      const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: $$Channel.after(300), zero: 0 }, { channel: $$Channel.done(signal) }], false);
+      const [$$case, $$received, $$ok] = await $$channels.select([{ channel: $$channels.after(300), zero: 0 }, { channel: $$channels.done(signal) }], false);
       switch ($$case) {
         case 0: {
           break;

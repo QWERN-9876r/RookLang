@@ -8,6 +8,67 @@ extension. The road to 1.0 is in [docs/roadmap.md](docs/roadmap.md).
 **Versions before 1.0.** A minor version (0.4.0) may break code that compiled before, and says how
 to change it under **Breaking**. A patch version (0.3.5) never does: it adds and fixes only.
 
+## 0.7.0 — 2026-11-09
+
+What the move of the HTTP API of Breadcast to components on the server found
+(`rook-0.6-report.md`).
+
+### Breaking
+
+- The classes of the runtime start with a small letter after `$$`, as its other names do:
+  `$$channels`, `$$topics`, `$$deque`, `$$safeHtml`, `$$answer` instead of `$$Channel`, `$$Topic`,
+  `$$Queue`, `$$Html`, `$$Answer`. A component named `Queue`, `Channel`, `Topic`, `Html` or
+  `Answer` is `$$Queue` in JS and took the name of the runtime, so its module failed to load. Code
+  built by an earlier version is built again with this one.
+
+### Added
+
+- A wrapper of a decorator on the server that takes `Content<T>`,
+  `return (page Content<Html | Response>) => ...`, gets the body of the component as a function
+  that it calls, so it decides whether the body runs and catches what it throws: an error boundary,
+  `@fallback`, is a decorator written in Rook. A wrapper on the server may wait.
+- `route("/users/:id", UserPage)` of `rooklang/server` gives a `Route<T>`, whose
+  `match(pathname)` gives the page with the parameters of the path as its properties, or null. The
+  compiler checks the parameters of the literal path against the properties of the page, both ways.
+- `for i in 0..n` goes over the numbers from 0 up to n, without n; the end is computed once. It
+  compiles to a loop of JS, and `{for}` of markup takes the array of the numbers.
+- A parameter of a decorator with `public` is its public member:
+  `dec http(public request Request, public ip string)`, read as `@http.request`.
+- `handler(App, (request, server) => props)` gives the root the properties of each request, with
+  up to two values that the platform gives after the request, as the server of `Bun.serve`. Their
+  types come from where the function of `handler` goes, the `.d.ts` of `Bun.serve`, or are written;
+  it gives `Promise<Response>`. `props` of `serve` may be such a function, which gets the
+  `IncomingMessage` of `node:http`, and `serve` returns its `Server`.
+- The arguments of the decorators of a component on the server read what it needs:
+  `@guard(@api.secret) comp Page() needs api`.
+- A component fits a type with more properties at the end, which the tag passes and it does not
+  take: `Health()` fits `comp(id string)`. A function component gets the element of a ref and the
+  functions of `bind:` as `this`, `$$Card.call({ $$root: el }, title)`, not after its properties.
+- A generic component on the server infers its type parameters from its properties too:
+  `<List items={[1, 2]} render={n => String(n)} />`.
+- `new Promise(...)` without a declared type infers what it gives from the calls of `resolve`:
+  `new Promise(resolve => resolve(1))` is a `Promise<number>`. A `resolve` that is not called or is
+  passed on, `new Promise(resolve => setTimeout(resolve, 5))`, makes a `Promise<void>`.
+- A function literal takes the types of its parameters from the only function of a union, as
+  `props` of `serve` is an object or a function.
+- `class` takes a `?string`, `class={look == "" ? null : look}`: null leaves the element without
+  classes, in the browser too, where `className = null` would be the class "null".
+- `indexOf`, `lastIndexOf` and `includes` of an array take where the search starts, and `fill` the
+  start and the end.
+
+### Fixed
+
+- A guard with `needs` on a component in a table of the module, `const PAGES = [Page]`, said that
+  the public members of the decorator it needs were not public: the decorators it needs are checked
+  before it now.
+- `try` of the children of a component on the server, `try await children()` of an error boundary,
+  made a `Response` from below an error, `Error("[object Object]")`; it lets it go up now.
+- An alias of an instance of a generic class imported from another module,
+  `type NumberBox Box<number>`, asked for type arguments; a `.d.ts` names such aliases, so that a
+  module that imports `NumberBox` without `Box` is valid TypeScript, for interfaces too.
+- A parameter or a name of a decorator equal to a public member of a decorator it includes made one
+  variable twice in the component; it is an error now that asks to rename one of them.
+
 ## 0.6.0 — 2026-11-06
 
 Components on the server: the markup and the components of the browser write a backend too. This

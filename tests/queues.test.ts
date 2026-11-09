@@ -152,10 +152,10 @@ describe('generated code', () => {
   it('makes a queue of the class of the module', () => {
     const code = js('const q = queue<number>([1, 2])\nlet empty queue string');
 
-    expect(code).toContain('class $$Queue {');
-    expect(code).toContain('const q = new $$Queue([1, 2]);');
-    expect(code).toContain('let empty = new $$Queue();');
-    expect(js('const n = 1')).not.toContain('$$Queue');
+    expect(code).toContain('class $$deque {');
+    expect(code).toContain('const q = new $$deque([1, 2]);');
+    expect(code).toContain('let empty = new $$deque();');
+    expect(js('const n = 1')).not.toContain('$$deque');
   });
 });
 

@@ -128,6 +128,8 @@ export interface ObjectType {
   typeParams?: TypeParam[];
   /** `Box<number>`: the generic interface and the type arguments it was made from. */
   instanceOf?: { template: ObjectType; args: Type[] };
+  /** See ClassType. */
+  alias?: string;
 }
 
 export interface ClassInfo {
@@ -163,6 +165,11 @@ export interface ClassType {
   kind: 'class';
   info: ClassInfo;
   args?: Type[];
+  /**
+   * The `type` alias of an instance, `NumberBox` of `type NumberBox Box<number>`: a `.d.ts` names
+   * it so, since a module that imports NumberBox does not import Box.
+   */
+  alias?: string;
 }
 
 /** The class itself: its constructor and static members. */

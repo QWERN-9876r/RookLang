@@ -22,7 +22,7 @@ export comp ChannelObjects() {
             сразу даёт нулевое значение типа, а <code>ok</code> равно <code>false</code>,
             {" "}<code>for</code> по ним сразу заканчивается, а то, что в них отправлено, никуда не
             уходит. Поэтому <code>let results chan number</code> можно безопасно использовать, пока
-            ему не дали канал. В JS это <code>$$Channel</code> и <code>$$Topic</code> из runtime,
+            ему не дали канал. В JS это <code>$$channels</code> и <code>$$topics</code> из runtime,
             так что программа может объявить свои <code>Channel</code> и <code>Topic</code>.
         </p>
         <Example name="channel-objects" />

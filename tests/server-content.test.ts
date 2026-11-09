@@ -103,6 +103,68 @@ describe('Content<T>', () => {
   });
 });
 
+describe('generic components', () => {
+  it('infer their type parameters from the properties', async () => {
+    expect(
+      await runOnServer(`
+        comp List<T>(items []T, render func(T) string) Html {
+            return <ul>{for item in items { <li>{render(item)}</li> }}</ul>
+        }
+        comp Pick<T>(value T, fallback T) T {
+            return value ?? fallback
+        }
+        const n number = <Pick value={1} fallback={2} />
+        console.log(n, <List items={[1, 2]} render={(n number) => String(n)} />)
+        // A function without the types of its parameters takes them from the other properties.
+        console.log(<List items={["a"]} render={s => s.toUpperCase()} />)
+      `),
+    ).toEqual(['1 <ul><li>1</li><li>2</li></ul>', '<ul><li>A</li></ul>']);
+    expect(
+      serverErrors(`comp Pick<T>(value T, fallback T) T {
+    return value
+}
+const x = <Pick value={1} fallback="a" />
+const y string = <Pick value={1} fallback={2} />`),
+    ).toEqual([
+      'cannot use string as number for "fallback" of <Pick>',
+      'cannot use number as string',
+    ]);
+  });
+});
+
+describe('try of children', () => {
+  it('catches errors, and lets a Response from below go up', async () => {
+    const handle = await handlerOf(`
+      import { handler, reply } from "rooklang/server"
+      comp Deny() Html | Response {
+          return reply("denied", { status: 401 })
+      }
+      comp Broken() Html {
+          throw new Error("broken")
+      }
+      comp Safe<T>(children Content<T>) T | Response {
+          const value, err = try await children()
+          if err != null {
+              return reply(\`caught: \${err.message}\`, { status: 500 })
+          }
+          return value
+      }
+      comp App(request Request) any {
+          if new URL(request.url).pathname == "/deny" {
+              return <Safe><main><Deny /></main></Safe>
+          }
+          return <Safe><main><Broken /></main></Safe>
+      }
+      export const handle = handler(App)
+    `);
+    const denied = await handle(get('/deny'));
+    const broken = await handle(get('/broken'));
+
+    expect([denied.status, await denied.text()]).toEqual([401, 'denied']);
+    expect([broken.status, await broken.text()]).toEqual([500, 'caught: broken']);
+  });
+});
+
 describe('components as values', () => {
   it('give what their type says, Html without a result', async () => {
     expect(

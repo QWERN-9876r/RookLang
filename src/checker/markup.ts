@@ -173,7 +173,10 @@ export abstract class MarkupChecker extends OperatorChecker {
     const property = svg ? null : domProperty(tag, name);
 
     if (property) {
-      this.expectAssignable(valueType, property.type, value, ` for attribute "${name}"`);
+      // `class={look == "" ? null : look}`: null leaves the element without classes.
+      const type = name === 'class' ? nullable(property.type) : property.type;
+
+      this.expectAssignable(valueType, type, value, ` for attribute "${name}"`);
     } else if (!isAttributeValue(valueType)) {
       this.error(
         `attribute "${name}" needs a string, number or bool, not ${typeToString(valueType)}`,

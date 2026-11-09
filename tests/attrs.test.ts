@@ -117,7 +117,7 @@ describe('generated code', () => {
 document.body.append(<App />)`);
 
     expect(code).toContain(
-      'export function $$Button(kind = "primary", children = document.createDocumentFragment(), attrs, $$root) {',
+      'export function $$Button(kind = "primary", children = document.createDocumentFragment(), attrs) {\n  const { $$root } = this ?? {};',
     );
     expect(code).toMatch(/title = "y";\n\s+\$\$attrsElement(\d+)\.title = title;/);
     expect(code).toMatch(/= \$\$Button\(undefined, \$\$children\d+, \$\$attrs\d+\);/);

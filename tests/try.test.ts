@@ -119,7 +119,7 @@ async func f(ch chan number) {
     expect(code).toContain('const [point, e4] = $$catch(() => ({ x: JSON.parse("1") }));');
     expect(code).toContain('const [r, e5] = await $$catchAsync(async () => await fetch("/"));');
     expect(code).toContain(
-      'const [v, e6] = await $$catchAsync(async () => await $$Channel.receive(ch, false, 0));',
+      'const [v, e6] = await $$catchAsync(async () => await $$channels.receive(ch, false, 0));',
     );
   });
 });

@@ -5,10 +5,10 @@
 // what Rook code and the code compiled from it do with topics, by name.
 
 import { $$chan, $$closeHere, $$send } from './chan.js';
-import { $$Channel } from './channel.js';
+import { $$channels } from './channel.js';
 import { $$walk } from './threads.js';
 
-export const $$Topic = Object.freeze({
+export const $$topics = Object.freeze({
   // The zero value of topic types: it has no name, it is closed, and what is sent to it goes
   // nowhere.
   EMPTY: Object.freeze({ $$topic: null, zero: null }),
@@ -21,7 +21,7 @@ export const $$Topic = Object.freeze({
 // What the modules of a thread share: one BroadcastChannel for each name, so that the topics of
 // this thread do not hear what it sends, as one BroadcastChannel does not hear itself; the channel
 // that each topic listens into, and the topics that are closed.
-function $$topics() {
+function topicState() {
   return (globalThis[Symbol.for('rook.topics')] ??= {
     names: new Map(),
     channels: new WeakMap(),
@@ -36,7 +36,7 @@ export function $$topic(name, zero) {
 // `t <- v`: the value goes to the other threads that listen and is not kept here, so nothing waits.
 export function $$publish(topic, value) {
   if (topic.$$topic === null) return;
-  if ($$topics().closed.has(topic)) throw new Error('send on a closed topic');
+  if (topicState().closed.has(topic)) throw new Error('send on a closed topic');
   $$named(topic.$$topic).channel.postMessage(value);
 }
 
@@ -45,9 +45,9 @@ export function $$publish(topic, value) {
 // channel does.
 export function $$listen(topic) {
   if (topic === null) return null;
-  if (topic.$$topic === null) return $$Channel.EMPTY;
+  if (topic.$$topic === null) return $$channels.EMPTY;
 
-  const { channels, closed } = $$topics();
+  const { channels, closed } = topicState();
   let channel = channels.get(topic);
 
   if (channel) return channel;
@@ -61,7 +61,7 @@ export function $$listen(topic) {
 
 // `close(t)`: the topic stops listening and sending; what it has received can still be received.
 export function $$closeTopic(topic) {
-  const { channels, closed } = $$topics();
+  const { channels, closed } = topicState();
 
   if (topic.$$topic === null) return;
   if (closed.has(topic)) throw new Error('close of a closed topic');
@@ -77,7 +77,7 @@ export function $$closeTopic(topic) {
 // The BroadcastChannel of a name and the topics of this thread that listen to it, each of which
 // gets a copy of its own.
 function $$named(name) {
-  const { names, channels } = $$topics();
+  const { names, channels } = topicState();
   const found = names.get(name);
 
   if (found) return found;

@@ -104,6 +104,10 @@ known properties the type is checked more precisely: `checked={1}` is an error.
   are joined with spaces by `$$classes` of the runtime, so a class that depends on a condition
   needs no template string:
   `<button class={[styles.tab, item.id == active ? styles.active : null]}>`.
+- **A class that may be null.** `class` takes a `?string` too, `class={look == "" ? null : look}`:
+  null leaves the element without classes. In the browser `className = null` would be the class
+  `"null"`, so such a value is written as `className = value ?? ""`; the server leaves the
+  attribute out.
 - **A `bool` in `aria-*`** (and in any attribute without a DOM property) is written as `"true"` or
   `"false"`, which is what ARIA expects: `aria-selected={item.id == active}`. A property that is
   a `bool`, like `disabled`, is set as one.
@@ -653,11 +657,12 @@ markup, or what it got. Otherwise it is an error:
 
 Whether `Field` is inlined or becomes a function is the compiler's choice, so a ref works with both.
 An inlined component fills the element in, under a name of its own (`$$root4`) if its own names
-could hide the ref. A function gets it as its last argument, `$$root`, and creates one when it is
-not given:
+could hide the ref. A function gets it as `this`, `{ $$root }`, apart from its properties, and
+creates one when it is not given:
 
 ```js
-function $$Field(label, $$root) {
+function $$Field(label) {
+  const { $$root } = this ?? {};
   const $$label3 = $$root ?? document.createElement("label");
   $$label3.className = "field";
   // ...
@@ -666,8 +671,12 @@ function $$Field(label, $$root) {
 // <Form>
 const name = $$element("label", { className: "field" });
 // ...
-const [$$field8] = $$Field("Name", name);
+const [$$field8] = $$Field.call({ $$root: name }, "Name");
 ```
+
+The element is not an argument after the properties, so that a component value of a type with
+more properties, which the tag passes, does not put one of them in its place (see "Components as
+values").
 
 Only functions whose element is known and that a ref may point to have `$$root`: exported
 components, those with a ref to them in the module, and those at the top of such components. If the
@@ -989,8 +998,8 @@ const $$bind5 = ($$value) => {
 
 When the parent changes `menu`, it sets `open` by the setter of the property, which updates the
 component but does not call the function back. A component that is a function gets these
-functions as arguments after its properties, `$$Drawer(open, children, $$bindOpen)`, and calls
-`$$bindOpen?.(open)`: without `bind:` there is none.
+functions as `this`, apart from its properties, `$$Drawer.call({ $$bindOpen: ... }, open, children)`,
+and calls `$$bindOpen?.(open)`: without `bind:` there is none.
 
 ### State of a module
 
@@ -1114,7 +1123,9 @@ comp Guide() {
   property with a default value fits `?T`: null gives it the default value. So
   `Card(title string, kind Kind = "info")` fits `comp(title string)` and
   `comp(title string, kind ?Kind)`, but not `comp(heading string)` or
-  `comp(kind ?Kind, title string)`.
+  `comp(kind ?Kind, title string)`. It may also have fewer at the end: the tag passes them and the
+  component does not take them, so `Health()` fits `comp(id string)`, and
+  `Item(id string)` fits `comp(id string, user ?User)`.
 - **The tag is checked against the type:** the properties it needs, their types, children. `ref`,
   a spread `{...object}` and attributes passed on with `...attrs` are not possible, since the
   component is not known at compile time. A value of type `?comp()` is shown with `{if}`, which
@@ -1272,7 +1283,11 @@ comp Playground() {
   - `visible.shown` without `@` is an error that suggests `@visible.shown`. The earlier
     `get(@visible.shown)` is an error too, which shows the new form;
   - there is no `public let`: a value that changes and is read outside is a `state` (or a
-    `derived` one, computed from state), and one that does not change is a `const`.
+    `derived` one, computed from state), and one that does not change is a `const`;
+  - **a parameter** is a public member with `public` before it,
+    `dec titled(public title string)`, read as `@titled.title`. It changes when its argument does,
+    as a property does. Only `public` is written there: `private` and `readonly` are of the
+    parameters of constructors.
 
   Without `public`, members are visible only inside the decorator, where they are used by their
   plain names: `shown`, `show()`.

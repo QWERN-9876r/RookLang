@@ -4,7 +4,7 @@ import type { StringToken, Token, TokenKind } from '../lexer/token.ts';
 import { STATEMENT_KEYWORDS, BRACKETS, type Context, ParseError, describe } from './syntax.ts';
 
 // The parser is a chain of layers, one per area: base → simple statements → statements → control
-// flow → jumps → params → declarations → decorators → classes → types → expressions → postfix →
+// flow → ranges → jumps → params → declarations → decorators → classes → types → expressions → postfix →
 // objects → literals → markup → Parser
 // (parser.ts). Statements, expressions and markup contain each other, so methods of later layers
 // that earlier ones call are declared here as abstract.
@@ -23,6 +23,12 @@ export abstract class ParserBase {
   protected abstract parseDefer(): ast.DeferStatement;
 
   protected abstract parseFor(): ast.ForStatement | ast.ForInStatement;
+  /** `0..n` after `in` of a loop, or the expression itself. Implemented by RangeParser. */
+  protected abstract parseRange(
+    from: ast.Expression,
+    key: ast.Identifier | null,
+    go: boolean,
+  ): ast.Expression;
 
   protected abstract parseGoFor(): ast.ForStatement | ast.ForInStatement;
 
@@ -140,6 +146,7 @@ export abstract class ParserBase {
     inGoFor: false,
     // Modules are ES modules: `await` works at their top level.
     inAsync: true,
+    wrapperAt: -1,
     noObjectLiteral: false,
     inComponent: false,
     inMarkup: false,

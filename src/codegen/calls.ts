@@ -51,7 +51,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
       argument !== undefined &&
       this.isTopicValue(argument)
     ) {
-      return `$$Topic.close(${args})`;
+      return `$$topics.close(${args})`;
     }
 
     return `${this.expression(node.callee, POSTFIX)}${node.optional ? '?.' : ''}(${args})`;
@@ -217,12 +217,12 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected override chan(node: ast.ChanExpression): string {
     const size = node.size ? this.expression(node.size, ARROW) : '0';
 
-    return `$$Channel.make(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
+    return `$$channels.make(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /** `queue<number>(items)`: the queue copies the values, as `[...items]` would. */
   protected override queue(node: ast.QueueExpression): string {
-    return `new $$Queue(${node.items ? this.expression(node.items, ARROW) : ''})`;
+    return `new $$deque(${node.items ? this.expression(node.items, ARROW) : ''})`;
   }
 
   /** Whether the checker found a topic here, or a `?topic T` in a case of `select`. */
@@ -239,7 +239,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected receivedFrom(node: ast.Expression): string {
     const channel = this.expression(node, ARROW);
 
-    return this.isTopicValue(node) ? `$$Topic.listen(${channel})` : channel;
+    return this.isTopicValue(node) ? `$$topics.listen(${channel})` : channel;
   }
 
   /**
@@ -260,7 +260,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const zero = this.receivedZero(node);
     const args = zero !== 'null' ? `, ${withOk}, ${zero}` : withOk ? ', true' : '';
 
-    return `$$Channel.receive(${this.receivedFrom(node)}${args})`;
+    return `$$channels.receive(${this.receivedFrom(node)}${args})`;
   }
 
   /** `ch <- v` waits until the channel takes the value; a topic sends and goes on. */
@@ -269,13 +269,13 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const value = this.expression(node.value, ARROW);
 
     return this.isTopicValue(node.channel)
-      ? `$$Topic.publish(${channel}, ${value})`
-      : `await $$Channel.send(${channel}, ${value})`;
+      ? `$$topics.publish(${channel}, ${value})`
+      : `await $$channels.send(${channel}, ${value})`;
   }
 
   /** `topic<T>(name)`: a topic keeps the zero value that a closed one gives, as a channel does. */
   protected override topic(node: ast.TopicExpression): string {
-    return `$$Topic.make(${this.expression(node.name, ARROW)}, ${this.zeroValue(node.element) ?? 'null'})`;
+    return `$$topics.make(${this.expression(node.name, ARROW)}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /**
@@ -289,7 +289,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const channel = type?.kind === 'tuple' ? type.types[0] : undefined;
     const element = channel?.kind === 'object' ? channel.instanceOf?.args[0] : undefined;
 
-    return `$$Channel.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
+    return `$$channels.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
   }
 }
 
@@ -316,10 +316,10 @@ function zeroOf(type: Type): string {
       return '[]';
 
     case 'object':
-      if (isQueue(type)) return 'new $$Queue()';
-      if (isChan(type)) return '$$Channel.EMPTY';
+      if (isQueue(type)) return 'new $$deque()';
+      if (isChan(type)) return '$$channels.EMPTY';
 
-      return isTopic(type) ? '$$Topic.EMPTY' : 'null';
+      return isTopic(type) ? '$$topics.EMPTY' : 'null';
 
     default:
       return 'null';

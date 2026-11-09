@@ -122,6 +122,33 @@ ${card('@shop(1)', '<p onClick={@shop.addTwice(); @shop.add()}>{@shop.count}</p>
     expect(
       errors(`${counter}dec shop() includes counter {\n    public const count = 1\n}`),
     ).toEqual(['@shop declares "count", which it also gets from @counter: rename one of them']);
+    // A parameter or a name of its body would be the same variable in the component.
+    expect(
+      errors(
+        `dec http(public request string) {\n}\ndec page(request string) includes http(request) {\n}`,
+      ),
+    ).toEqual(['@page declares "request", which it also gets from @http: rename one of them']);
+  });
+
+  it('updates a public parameter of an included decorator with its argument', () => {
+    const { body } = mountWithDom(`dec titled(public title string) {
+}
+dec framed(label string) includes titled(label) {
+}
+@framed(label)
+comp Card(label string) {
+    return <h1>{@framed.title}</h1>
+}
+comp Page() {
+    state label = "a"
+    return <div onClick={label = "b"}><Card label={label} /></div>
+}
+document.body.append(<Page />)
+`);
+
+    expect(String(body)).toBe('<body><div><h1>a</h1></div></body>');
+    body.find('div').click();
+    expect(String(body)).toBe('<body><div><h1>b</h1></div></body>');
   });
 
   it('counts the included decorators as applied, for needs and twice', () => {

@@ -14,7 +14,7 @@ export abstract class ParamParser extends JumpParser {
    */
   protected parseParams(
     typesOptional: boolean,
-    options: { defaults?: boolean; rest?: 'typed' | 'attrs'; properties?: boolean } = {},
+    options: { defaults?: boolean; rest?: 'typed' | 'attrs'; properties?: boolean | 'public' } = {},
   ): ast.Parameter[] {
     const { defaults: allowDefaults = false, properties: allowProperties = false } = options;
     const allowRest = options.rest === 'attrs';
@@ -81,8 +81,11 @@ export abstract class ParamParser extends JumpParser {
     return params;
   }
 
-  /** `private`, `readonly` or both before a parameter that is a property of its class. */
-  private parsePropertyModifiers(allowed: boolean): ast.Parameter['property'] | null {
+  /**
+   * `private`, `readonly` or both before a parameter that is a property of its class; only
+   * `public` before one of a decorator, `dec http(public request Request)`, a public member.
+   */
+  private parsePropertyModifiers(allowed: boolean | 'public'): ast.Parameter['property'] | null {
     let visibility: ast.Visibility | null = null;
     let readonly = false;
     const start = this.peek().start;
@@ -106,7 +109,13 @@ export abstract class ParamParser extends JumpParser {
     }
 
     if (visibility === null && !readonly) return null;
-    if (!allowed) {
+    if (allowed === 'public' && (visibility !== 'public' || readonly)) {
+      this.error(
+        'a parameter of a decorator is a public member with "public" alone, e.g. dec http(public request Request)',
+        start,
+        this.span(start).end,
+      );
+    } else if (!allowed) {
       this.error(
         'only the parameters of a constructor can be properties, e.g. constructor(private name string)',
         start,

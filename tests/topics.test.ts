@@ -202,12 +202,14 @@ case y = <-t:
 }
 close(t)`);
 
-    expect(code).toContain('const t = $$Topic.make("n", 0);');
-    expect(code).toContain('$$Topic.publish(t, 1);');
-    expect(code).toContain('const [v, ok] = await $$Channel.receive($$Topic.listen(t), true, 0);');
-    expect(code).toContain('for await (const x of $$Channel.range($$Topic.listen(t)))');
-    expect(code).toContain('$$Channel.select([{ channel: $$Topic.listen(t), zero: 0 }], false)');
-    expect(code).toContain('$$Topic.close(t);');
+    expect(code).toContain('const t = $$topics.make("n", 0);');
+    expect(code).toContain('$$topics.publish(t, 1);');
+    expect(code).toContain(
+      'const [v, ok] = await $$channels.receive($$topics.listen(t), true, 0);',
+    );
+    expect(code).toContain('for await (const x of $$channels.range($$topics.listen(t)))');
+    expect(code).toContain('$$channels.select([{ channel: $$topics.listen(t), zero: 0 }], false)');
+    expect(code).toContain('$$topics.close(t);');
   });
 
   it('describes a topic in .d.ts by its name', () => {

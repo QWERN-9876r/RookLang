@@ -242,7 +242,7 @@ func f() {
 | `[]T`             | массив                                         | `Array`             |
 | `[]byte`          | байты                                          | `Uint8Array`        |
 | `[]float64`, ...  | числа фиксированного размера                   | `Float64Array`, ... |
-| `queue T`         | значения по порядку, вынимаются с обоих концов | `$$Queue`           |
+| `queue T`         | значения по порядку, вынимаются с обоих концов | `$$deque`           |
 | `?T`              | значение типа `T` или `null`                   | значение или `null` |
 | `func(A, B) R`    | функция                                        | функция             |
 | `(a A) => R`      | тот же тип функции, записанный стрелкой        | функция             |
@@ -399,13 +399,13 @@ let waiting queue number         // пустая очередь
 ```
 
 ```js
-const jobs = new $$Queue(["build", "test"]);
+const jobs = new $$deque(["build", "test"]);
 jobs.push("deploy");
 jobs.unshift("lint");
 const next = jobs.shift();
 const last = jobs.pop();
 // ...
-let waiting = new $$Queue();
+let waiting = new $$deque();
 ```
 
 `queue T` хранит значения типа `T` по порядку, и они входят и выходят с обоих концов. У неё есть
@@ -430,7 +430,7 @@ let waiting = new $$Queue();
   сравнивает её. `queue<number>` в типе — ошибка, которая подсказывает писать `queue number`.
 - **Нулевое значение** — пустая очередь, своя у каждой переменной и поля, как `[]` у массива;
   закрытый `chan queue T` тоже даёт пустую очередь.
-- **В JS** очередь — экземпляр класса `$$Queue`, который модуль получает, когда его код
+- **В JS** очередь — экземпляр класса `$$deque`, который модуль получает, когда его код
   использует очереди: значения лежат кольцом в массиве, который копируется в вдвое больший, когда
   заполнен, и в вдвое меньший, когда почти пуст. Его поля — данные, поэтому очередь уходит в
   другой поток копией, если её значения можно копировать, и там тоже остаётся очередью. Код на
@@ -813,6 +813,15 @@ async func sleep(ms number) {
 }
 ```
 
+Без объявленного типа то, что он даёт, выводится из вызовов `resolve` в колбэке:
+`new Promise(resolve => resolve(1))` — это `Promise<number>`, а вызовы с числом и строкой дают
+`Promise<number | string>`. `resolve`, который не вызывается или передаётся дальше, как в паузе
+`await new Promise(resolve => setTimeout(resolve, 5))`, получает значения, которых колбэк не
+показывает: тогда промис не даёт ничего, `Promise<void>`, а значение, переданное в `resolve` в
+другом месте, — ошибка, которая просит указать тип. Так с параметрами функций, которые получает
+колбэк, как `resolve`; параметру самого колбэка, `apply(x => ...)` у `func apply<T>(f func(T))`,
+тип по-прежнему нужен.
+
 ### Горутины
 
 ```go
@@ -959,12 +968,12 @@ close(results)                          // все результаты полу�
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-const results = $$Channel.make(0, 0);
+const jobs = $$channels.make(10, 0);
+const results = $$channels.make(0, 0);
 // ...
-await $$Channel.send(jobs, n);
+await $$channels.send(jobs, n);
 // ...
-console.log(await $$Channel.receive(results, false, 0));
+console.log(await $$channels.receive(results, false, 0));
 ```
 
 Каналы передают значения между горутинами, как в Go. `chan T` — тип канала значений `T`, а
@@ -1033,7 +1042,7 @@ default:
 
 ```js
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
   switch ($$case) {
     case 0: {
       const job = $$received;
@@ -1081,9 +1090,9 @@ close(ticks)
 ```
 
 ```js
-const ticks = $$Channel.tick(100);
+const ticks = $$channels.tick(100);
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: $$Channel.after(500), zero: 0 }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: done, zero: 0 }, { channel: $$channels.after(500), zero: 0 }], false);
 // ...
 $$cancel(task);
 ```
@@ -1130,9 +1139,9 @@ case reason = <-done(request.signal):       // клиент ушёл
 ```
 
 ```js
-const stop = $$Channel.signal("SIGINT", "SIGTERM");
+const stop = $$channels.signal("SIGINT", "SIGTERM");
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: results, zero: "" }, { channel: $$Channel.done(request.signal) }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: results, zero: "" }, { channel: $$channels.done(request.signal) }], false);
 ```
 
 Сервер останавливается, когда ему говорит менеджер процессов, сигналом, а запрос — когда уходит его
@@ -1179,9 +1188,9 @@ const err = <-failed
 ```
 
 ```js
-const [chunks, failed] = $$Channel.fromStream(text, 4, "");
+const [chunks, failed] = $$channels.fromStream(text, 4, "");
 const words = await $$go("countWords", [chunks]);
-const err = await $$Channel.receive(failed);
+const err = await $$channels.receive(failed);
 ```
 
 `ReadableStream`, например тело ответа `fetch`, превращается в канал, а канал — в поток, чтобы
@@ -1238,11 +1247,11 @@ func stop() {
 ```
 
 ```js
-const cart = $$Topic.make("cart", null);
+const cart = $$topics.make("cart", null);
 // ...
-$$Topic.publish(cart, { kind: "add", id });
+$$topics.publish(cart, { kind: "add", id });
 // ...
-for await (const e of $$Channel.range($$Topic.listen(cart))) {
+for await (const e of $$channels.range($$topics.listen(cart))) {
 ```
 
 Топик передаёт значения между вкладками сайта, как канал передаёт их между горутинами: `topic T` —
@@ -1296,16 +1305,16 @@ let none chan string = Channel.EMPTY    // то, что даёт `let none chan 
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
-const n = await $$Channel.receive(jobs);
-$$Channel.close(jobs);
-let none = $$Channel.EMPTY;
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
+const n = await $$channels.receive(jobs);
+$$channels.close(jobs);
+let none = $$channels.EMPTY;
 ```
 
 `Channel` и `Topic` — заранее объявленные объекты с функциями, в которые компилируются каналы и
 топики, по именам, для кода, которому они нужны как значения: передать `Channel.close` дальше или
-принять значение без `await` в той же строке. В JS это `$$Channel` и `$$Topic` из runtime, так
+принять значение без `await` в той же строке. В JS это `$$channels` и `$$topics` из runtime, так
 что программа может объявить свои имена `Channel` и `Topic`, и они их скроют.
 
 - **`Channel`:** `EMPTY`; `make(size, zero)` — канал с местом на `size` значений, который после
@@ -1378,6 +1387,7 @@ if const user, err = load(id); err != null {
 | Rook                             | JS                                                              |
 | -------------------------------- | --------------------------------------------------------------- |
 | `for let i = 0; i < n; i++ { }`  | `for (let i = 0; i < n; i++) { }`                               |
+| `for i in 0..n { }`              | `for (let i = 0, $$end = n; i < $$end; i++) { }`                |
 | `for x in items { }`             | `for (const x of items) { }`                                    |
 | `for i, x in items { }` (массив) | `for (let i = 0; i < items.length; i++) { const x = items[i] }` |
 | `for k, v in scores { }` (Map)   | `for (const [k, v] of scores.entries()) { }`                    |
@@ -1391,6 +1401,13 @@ if const user, err = load(id); err != null {
 `entries()`. Массив читается один раз, как его прочитал бы `entries()`, поэтому цикл, который
 присваивает переменной массива другой, идёт дальше по старому. Без индекса, `for _, x in items`,
 это `for...of`.
+
+**Диапазон** `for i in 0..n` перебирает числа от первого до второго, не включая его: `0..3` даёт
+0, 1 и 2, а `5..2` — ничего. Оба конца — числа, и вычисляются они один раз, до цикла, как в Go:
+цикл, который меняет `n`, идёт до старого конца. Переменная — число, которое тело не может
+присвоить, как любая переменная `for ... in`. Диапазон пишется только после `in`, с одной
+переменной (`for i, x in 0..n` — ошибка), и не с `go for`, который перебирает массив. В `{for}`
+разметки это массив чисел, `$$numbers(0, n)`.
 
 `for x in items` перебирает **значения**, как `for...of` в JS или `for x in` в Python и Rust, а
 не ключи, как `for...in` в JS. В Go `for i := range xs` с одной переменной даёт индекс; здесь одна
@@ -2106,16 +2123,18 @@ jobs <- 1
 ```
 
 ```js
-import { $$Channel } from "rooklang/runtime";
+import { $$channels } from "rooklang/runtime";
 
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
 ```
 
 То, что код не может сделать одними средствами JS, — каналы, горутины, очереди, `defer` внутри
 цикла и блоки разметки, — делают функции маленькой библиотеки, рантайма: `rooklang/runtime` в
 пакете. Модуль импортирует те из них, которые использует его код, по именам, которые начинаются с
 `$$`, как все имена сгенерированного кода; модуль, которому они не нужны, ничего не импортирует.
+После `$$` они начинаются со строчной буквы (`$$channels`, `$$deque`), а функции компонентов — с
+заглавной (`$$Card`), поэтому компонент может называться как угодно.
 
 - **Один рантайм на все модули:** канал или очередь, созданные одним модулем, так же работают в
   другом, который импортирует тот же рантайм. У каждого потока своя копия; то, что потоки делят
@@ -2614,7 +2633,7 @@ $$label3.htmlFor = input.id;
   объявлен, вне документа.
 - **Ref на компонент,** `<Card ref={card} />`, указывает на элемент наверху того, что создаёт
   `Card`, с учётом обёрток его декораторов. Этот элемент создаёт ref, а `Card` его заполняет:
-  встроенный — напрямую, функция — через последний аргумент `$$root`. На компонент с несколькими
+  встроенный — напрямую, функция — через `this`, `{ $$root }`. На компонент с несколькими
   `return`, на компонент, который возвращает фрагмент, и на обёртку, которая возвращает другое
   выражение, указать нельзя: элемент заранее неизвестен. Свойство с именем `ref` у компонента
   быть не может.

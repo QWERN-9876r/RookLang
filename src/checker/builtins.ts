@@ -147,12 +147,13 @@ export function arrayMember(element: Type, name: string): Member | undefined {
     case 'at':
       return method(func([NUMBER], [nullable(element)]));
 
+    // The second parameter is where the search starts, `fromIndex`.
     case 'indexOf':
     case 'lastIndexOf':
-      return method(func([element], [NUMBER]));
+      return method(func([element, NUMBER], [NUMBER], { required: 1 }));
 
     case 'includes':
-      return method(func([element], [BOOL]));
+      return method(func([element, NUMBER], [BOOL], { required: 1 }));
 
     case 'join':
       return method(func([STRING], [STRING], { required: 0 }));
@@ -170,7 +171,7 @@ export function arrayMember(element: Type, name: string): Member | undefined {
       return method(func([], [array]));
 
     case 'fill':
-      return method(func([element], [array]));
+      return method(func([element, NUMBER, NUMBER], [array], { required: 1 }));
 
     case 'sort':
       return method(func([func([element, element], [NUMBER])], [array], { required: 0 }));

@@ -2,7 +2,7 @@ import type * as ast from './ast.ts';
 import { type CopyListener, renamer } from './decorator-copy.ts';
 import { aliases, decoratedName } from './decorator-names.ts';
 import { declaredIn, freeNames, mentionsName, topLevelNames } from './names.ts';
-import { containsReturn } from './recursion.ts';
+import { mapReturns } from './returns.ts';
 import { forEachChild } from './walk.ts';
 
 // Applying decorators: a component with decorators becomes one component whose body runs the
@@ -107,11 +107,29 @@ export function moduleNamesOf(decorator: ast.DecoratorDeclaration, program: ast.
   return [...freeNames(decorator)].filter((name) => topLevel.has(name)).sort();
 }
 
+/** The decorators a module can apply: those it imports, and its own. */
+export function decoratorSources(
+  program: ast.Program,
+  imported?: ReadonlyMap<string, DecoratorSource>,
+): Map<string, DecoratorSource> {
+  const sources = new Map(imported);
+
+  for (const statement of program.body) {
+    if (statement.kind === 'DecoratorDeclaration') {
+      sources.set(statement.name.name, { node: statement, moduleNames: [] });
+    }
+  }
+
+  return sources;
+}
+
 /** A wrapper copied for a component: a fresh copy of its body for each `return` it wraps. */
 interface AppliedWrapper {
   content: ast.Identifier;
   type: ast.TypeNode | null;
   body: () => ast.Statement[];
+  /** `(page Content<Html>) => ...` on the server: it gets the body to run, not what it gave. */
+  lazy: boolean;
 }
 
 /**
@@ -128,12 +146,16 @@ interface AppliedWrapper {
  *
  * `prefixes` replace the names of decorators in the prefixes: a module that inlines a component of
  * another one keeps the decorators of that module apart from its own, `$$Card$visible$shown`.
+ *
+ * On the `server`, a wrapper that takes `Content<T>` gets a function instead: the component's body
+ * with the wrappers below, which runs when the wrapper calls it, so it can catch what it throws.
  */
 export function decorate(
   component: ast.ComponentDeclaration,
   decorators: ReadonlyMap<string, DecoratorSource>,
   copied?: CopyListener,
   prefixes?: ReadonlyMap<string, string>,
+  server = false,
 ): ast.ComponentDeclaration {
   if (component.decorators.length === 0) return component;
 
@@ -207,7 +229,7 @@ export function decorate(
     }
 
     mounts.push(own);
-    if (wrapper) wrappers.push(applyWrapper(source, wrapper, copied, prefix, prefixes));
+    if (wrapper) wrappers.push(applyWrapper(source, wrapper, copied, prefix, prefixes, server));
   };
 
   for (const use of component.decorators) {
@@ -220,7 +242,7 @@ export function decorate(
   const chain = wrappers.reverse();
   const body =
     inside.length > 0 || chain.length > 0
-      ? mapReturns(component.body.body, (node) => [...inside, ...wrapped(node, chain)])
+      ? wrapReturns(component.body.body, chain, inside)
       : component.body.body;
 
   const applied: ast.ComponentDeclaration = {
@@ -264,6 +286,7 @@ function applyWrapper(
   copied: CopyListener | undefined,
   prefix: string,
   prefixes: ReadonlyMap<string, string> | undefined,
+  server: boolean,
 ): AppliedWrapper {
   const names = [...decoratorNames(source.node), ...source.moduleNames, ...wrapperNames(wrapper)];
   const renames = membersOf(prefix, names);
@@ -274,7 +297,58 @@ function applyWrapper(
     content: { ...name, name: renames.get(name.name) ?? name.name },
     type: wrapper.param.type,
     body: () => wrapperBody(wrapper.fn).map((statement) => copy(statement, new Set())),
+    lazy: server && isContent(wrapper.param.type),
   };
+}
+
+/** `Content` or `Content<T>`: the type of children, which on the server are a function. */
+function isContent(type: ast.TypeNode | null): boolean {
+  return (
+    type?.kind === 'TypeReference' && type.name.name === 'Content' && type.typeArgs.length <= 1
+  );
+}
+
+/**
+ * The statements of a body with its `return`s through the wrappers. A lazy wrapper gets the body
+ * with the wrappers below it as an async function, `const $$safe$page = async () => { ... }`, and
+ * its own body, through the wrappers above, gives the result.
+ */
+function wrapReturns(
+  statements: readonly ast.Statement[],
+  chain: readonly AppliedWrapper[],
+  inside: readonly ast.Statement[],
+): ast.Statement[] {
+  const at = chain.findIndex((wrapper) => wrapper.lazy);
+
+  if (at === -1) return mapReturns(statements, (node) => [...inside, ...wrapped(node, chain)]);
+
+  const wrapper = chain[at]!;
+  const [first] = statements;
+  const place = { start: first?.start ?? 0, end: statements.at(-1)?.end ?? 0 };
+  const page: ast.ArrowFunction = {
+    kind: 'ArrowFunction',
+    async: true,
+    params: [],
+    body: {
+      kind: 'BlockStatement',
+      body: wrapReturns(statements, chain.slice(0, at), []),
+      ...place,
+    },
+    ...place,
+  };
+  const content: ast.VariableDeclaration = {
+    kind: 'VariableDeclaration',
+    exported: false,
+    isPublic: false,
+    keyword: 'const',
+    names: [{ ...wrapper.content }],
+    type: wrapper.type,
+    values: [page],
+    body: null,
+    ...place,
+  };
+
+  return [content, ...wrapReturns(wrapper.body(), chain.slice(at + 1), inside)];
 }
 
 /** A `return` of the component through the wrappers, the innermost first. */
@@ -299,70 +373,4 @@ function wrapped(node: ast.ReturnStatement, chain: readonly AppliedWrapper[]): a
   };
 
   return [content, ...mapReturns(wrapper.body(), (inner) => wrapped(inner, outer))];
-}
-
-/** The statements with each `return` replaced; those of nested functions are their own. */
-function mapReturns(
-  statements: readonly ast.Statement[],
-  replace: (node: ast.ReturnStatement) => ast.Statement[],
-): ast.Statement[] {
-  return statements.flatMap((statement) =>
-    statement.kind === 'ReturnStatement' ? replace(statement) : [withReplaced(statement, replace)],
-  );
-}
-
-function withReplaced(
-  statement: ast.Statement,
-  replace: (node: ast.ReturnStatement) => ast.Statement[],
-): ast.Statement {
-  if (!containsReturn(statement)) return statement;
-
-  const block = (node: ast.BlockStatement): ast.BlockStatement => ({
-    ...node,
-    body: mapReturns(node.body, replace),
-  });
-
-  switch (statement.kind) {
-    case 'BlockStatement':
-      return block(statement);
-
-    case 'IfStatement': {
-      const { alternate } = statement;
-
-      return {
-        ...statement,
-        consequent: block(statement.consequent),
-        alternate:
-          alternate === null
-            ? null
-            : alternate.kind === 'IfStatement'
-              ? (withReplaced(alternate, replace) as ast.IfStatement)
-              : block(alternate),
-      };
-    }
-
-    case 'ForStatement':
-    case 'ForInStatement':
-      return { ...statement, body: block(statement.body) };
-
-    case 'SwitchStatement':
-      return {
-        ...statement,
-        cases: statement.cases.map((switchCase) => ({
-          ...switchCase,
-          body: mapReturns(switchCase.body, replace),
-        })),
-      };
-
-    case 'TryStatement':
-      return {
-        ...statement,
-        block: block(statement.block),
-        handler: statement.handler && { ...statement.handler, body: block(statement.handler.body) },
-        finalizer: statement.finalizer && block(statement.finalizer),
-      };
-
-    default:
-      return statement;
-  }
 }

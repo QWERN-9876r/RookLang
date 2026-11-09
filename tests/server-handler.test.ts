@@ -94,6 +94,50 @@ describe('handler', () => {
 
     expect(await (await handle(get('/'))).text()).toBe('<p>hi</p>');
   });
+
+  it('takes the properties of each request from a function', async () => {
+    // The server of Bun comes after the request, as `fetch(request, server)` of Bun.serve gives it;
+    // its type comes from where the function goes, as from the .d.ts of Bun.serve.
+    const module = await importServer(`${PAGE}
+      interface Peer {
+          address string
+      }
+      interface Platform {
+          requestIP(request Request) Peer
+      }
+      func serveLike(fetch func(Request, Platform) Promise<Response>) func(Request, Platform) Promise<Response> {
+          return fetch
+      }
+      comp App(request Request, ip string, path string) {
+          return <p>{ip} {path}</p>
+      }
+      export const handle = serveLike(handler(App, (request, server) => ({
+          ip: server.requestIP(request).address,
+          path: new URL(request.url).pathname,
+      })))
+      export const later = handler(App, async request => {
+          await new Promise(resolve => setTimeout(resolve, 1))
+          return { ip: "none", path: request.method }
+      })
+    `);
+    const handle = module.handle as (request: Request, server: unknown) => Promise<Response>;
+    const later = module.later as (request: Request) => Promise<Response>;
+    const server = { requestIP: () => ({ address: '10.0.0.1' }) };
+
+    expect(await (await handle(get('/a'), server)).text()).toBe('<p>10.0.0.1 /a</p>');
+    expect(await (await later(get('/'))).text()).toBe('<p>none GET</p>');
+    // An error of the function is one of the request.
+    expect((await handle(get('/a'), {})).status).toBe(500);
+    // Without a place that says it, the type of what comes after the request is written.
+    expect(
+      serverErrors(`${PAGE}
+comp App(request Request, ip string) {
+    return <p>{ip}</p>
+}
+const handle = handler(App, (request, server) => ({ ip: "x" }))
+const response Promise<Response> = handle(new Request("http://localhost/"))`),
+    ).toEqual(['cannot infer the type of parameter "server": add a type']);
+  });
 });
 
 describe('a Response goes up', () => {
@@ -186,10 +230,14 @@ describe('html and serve', () => {
   it('serve() answers requests of node:http', async () => {
     const module = await importServer(`
       import { serve } from "rooklang/server"
-      comp App(request Request) {
-          return <p>{request.method} {new URL(request.url).pathname}</p>
+      comp App(request Request, local bool) {
+          return <p>{request.method} {new URL(request.url).pathname} {local ? "local" : "remote"}</p>
       }
-      export const server = serve(App, { port: 0 })
+      // The IncomingMessage of node:http comes after the request.
+      export const server = serve(App, {
+          port: 0,
+          props: (request, incoming) => ({ local: incoming.socket.remoteAddress != null }),
+      })
     `);
     const server = module.server as Server;
 
@@ -199,7 +247,7 @@ describe('html and serve', () => {
       const response = await fetch(`http://localhost:${port}/hello`);
 
       expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
-      expect(await response.text()).toBe('<p>GET /hello</p>');
+      expect(await response.text()).toBe('<p>GET /hello local</p>');
     } finally {
       server.close();
     }

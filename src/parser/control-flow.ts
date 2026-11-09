@@ -106,7 +106,7 @@ export abstract class ControlFlowParser extends StatementParser {
 
     this.expect('in');
 
-    const iterable = this.parseHeaderExpression();
+    const iterable = this.parseRange(this.parseHeaderExpression(), key, go);
     const withKey = this.parseWithKey(go);
     const keyed = withKey ? { withKey } : {};
 

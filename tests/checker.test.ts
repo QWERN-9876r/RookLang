@@ -303,6 +303,10 @@ describe('builtins', () => {
       'const xs = [1, 2, 3]\nconst doubled []number = xs.map(x => x * 2)\nconst evens []number = xs.filter(x => x % 2 == 0)\nconst total number = xs.reduce((sum, x) => sum + x, 0)\nxs.push(4)',
     ],
     ['map to another type', 'const names []string = [1, 2].map(n => `#${n}`)'],
+    [
+      'where a search starts',
+      'const xs = ["a", "-map", "-map"]\nconst i number = xs.indexOf("-map", xs.indexOf("-map") + 1)\nconst j number = xs.lastIndexOf("a", 1)\nconst has bool = xs.includes("a", 1)\nxs.fill("b", 1, 2)',
+    ],
     ['string methods', 'const parts []string = "a, b".split(",").map(p => p.trim().toUpperCase())'],
     [
       'console, Math, JSON',

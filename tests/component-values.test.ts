@@ -88,6 +88,45 @@ func f(section Section) Node {
     expect(errors(`${card}const c comp(title string) = Card`)).toEqual([]);
   });
 
+  it('lets a component have fewer properties at the end than the type', () => {
+    expect(
+      errors(
+        `${card}const c comp(title string, kind ?string, children Content, size number) = Card`,
+      ),
+    ).toEqual([]);
+    expect(
+      errors(`comp Health() {\n    return <p />\n}\nconst c comp(id string) = Health`),
+    ).toEqual([]);
+  });
+
+  it('calls a component with fewer properties, which does not take the others', () => {
+    // A ref points to Health, so it takes the element of the ref, as this, apart from the
+    // properties: the property that the type passes does not take its place.
+    const { body } = mountWithDom(`comp Health() {
+    return <b>ok</b>
+}
+comp Item(id string) {
+    return <i>{id}</i>
+}
+comp Checked() {
+    ref health
+    return <p><Health ref={health} /></p>
+}
+const PAGES []comp(id string) = [Health, Item]
+comp App() {
+    state id = "a"
+    return <main onClick={id = "b"}>
+        {for Page in PAGES { <Page id={id} /> }}
+    </main>
+}
+document.body.append(<App />)
+`);
+
+    expect(String(body)).toBe('<body><main><b>ok</b><i>a</i></main></body>');
+    body.find('main').click();
+    expect(String(body)).toBe('<body><main><b>ok</b><i>b</i></main></body>');
+  });
+
   it.each([
     ['<page.content />', '<page.content> needs the property "title"'],
     ['<page.content title="a" size={1} />', '<page.content> has no property "size"'],

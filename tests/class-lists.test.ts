@@ -62,6 +62,31 @@ document.body.append(<Icon />)
   });
 });
 
+describe('a class that may be null', () => {
+  it('leaves the element without classes, not with the class "null"', () => {
+    const { body } = mountWithDom(`comp Tag(look string) {
+    state on = false
+    return <span class={on ? look : null} onClick={on = !on}>a</span>
+}
+comp Styled(look string) {
+    state on = false
+    style {
+        b { color: red }
+    }
+    return <b class={on ? null : look} onClick={on = !on}>b</b>
+}
+document.body.append(<Tag look="x" />, <Styled look="y" />)
+`);
+
+    expect(body.find('span').className).toBe('');
+    expect(body.find('b').className).toMatch(/^y rook-styled-\w+$/);
+    body.find('span').click();
+    body.find('b').click();
+    expect(body.find('span').className).toBe('x');
+    expect(body.find('b').className).toMatch(/^ rook-styled-\w+$/);
+  });
+});
+
 describe('a bool in aria-*', () => {
   it('becomes "true" or "false"', () => {
     const { body } = mountWithDom(`comp Toggle() {

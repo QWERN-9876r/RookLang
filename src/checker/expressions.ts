@@ -4,6 +4,7 @@ import { FunctionChecker } from './functions.ts';
 import { expectsLiteral, callName, isUntyped } from './helpers.ts';
 import {
   ANY,
+  arrayOf,
   BIGINT,
   BOOL,
   hasUntypedBase,
@@ -185,6 +186,13 @@ export abstract class ExpressionChecker extends FunctionChecker {
 
       case 'TaggedTemplateExpression':
         return this.checkTaggedTemplate(node);
+
+      // `for i in 0..n` loops over numbers, as over an array of them.
+      case 'RangeExpression':
+        this.expectAssignable(this.checkValue(node.from, NUMBER), NUMBER, node.from);
+        this.expectAssignable(this.checkValue(node.to, NUMBER), NUMBER, node.to);
+
+        return arrayOf(NUMBER);
 
       case 'DecoratorMember':
         return this.checkDecoratorMember(node);

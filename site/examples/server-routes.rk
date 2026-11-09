@@ -1,0 +1,48 @@
+// route() ties a path to a page: :id of the path is the property id,
+// and the compiler checks one against the other
+import { reply, route, Route, serve } from "rooklang/server"
+
+// A wrapper that takes Content gets the body to run: an error boundary
+dec fallback(message string) {
+    return (page Content<Html | Response>) => {
+        const value, err = try await page()
+        if err != null {
+            console.error(err)
+            return <p class="error">{message}</p>
+        }
+        return value
+    }
+}
+
+comp Home() {
+    return <h1>Orders</h1>
+}
+
+@fallback("This order cannot be shown")
+comp Order(id string) {
+    const n = Number(id)
+    if Number.isNaN(n) {
+        throw new Error(`not a number: ${id}`)
+    }
+    return <h1>Order #{n}</h1>
+}
+
+const ROUTES []Route<Html | Response> = [
+    route("/", Home),
+    route("/orders/:id", Order),
+    // route("/orders/:number", Order) would be an error:
+    // Order has no property "number" for ":number"
+]
+
+comp App(request Request) {
+    const path = new URL(request.url).pathname
+    for each in ROUTES {
+        const Page = each.match(path)
+        if Page != null {
+            return <Page />
+        }
+    }
+    return reply("Not Found", { status: 404 })
+}
+
+serve(App, { port: 3000 })

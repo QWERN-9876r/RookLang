@@ -48,6 +48,8 @@ export const PUNCTUATORS = [
   ',',
   ':',
   '.',
+  // `for i in 0..n`
+  '..',
   '...',
   '?',
   '?.',

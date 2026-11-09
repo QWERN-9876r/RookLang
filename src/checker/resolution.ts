@@ -199,7 +199,10 @@ export abstract class TypeResolver extends ClassChecker {
         : type.kind === 'object'
           ? (type.typeParams ?? [])
           : type.kind === 'class'
-            ? type.info.typeParams
+            ? // `type NumberBox Box<number>` of another module comes as Box with its arguments.
+              type.args
+              ? []
+              : type.info.typeParams
             : [];
 
     if (params.length === 0) {
@@ -285,8 +288,17 @@ export abstract class TypeResolver extends ClassChecker {
 
     const resolved = this.resolveType(node.type);
 
-    // A union keeps the alias name for messages: `cannot use "activ" as Filter`.
-    entry.resolved = resolved.kind === 'union' ? { ...resolved, name: node.name.name } : resolved;
+    const name = node.name.name;
+
+    // A union keeps the alias name for messages: `cannot use "activ" as Filter`; an instance of a
+    // generic type, for a `.d.ts`.
+    entry.resolved =
+      resolved.kind === 'union'
+        ? { ...resolved, name }
+        : (resolved.kind === 'class' && resolved.args) ||
+            (resolved.kind === 'object' && resolved.instanceOf)
+          ? { ...resolved, alias: name }
+          : resolved;
 
     return entry.resolved;
   }

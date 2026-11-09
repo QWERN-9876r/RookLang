@@ -3,8 +3,8 @@
 [English](server.md) · **Русский**
 
 > Статус: реализованы разметка как HTML, серверные компоненты, их результаты, всплытие `Response`,
-> `Content<T>`, компоненты-значения с результатом, декораторы с guard и контекстом через `needs`, а
-> также `rooklang/server`; на них написан сервер сайта, `site/server/main.rk`, и о них есть раздел
+> `Content<T>`, компоненты-значения с результатом, декораторы с guard, обёртками, которые получают
+> тело, и контекстом через `needs`, маршруты, а также `rooklang/server`; на них написан сервер сайта, `site/server/main.rk`, и о них есть раздел
 > гайда. Решения собраны в конце документа, там же — то, что ещё не решено. Каждый раздел
 > **экспериментальный**: он может измениться в любом релизе до 1.0.
 
@@ -162,6 +162,8 @@ comp Account() needs session {
 - Компонент, которому нужен `Response` ребёнка как значение, чтобы посмотреть на него, берёт его вне
   разметки: `const page = <Account />` даёт `Html | Response`, а `if page instanceof Response`
   сужает тип.
+- **`try` пропускает его наверх:** `const value, err = try await children()` границы ошибок ловит
+  ошибки, а `Response` снизу — не ошибка, поэтому редирект или 401 под границей остаётся ответом.
 
 Так работают `redirect()` и `notFound()` в Next.js и Remix, но через значение, а не исключение:
 тип компонента говорит, что он может ответить вместо страницы.
@@ -188,7 +190,9 @@ comp Logger<T>(children Content<T>) T needs session {
   `Response` компонента `Article` всплывает, когда `Layout` вызывает детей, в том числе через
   `await children()`.
 - **Параметры типа у компонента**, `comp Logger<T>(...)`, — новая конструкция: они пишутся как у
-  функции (см. «Generics» в [spec.ru.md](spec.ru.md)) и выводятся из детей тега. Тип
+  функции (см. «Generics» в [spec.ru.md](spec.ru.md)) и выводятся из свойств и детей тега, как у
+  вызова из аргументов: `<List items={[1, 2]} render={n => String(n)} />` для
+  `comp List<T>(items []T, render func(T) string)` берёт `T` из `items`, а `n` — число. Тип
   `<Logger><Users /></Logger>` — `[]User`, `<Logger><Profile /></Logger>` — `Html | Response`,
   `<Logger><p>...</p></Logger>` — `Html`. Один компонент среди детей `Content<T>` даёт своё
   значение, остальные дети — разметка.
@@ -243,8 +247,39 @@ comp Dashboard() {
   тела нижних декораторов не выполняются, обёртки не применяются. Его тип добавляется к типу тега
   компонента: `<Dashboard />` — это `Html | Response`. Это guard: проверка доступа, лимит запросов,
   кэш, у которого уже есть ответ.
+- **Аргументы читают то, что нужно компоненту:** `@guard(@api.secret, request)` у
+  `comp Page(request Request) needs api`. Члены берутся сверху до того, как выполнятся тела
+  декораторов, поэтому гарду не нужен `needs` самому. Без `needs api` это ошибка
+  `@api.secret in an argument comes from a component above: add "needs api" to Page`.
+- **Параметр с `public`** — член декоратора, `dec http(public request Request, public ip string)`,
+  его читают как `@http.request`, так что контекст не копирует параметры в константы.
 - **Последний `return`** по-прежнему обёртка, `(page T) => U`. `T` ограничивает, где декоратор можно
-  применить, как `(form HTMLFormElement) => ...` в браузере; `U` — результат тега.
+  применить, как `(form HTMLFormElement) => ...` в браузере; `U` — результат тега. Обёртка может
+  ждать, как и тело.
+- **Обёртка, которая принимает `Content<T>`,** получает не то, что дало тело, а само тело: функцию,
+  которая выполняет тело компонента с обёртками нижних декораторов, когда обёртка её вызовет. Так
+  декоратор решает, выполнять ли тело, и ловит то, что оно бросило, — error boundary, написанный на
+  Rook:
+
+  ```go
+  dec fallback(view func(Error) Html) {
+      return (page Content<Html | Response>) => {
+          const value, err = try await page()
+          if err != null {
+              return view(err)
+          }
+          return value
+      }
+  }
+
+  @fallback((err) => <Oops message={err.message} />)
+  comp Feed() { ... }
+  ```
+
+  `try` пропускает всплывающий снизу `Response`, так что редирект под границей по-прежнему ответ.
+  Тела декораторов, как всегда, выполняются раньше: граница ловит компонент и то, что он рисует. То,
+  что даёт компонент, проверяется по `T`.
+
 - **`mount`** на сервере нет: монтировать нечего. Очистка декоратора — `defer` в его теле, который
   выполняется, когда компонент закончит, после его детей.
 - Порядок тот же, что в браузере: тела сверху вниз, обёртки снизу вверх; guard верхнего декоратора
@@ -313,6 +348,13 @@ serve(App, { port: PORT })
   записывает `Response` обратно.
 - **Корень принимает `request Request`** и может принимать другие свойства, которые передали
   `handler`: `handler(App, { db })`, `serve(App, { port: 3000, props: { db } })`.
+- **Свойства каждого запроса** даёт функция вместо объекта,
+  `Bun.serve({ fetch: handler(App, (request, server) => ({ ip: server.requestIP(request)?.address })) })`:
+  она получает запрос и то, что платформа передаёт вместе с ним, как сервер `Bun.serve` (до двух
+  значений: `env` и `ctx` у Workers), и может ждать. Их типы приходят из места, куда идёт функция
+  `handler`, здесь из `.d.ts` Bun; в других местах их пишут, `(request Request, server Server)` с
+  `import { Server } from "bun"`. `serve` передаёт функции `IncomingMessage` из `node:http`, у
+  которого в `socket` адрес клиента, и возвращает `Server`. Ошибка функции — ошибка запроса, 500.
 - **Результат становится ответом:**
 
   | Результат        | Ответ                                       |
@@ -329,30 +371,64 @@ serve(App, { port: PORT })
   `reply(user, { headers: { "Cache-Control": "no-store" } })`. Результат — `Response`; переданный
   `Response` остаётся как есть.
 
+## Маршруты
+
+`route` из `rooklang/server` связывает путь со страницей. Параметры пути — свойства страницы, и
+компилятор сверяет их друг с другом:
+
+```go
+import { route, Route, reply } from "rooklang/server"
+
+comp UserPage(id string) { ... }
+
+const ROUTES []Route<Html | Response> = [
+    route("/", Home),
+    route("/users/:id", UserPage),
+    route("/users/:uid/posts", Posts),   // ошибка: у Posts нет свойства "uid"
+]
+
+comp Router(routes []Route<Html | Response>) needs session {
+    for each in routes {
+        const Page = each.match(@session.url.pathname)
+        if Page != null {
+            return <Page />
+        }
+    }
+    return reply(<NotFound />, { status: 404 })
+}
+```
+
+- **Путь — строковый литерал,** чтобы его параметры были известны: `:id` — сегмент, который отдаёт
+  свой текст, декодированный, свойству `id`.
+- **Проверка в обе стороны:** каждый параметр — свойство страницы, принимающее строку, и каждое
+  нужное странице свойство — параметр. Ошибки говорят, что делать:
+  `UserPage has no property "uid" for ":uid" of "/users/:uid": rename it to ":id", or add the property`.
+- **`Route<T>`** — это `path` и `match(pathname)`, который даёт страницу с параметрами в свойствах,
+  `comp() T`, или null для другого пути. `T` — то, что даёт страница; `Route` без аргумента — это
+  `Route<Html>`. Пустые сегменты не считаются: `/users/7/` — это `/users/7`.
+- **Сам роутер — код на Rook,** цикл по таблице, как и просят цели этого документа: порядок таблицы
+  — порядок сопоставления, а роутер фреймворка добавит, что ему нужно: метод, префикс, вложенные
+  таблицы.
+
 ## Пример: части фреймворка
 
 Роутер, middleware и проверки доступа ниже — обычный код на Rook; фреймворк сложил бы такие части
 в библиотеку.
 
 ```go
-import { serve, reply } from "rooklang/server"
+import { serve, reply, route, Route } from "rooklang/server"
 
 interface User {
     name string
     role "admin" | "user"
 }
 
-interface Route {
-    page comp()
-    open bool
-}
-
-const ROUTES { [string]: Route } = {
-    "/": { page: Home, open: true },
-    "/account": { page: Account, open: false },
-    "/admin": { page: Dashboard, open: false },
-    "/404": { page: NotFound, open: true },
-}
+const ROUTES []Route<Html | Response> = [
+    route("/", Home),
+    route("/account", Account),
+    route("/admin", Dashboard),
+    route("/users/:id", UserPage),
+]
 
 dec session(request Request) {
     public const url = new URL(request.url)
@@ -370,12 +446,18 @@ comp Logger<T>(children Content<T>) T needs session {
     return await children()
 }
 
-comp Router(routes { [string]: Route }) needs session {
-    const route = routes[@session.url.pathname] ?? routes["/404"]
-    if route.open {
-        return <route.page />
+comp Router(routes []Route<Html | Response>) needs session {
+    for each in routes {
+        const Page = each.match(@session.url.pathname)
+        if Page != null {
+            return <Page />
+        }
     }
-    return <Private><route.page /></Private>
+    return reply(<NotFound />, { status: 404 })
+}
+
+comp Account() {
+    return <Private><Profile /></Private>
 }
 
 comp Private<T>(children Content<T>) needs session {          // T | Response
@@ -403,8 +485,8 @@ serve(App, { port: PORT })
 
 - `Logger` называет `session` через `needs`, иначе он не смог бы прочитать путь: компонент видит
   только то, что попросил.
-- `Router` ничем не особенный: таблица компонентов-значений и `<route.page />`. Роутер с
-  параметрами (`/users/:id`) передаёт странице параметры как свойства.
+- `Router` ничем не особенный: таблица маршрутов и `<Page />` того, что подошёл; `/users/:id` даёт
+  `UserPage` его `id`.
 - Guard написан дважды, компонентом (`Private`) и декоратором (`admin`), чтобы показать оба способа.
   Компонент подходит для проверки, которая зависит от места в дереве, декоратор — для той, что
   принадлежит самой странице.
@@ -466,7 +548,7 @@ async function $$Page({ title }, $$ctx) {
 - **Генератор:** слои `html-markup.ts` (шаблоны `$$html`) и `server-components.ts` (функции
   компонентов, их вызовы, контекст); `src/server-context.ts` говорит, что компонент берёт и отдаёт,
   одинаково для проверки типов и генератора.
-- **Рантайм:** `src/runtime/html.js` (`$$Html`, `$$html`, `$$attr`, `$$need`, `$$provide`) и
+- **Рантайм:** `src/runtime/html.js` (`$$safeHtml`, `$$html`, `$$attr`, `$$need`, `$$provide`) и
   `src/runtime/server.js`, экспортированный как `rooklang/server` (`handler`, `serve`, `reply`,
   `html`).
 
@@ -497,6 +579,10 @@ async function $$Page({ title }, $$ctx) {
 6. **Guard — ранний `return` в теле декоратора.**
 7. **Вход — `serve(App)` и `handler(App)` из `rooklang/server`,** на веб-стандартных `Request` и
    `Response`, так что один сервер работает в Node, Bun, Deno и Workers.
+8. **Граница ошибок — обёртка, которая принимает `Content<T>`,** а не декоратор языка: обёртка
+   получает тело, чтобы выполнить его, и `@fallback` — несколько строк на Rook.
+9. **Маршруты — `route("/users/:id", UserPage)`,** функция, литеральный путь которой компилятор
+   проверяет по свойствам страницы; роутер остаётся кодом на Rook.
 
 ## Ещё не решено
 
@@ -508,15 +594,11 @@ async function $$Page({ title }, $$ctx) {
    того, как сервер узнаёт, какие скрипты нужны странице.
 3. **CSS из `style`.** Серверный компонент со `style` мог бы добавлять свой CSS один раз за ответ, в
    `<head>`; пока `style` на сервере — ошибка.
-4. **Ошибки внутри дерева.** Декоратор, который ловит то, что бросил компонент, и показывает вместо
-   него страницу ошибки, `@fallback(<Oops />)`, — error boundary.
-5. **Один компонент для обоих режимов.** Компонент без состояния, обработчиков и ref можно было бы
+4. **Один компонент для обоих режимов.** Компонент без состояния, обработчиков и ref можно было бы
    компилировать и в DOM, и в HTML, чтобы страница и её клиент делили разметку.
-6. **Типизированные параметры маршрутов:** `/users/:id` даёт странице `id string` с проверкой по её
-   свойствам.
-7. **Декоратор кэша,** `@cache("60s")`, который отвечает из памяти до выполнения тела (guard) и
+5. **Декоратор кэша,** `@cache("60s")`, который отвечает из памяти до выполнения тела (guard) и
    сохраняет результат после него (обёртка).
-8. **Помечать ли серверный компонент `async`.** Сейчас нет: асинхронны все. Порядок
+6. **Помечать ли серверный компонент `async`.** Сейчас нет: асинхронны все. Порядок
    `comp X() T needs a` тоже открыт.
-9. **Флаг CLI для разметки как HTML,** как `--markup` для разметки браузера; сейчас CLI берёт её из
+7. **Флаг CLI для разметки как HTML,** как `--markup` для разметки браузера; сейчас CLI берёт её из
    пакета.

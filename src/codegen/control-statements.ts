@@ -48,7 +48,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
   }
 
   /** `outer: for (...)`: the label goes on the loop itself, after what is hoisted before it. */
-  private labeled(node: ast.LabeledStatement, text: string): string {
+  protected labeled(node: ast.LabeledStatement, text: string): string {
     return node.label ? `${this.label(node.label)}: ${text}` : text;
   }
 
@@ -135,7 +135,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
         this.line(
           this.labeled(
             node,
-            `for await (const ${value} of $$Channel.range(${this.receivedFrom(node.iterable)})) ${this.loopBody(node.body)}`,
+            `for await (const ${value} of $$channels.range(${this.receivedFrom(node.iterable)})) ${this.loopBody(node.body)}`,
           ),
         );
 
@@ -294,7 +294,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
     let index = 0;
     const select = this.block(() => {
       this.line(
-        `const [$$case, $$received, $$ok] = await $$Channel.select([${operations.join(', ')}], ${hasDefault});`,
+        `const [$$case, $$received, $$ok] = await $$channels.select([${operations.join(', ')}], ${hasDefault});`,
       );
 
       const body = this.withBreakTarget(null, () =>

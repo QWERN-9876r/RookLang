@@ -148,6 +148,8 @@ export abstract class DecoratorChecker extends DecoratorExportChecker {
       if (name.name !== '_') info.members.set(name.name, { kind, type });
     };
 
+    for (const param of info.node.params.filter((each) => each.property)) add(param.name, 'const');
+
     for (const statement of info.node.body.body) {
       if (statement.kind === 'FuncDeclaration' && statement.isPublic) {
         add(statement.name, 'func');

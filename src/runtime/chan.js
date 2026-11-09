@@ -3,7 +3,7 @@
 // the zero value of its type, as in Go. Channel.EMPTY is closed and belongs to no thread: a send to
 // it goes nowhere, and receiving gives the zero value that the code that receives passes.
 
-import { $$Queue } from './queue.js';
+import { $$deque } from './queue.js';
 import { $$commit, $$lock, $$select, $$try, $$unlock, $$unwait } from './select.js';
 import { $$adopt, $$ask, $$isEmpty, $$ownerOf, $$post, $$registry, $$stopped } from './threads.js';
 
@@ -17,9 +17,9 @@ export function $$chan(size, zero) {
   registry.states.set(id, {
     size,
     zero,
-    buffer: new $$Queue(),
-    receivers: new $$Queue(),
-    senders: new $$Queue(),
+    buffer: new $$deque(),
+    receivers: new $$deque(),
+    senders: new $$deque(),
     closed: false,
     holders: 1,
     busy: false,
@@ -85,7 +85,7 @@ export function $$closeHere(id) {
 
 // What a closed channel gives: a value of its own for each receiver, if it is an array or a queue.
 export function $$zero({ zero }) {
-  return Array.isArray(zero) ? [] : zero instanceof $$Queue ? new $$Queue() : zero;
+  return Array.isArray(zero) ? [] : zero instanceof $$deque ? new $$deque() : zero;
 }
 
 export async function* $$range(channel) {

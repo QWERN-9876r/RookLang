@@ -49,8 +49,9 @@ export abstract class LiteralParser extends ObjectParser {
 
     this.expect('=>');
 
-    const body = this.withContext({ ...FUNCTION_BODY, inAsync: async }, () =>
-      this.check('{') ? this.parseBlock() : this.parseExpression(),
+    const body = this.withContext(
+      { ...FUNCTION_BODY, inAsync: async || this.context.wrapperAt === start },
+      () => (this.check('{') ? this.parseBlock() : this.parseExpression()),
     );
 
     return {

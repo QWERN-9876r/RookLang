@@ -202,7 +202,13 @@ export abstract class DeclarationChecker extends SharedStateChecker {
       info.decorators = info.node.decorators.flatMap(
         (use) => this.decorators.get(use.name.name) ?? [],
       );
-      info.expanded = decorate(info.node, sources);
+      info.expanded = decorate(
+        info.node,
+        sources,
+        undefined,
+        undefined,
+        this.options.server === true,
+      );
     }
 
     // The code of the decorators is part of the component: it may use components too.

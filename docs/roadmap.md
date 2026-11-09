@@ -96,6 +96,14 @@ the open ones are listed in "Not decided yet" of [components.md](components.md).
   that run only when asked, decorators as guards and context ([server.md](server.md)).
 - The CSS of components in a file of its own, and the class of a style only on the elements that
   its selectors can match.
+- **A program without `any`.** Every value that Rook code gets has a type it can write: from the
+  `.d.ts` of the libraries and the platform (the server of Bun, `IncomingMessage` of Node), from
+  where a value goes (the parameters of a callback), and from the declarations of the program. `any`
+  stays for JS without types, but no part of Rook itself (`rooklang/server`, the runtime, the
+  standard functions) makes a program use it. First steps: the second parameter of the function of
+  `handler` is inferred from where it goes or written with a type of the platform, and `serve`
+  gives the `IncomingMessage` and the `Server` of `node:http`. Still `any`: the root of `handler`
+  and its properties, the values of `JSON.parse` and untyped globals.
 
 ### Phase 2 — tools
 

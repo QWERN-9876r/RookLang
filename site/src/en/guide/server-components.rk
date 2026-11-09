@@ -73,5 +73,26 @@ export comp ServerComponents() {
                 to log the status of every answer.
             </li>
         </ul>
+        <p>
+            <code>route("/orders/:id", Order)</code> ties a path to a page: the parameters of the
+            path are its properties, and the compiler checks one against the other. The router is
+            a loop over the table.
+        </p>
+        <Example name="server-routes" />
+        <ul>
+            <li>
+                The path is a string literal. Each <code>:name</code> is a property of the page
+                that takes a string, and each property the page needs is in the path, so a typo in
+                either is an error. <code>match(path)</code> gives the page with them, or
+                {" "}<code>null</code>; <code>Route{"<T>"}</code> has the <code>T</code> the page
+                gives.
+            </li>
+            <li>
+                A wrapper that takes <code>Content{"<T>"}</code> gets the <b>body</b> of the
+                component instead of what it gave, and runs it itself: inside
+                {" "}<code>try</code>, it is an error boundary. A <code>Response</code> from below
+                still goes up through <code>try</code>.
+            </li>
+        </ul>
     </>
 }

@@ -94,10 +94,11 @@ export function tsType(type: Type, expand = false): string {
     }
 
     case 'object':
-      return objectType(type);
+      return type.alias !== undefined && !expand ? type.alias : objectType(type);
 
     case 'class': {
       if (type.info === ERROR_CLASS) return 'Error';
+      if (type.alias !== undefined && !expand) return type.alias;
 
       const args = type.args ? `<${type.args.map((arg) => tsType(arg)).join(', ')}>` : '';
 
@@ -155,7 +156,7 @@ function objectType(type: ObjectType): string {
   // A topic is an object with its name, and so is it for TypeScript code.
   if (isTopic(type)) return `{ readonly $$topic: string }`;
 
-  // A queue is an instance of $$Queue of the runtime (src/runtime/queue.js): TypeScript code uses its
+  // A queue is an instance of $$deque of the runtime (src/runtime/queue.js): TypeScript code uses its
   // members.
   if (isQueue(type)) {
     const value = queueElement(type);

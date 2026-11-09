@@ -1,6 +1,6 @@
 // primes.js
 
-import { $$Channel, $$cancel, $$element, $$goWorker, $$style } from "rooklang/runtime";
+import { $$cancel, $$channels, $$element, $$goWorker, $$style } from "rooklang/runtime";
 
 async function $$startWorker() {
   if (typeof Worker === "function") {
@@ -107,10 +107,10 @@ async function countPrimes(updates) {
       found++;
     }
     if (n % STEP === 0) {
-      await $$Channel.send(updates, { checked: n, found });
+      await $$channels.send(updates, { checked: n, found });
     }
   }
-  $$Channel.close(updates);
+  $$channels.close(updates);
 }
 
 // <Primes>
@@ -123,7 +123,7 @@ let $$primes1;
   let clicks = 0;
   let report = "Count the primes up to 50 million";
   let percent = Math.round(checked / LIMIT * 100);
-  let stop = $$Channel.make(0, false);
+  let stop = $$channels.make(0, false);
 
   async function run() {
     running = true;
@@ -134,13 +134,13 @@ let $$primes1;
     $$updateFound4();
     report = "Counting on another processor…";
     $$updateReport7();
-    stop = $$Channel.make(0, false);
-    const updates = $$Channel.make(0, null);
+    stop = $$channels.make(0, false);
+    const updates = $$channels.make(0, null);
     const job = $$go("countPrimes", [updates]);
     const start = performance.now();
     while (true) {
       {
-        const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: updates }, { channel: stop, zero: false }], false);
+        const [$$case, $$received, $$ok] = await $$channels.select([{ channel: updates }, { channel: stop, zero: false }], false);
         switch ($$case) {
           case 0: {
             const p = $$received;
@@ -212,7 +212,7 @@ let $$primes1;
   $$button25.append("Start");
   const $$button26 = $$element("button", { disabled: !running, className: "rook-primes-1luw6cz" });
   $$button26.addEventListener("click", () => {
-    $$Channel.close(stop);
+    $$channels.close(stop);
   });
   $$button26.append("Cancel");
   $$div24.append($$button25, $$button26);
@@ -263,7 +263,7 @@ document.body.append($$primes1);
 
 // primes.worker.js
 
-import { $$Channel, $$serve } from "rooklang/runtime";
+import { $$channels, $$serve } from "rooklang/runtime";
 
 const LIMIT = 50_000_000;
 const STEP = LIMIT / 100;
@@ -287,10 +287,10 @@ async function countPrimes(updates) {
       found++;
     }
     if (n % STEP === 0) {
-      await $$Channel.send(updates, { checked: n, found });
+      await $$channels.send(updates, { checked: n, found });
     }
   }
-  $$Channel.close(updates);
+  $$channels.close(updates);
 }
 
 const $$goroutines = { countPrimes };

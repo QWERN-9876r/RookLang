@@ -20,6 +20,9 @@ while (left > 0) {
 for (let i = 0; i < 2; i++) {
   console.log("step", i);
 }
+for (let i = 10; i > 0; i -= 5) {
+  console.log("down", i);
+}
 
 function grade(score) {
   if (score >= 90) {

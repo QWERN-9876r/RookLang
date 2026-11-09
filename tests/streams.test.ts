@@ -153,10 +153,10 @@ describe('code', () => {
 const body = stream(chunks)`);
 
     expect(code).toContain(
-      'const [chunks, failed] = $$Channel.fromStream(new Response("x").body, 2, new Uint8Array());',
+      'const [chunks, failed] = $$channels.fromStream(new Response("x").body, 2, new Uint8Array());',
     );
-    expect(code).toContain('const body = $$Channel.stream(chunks);');
-    expect(code).toContain('import { $$Channel } from "rooklang/runtime";');
+    expect(code).toContain('const body = $$channels.stream(chunks);');
+    expect(code).toContain('import { $$channels } from "rooklang/runtime";');
   });
 });
 

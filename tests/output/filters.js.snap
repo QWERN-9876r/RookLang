@@ -1,6 +1,6 @@
 // filters.js
 
-import { $$Channel, $$element, $$goFor, $$goWorker, $$list, $$mount } from "rooklang/runtime";
+import { $$channels, $$element, $$goFor, $$goWorker, $$list, $$mount } from "rooklang/runtime";
 
 async function $$startWorker() {
   if (typeof Worker === "function") {
@@ -112,7 +112,7 @@ let $$filters1, $$mountNode2;
     $$updateBusy5();
     report = "Working…";
     $$updateReport4();
-    await $$Channel.receive($$Channel.after(50), false, 0);
+    await $$channels.receive($$channels.after(50), false, 0);
     const start = performance.now();
     const out = all ? await applyOnAll(source, filter) : applyOnOne(source, filter);
     const ms = Math.round(performance.now() - start);

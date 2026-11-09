@@ -12,13 +12,16 @@ for name, price in prices {
     console.log(name, price)
 }
 
-// There is one loop, for: it is also while and the loop with three parts
+// There is one loop, for: it is also while, a range and the loop with three parts
 let left = 3
 for left > 0 {
     left--
 }
-for let i = 0; i < 2; i++ {
+for i in 0..2 {
     console.log("step", i)
+}
+for let i = 10; i > 0; i -= 5 {
+    console.log("down", i)
 }
 
 // switch has no break; without an expression it works like a chain of ifs

@@ -200,8 +200,9 @@ function functionAssignable(source: FunctionType, target: FunctionType, assuming
 
 /**
  * A tag passes the properties of `target` by position, so `source` must have the same names in
- * the same order, and may have more only if they can be left out. A property with a default
- * value takes a nullable one: null gives it the default value.
+ * the same order, and may have more only if they can be left out, or fewer at the end, which it
+ * does not take: `comp()` fits `comp(id string)`. A property with a default value takes a
+ * nullable one: null gives it the default value.
  */
 function componentAssignable(
   source: ComponentType,
@@ -218,7 +219,8 @@ function componentAssignable(
     target.params.every((expected, i) => {
       const param = source.params[i];
 
-      if (!param || param.name !== expected.name || (expected.optional && !param.optional)) {
+      if (!param) return true;
+      if (param.name !== expected.name || (expected.optional && !param.optional)) {
         return false;
       }
 

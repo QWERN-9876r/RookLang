@@ -4,7 +4,7 @@
 // steps on average. The fields are data, so a copy for another thread keeps the queue, and the
 // thread that gets it gives it back its class (threads.js).
 
-export class $$Queue {
+export class $$deque {
   constructor(items = []) {
     this.$$queue = [...items];
     this.$$start = 0;
