@@ -72,7 +72,7 @@ describe('parsing', () => {
     );
     expect(
       errors(
-        'comp A(xs []number) {\n    return <p>{if const n = xs.length; n > 0 {\n        <b>{n}</b>\n    }}</p>\n}',
+        'comp A(xs number[]) {\n    return <p>{if const n = xs.length; n > 0 {\n        <b>{n}</b>\n    }}</p>\n}',
       ),
     ).toContain('the if of markup has no initializer: declare the variable before the markup');
   });

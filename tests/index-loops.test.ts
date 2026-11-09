@@ -31,7 +31,7 @@ describe('loops over the indexes', () => {
   console.log(i, x);
 }`,
     );
-    expect(js(`const data = make([]uint8, 4)\nfor i, _ in data {\n    data[i] = 1\n}`)).toContain(
+    expect(js(`const data = make(uint8[], 4)\nfor i, _ in data {\n    data[i] = 1\n}`)).toContain(
       `for (let i = 0; i < data.length; i++) {
   data[i] = 1;
 }`,
@@ -43,7 +43,7 @@ describe('loops over the indexes', () => {
       'for (let i = 0, $$items = xs; i < $$items.length; i++) {\n  const x = $$items[i];',
     );
     expect(
-      js(`func items() []number { return [1] }\nfor i, x in items() {\n    console.log(i, x)\n}`),
+      js(`func items() number[] { return [1] }\nfor i, x in items() {\n    console.log(i, x)\n}`),
     ).toContain('for (let i = 0, $$items = items(); i < $$items.length; i++) {');
   });
 
@@ -62,7 +62,7 @@ describe('loops over the indexes', () => {
   it('runs as the loop over the pairs did', () => {
     expect(
       run(`let xs = [10, 20, 30]
-const fs []func() number = []
+const fs (func() number)[] = []
 for i, x in xs {
     if i == 1 {
         continue

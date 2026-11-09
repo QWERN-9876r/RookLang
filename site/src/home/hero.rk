@@ -16,7 +16,7 @@ interface Lane {
     delay number
 }
 
-const LANES []Lane = [
+const LANES Lane[] = [
     { x: -7, seconds: 5.2, delay: 0.3 },
     { x: -6, seconds: 7, delay: 2.5 },
     { x: -4, seconds: 4.5, delay: 0 },

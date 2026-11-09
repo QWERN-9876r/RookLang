@@ -40,12 +40,12 @@ describe('the zero values', () => {
   it('makes Channel.EMPTY and Topic.EMPTY the zero values, for any type of values', () => {
     const code = js(`let c chan number
 let t topic string
-let q chan []number = Channel.EMPTY
+let q chan number[] = Channel.EMPTY
 const s topic ?string = Topic.EMPTY
 let n chan chan number`);
 
-    expect(code).toContain('let c = $$Channel.EMPTY;');
-    expect(code).toContain('let t = $$Topic.EMPTY;');
+    expect(code).toContain('let c = $$channels.EMPTY;');
+    expect(code).toContain('let t = $$topics.EMPTY;');
     expect(errors('const x chan number = Topic.EMPTY')).toEqual([
       'cannot use topic any as chan number',
     ]);
@@ -55,7 +55,7 @@ let n chan chan number`);
     expect(
       await run(`let c chan number
 let t topic string
-let q chan []number
+let q chan number[]
 let qs chan queue number
 let cs chan chan number
 const v, ok = <-c

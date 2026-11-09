@@ -102,17 +102,17 @@ document.body.append(<A />)`);
 
 describe('function types as arrows', () => {
   it('parses (x T) => R as func(T) R, with or without names', () => {
-    const named = first('let f (paths []string, n number) => string', 'VariableDeclaration');
-    const plain = first('let f ([]string, number) => string', 'VariableDeclaration');
+    const named = first('let f (paths string[], n number) => string', 'VariableDeclaration');
+    const plain = first('let f (string[], number) => string', 'VariableDeclaration');
 
     expect(ty(named.type!)).toBe(ty(plain.type!));
-    expect(ty(named.type!)).toBe('func([]string, number) string');
+    expect(ty(named.type!)).toBe('func(string[], number) string');
     expect(ty(first('let f () => void', 'VariableDeclaration').type!)).toBe('func()');
   });
 
   it('keeps parentheses for grouping', () => {
-    expect(ty(first('let x [](string | number)', 'VariableDeclaration').type!)).toBe(
-      '[](string | number)',
+    expect(ty(first('let x (string | number)[]', 'VariableDeclaration').type!)).toBe(
+      '(string | number)[]',
     );
     expect(errors('let x (number, string)')).toEqual([
       'types in parentheses are the parameters of a function type: (a A, b B) => R',

@@ -16,7 +16,7 @@ const cells = grid.join("")
 
 // поиск в ширину: в очереди клетки, которые осталось обойти, ближние первыми
 func shortest() ?number {
-    let seen []bool = cells.split("").map(() => false)
+    let seen bool[] = cells.split("").map(() => false)
     const todo = queue<Step>([{ at: cells.indexOf("S"), steps: 0 }])
     for todo.length > 0 {
         const step = todo.shift()

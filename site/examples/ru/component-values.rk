@@ -16,7 +16,7 @@ comp Farewell(name string) {
 }
 
 // Компоненты в данных: тег берёт компонент из значения
-const TABS []Tab = [
+const TABS Tab[] = [
     { title: "Привет", content: Greeting },
     { title: "Пока", content: Farewell },
 ]

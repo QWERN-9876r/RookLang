@@ -1,9 +1,9 @@
 // Копия, которая уходит в другой поток, содержит данные значения, но не его класс; data class
 // уходит вместе с классом, поэтому горутина может вызывать его методы
 data class Order {
-    items []number
+    items number[]
 
-    constructor(items []number) {
+    constructor(items number[]) {
         this.items = items
     }
 
@@ -12,7 +12,7 @@ data class Order {
     }
 }
 
-func biggest(orders []Order) Order {
+func biggest(orders Order[]) Order {
     let best = orders[0]
     for order in orders {
         if order.total() > best.total() {

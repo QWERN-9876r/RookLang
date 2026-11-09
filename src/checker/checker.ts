@@ -24,6 +24,7 @@ class Checker extends CompletionChecker {
     this.checkHtmlTags();
     this.checkServerModule();
     this.checkClosing();
+    this.checkTypeValues();
     this.diagnostics.sort((a, b) => a.start - b.start);
     this.warnings.sort((a, b) => a.start - b.start);
 
@@ -32,6 +33,7 @@ class Checker extends CompletionChecker {
       warnings: this.warnings,
       ...this.collectDeclarations(),
       types: this.checkedTypes,
+      typeValues: this.typeValues,
       dataClasses: this.dataClasses(),
       ...(this.completion ? { completion: this.completion } : {}),
     };

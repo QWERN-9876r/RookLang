@@ -16,7 +16,7 @@ const cells = grid.join("")
 
 // breadth-first search: the queue holds the cells to visit, nearest first
 func shortest() ?number {
-    let seen []bool = cells.split("").map(() => false)
+    let seen bool[] = cells.split("").map(() => false)
     const todo = queue<Step>([{ at: cells.indexOf("S"), steps: 0 }])
     for todo.length > 0 {
         const step = todo.shift()

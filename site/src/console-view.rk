@@ -3,7 +3,7 @@
 import { text } from "./i18n.rk"
 import styles from "./console-view.module.css"
 
-export comp ConsoleView(lines []string) {
+export comp ConsoleView(lines string[]) {
     return <>
         {if lines.length == 0 {
             <p class={styles.empty}>{text().emptyConsole}</p>

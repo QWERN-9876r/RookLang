@@ -1,4 +1,5 @@
 import type * as ast from '../ast.ts';
+import type { TypeValues } from '../checker/type-values.ts';
 import type { Type } from '../checker/types.ts';
 import type { DecoratorSource } from '../decorators.ts';
 import type { InlinePackage } from '../inline-packages.ts';
@@ -16,6 +17,8 @@ export interface JsOptions {
   rewriteImports: boolean;
   /** Types from the checker, when it ran; without them the generated code is more general. */
   types?: WeakMap<ast.Expression, Type> | undefined;
+  /** What make(T) and decode<T> of generic functions are, from the checker. */
+  typeValues?: TypeValues | undefined;
   /** Decorators imported from other modules, by name: their code is inlined here. */
   decorators?: ReadonlyMap<string, ImportedDecorator> | undefined;
   /** Components imported from other modules, by name: called, or inlined when they are small. */

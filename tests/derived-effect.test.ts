@@ -205,7 +205,7 @@ document.body.append(<A />)
     done bool
 }
 comp Todos() {
-    state todos []Todo = [{ title: "a", done: false }, { title: "b", done: true }]
+    state todos Todo[] = [{ title: "a", done: false }, { title: "b", done: true }]
     state filter = "all"
     derived visible = todos.filter(todo => filter == "all" || !todo.done)
     derived left = todos.filter(todo => !todo.done).length

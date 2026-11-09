@@ -7,7 +7,7 @@ func isPrime(n number) bool {
     return n > 1
 }
 
-const primes = make([]uint8, 50_000_000)
+const primes = make(uint8[], 50_000_000)
 
 let started = Date.now()
 go for i, _ in primes {

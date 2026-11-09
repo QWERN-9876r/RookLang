@@ -17,7 +17,7 @@ function errors(source: string): string[] {
 describe('a list of classes', () => {
   it('takes strings and nulls', () => {
     expect(
-      errors(`comp A(on bool, extra []string) {
+      errors(`comp A(on bool, extra string[]) {
     return <div class={["tab", on ? "on" : null]}>
         <p class={extra} />
     </div>
@@ -26,8 +26,8 @@ describe('a list of classes', () => {
     expect(errors('comp A() {\n    return <p class={["tab", 1]} />\n}')).toEqual([
       'cannot use number as ?string',
     ]);
-    expect(errors('comp A(flags []bool) {\n    return <p class={flags} />\n}')).toEqual([
-      'cannot use []bool as []?string for attribute "class"',
+    expect(errors('comp A(flags bool[]) {\n    return <p class={flags} />\n}')).toEqual([
+      'cannot use bool[] as (?string)[] for attribute "class"',
     ]);
   });
 
@@ -59,6 +59,31 @@ document.body.append(<Icon />)
     expect(svg.attributes.get('class')).toMatch(/^icon big rook-icon-\w+$/);
     svg.click();
     expect(svg.attributes.get('class')).toMatch(/^icon rook-icon-\w+$/);
+  });
+});
+
+describe('a class that may be null', () => {
+  it('leaves the element without classes, not with the class "null"', () => {
+    const { body } = mountWithDom(`comp Tag(look string) {
+    state on = false
+    return <span class={on ? look : null} onClick={on = !on}>a</span>
+}
+comp Styled(look string) {
+    state on = false
+    style {
+        b { color: red }
+    }
+    return <b class={on ? null : look} onClick={on = !on}>b</b>
+}
+document.body.append(<Tag look="x" />, <Styled look="y" />)
+`);
+
+    expect(body.find('span').className).toBe('');
+    expect(body.find('b').className).toMatch(/^y rook-styled-\w+$/);
+    body.find('span').click();
+    body.find('b').click();
+    expect(body.find('span').className).toBe('x');
+    expect(body.find('b').className).toMatch(/^ rook-styled-\w+$/);
   });
 });
 

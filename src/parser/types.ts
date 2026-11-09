@@ -2,7 +2,7 @@ import type * as ast from '../ast.ts';
 import { ClassParser } from './classes.ts';
 import { describe } from './syntax.ts';
 
-// Types: `?T`, `[]T`, `queue T`, `topic T`, unions, literal types, function, component and object types, type arguments.
+// Types: `?T`, `T[]`, `queue T`, `topic T`, unions, literal types, function, component and object types, type arguments.
 
 /** `iterator: true` for the parameters of an iterator: one, named `yield`. */
 function iterator(names: readonly string[]): { iterator?: boolean } {
@@ -63,12 +63,12 @@ export abstract class TypeParser extends ClassParser {
 
     switch (this.peek().kind) {
       case '(':
-        return this.parseParenthesizedType();
+        return this.arrays(start, this.parseParenthesizedType());
 
       case 'String': {
         const value = this.parseStringLiteral();
 
-        return { kind: 'LiteralType', value, ...this.span(start) };
+        return this.arrays(start, { kind: 'LiteralType', value, ...this.span(start) });
       }
 
       case 'Number':
@@ -76,7 +76,7 @@ export abstract class TypeParser extends ClassParser {
       case 'false': {
         const value = this.parsePrimary() as ast.NumberLiteral | ast.BooleanLiteral;
 
-        return { kind: 'LiteralType', value, ...this.span(start) };
+        return this.arrays(start, { kind: 'LiteralType', value, ...this.span(start) });
       }
 
       case '?': {
@@ -87,11 +87,18 @@ export abstract class TypeParser extends ClassParser {
         return { kind: 'NullableType', type, ...this.span(start) };
       }
 
+      // `[]string` as in Go: read, so that the rest of the program is checked, and reported.
       case '[': {
         this.next();
-        this.expect(']', '"]" (array types are written as []T)');
+        this.expect(']', '"]"');
 
         const element = this.parsePrimaryType();
+
+        this.error(
+          'array types are written after the type of the elements, e.g. string[], not []string',
+          start,
+          element.end,
+        );
 
         return { kind: 'ArrayType', element, ...this.span(start) };
       }
@@ -144,7 +151,7 @@ export abstract class TypeParser extends ClassParser {
         this.next();
 
         const params = this.parseParams(false);
-        // On the server the type may write what the component gives: `comp(id string) []User`.
+        // On the server the type may write what the component gives: `comp(id string) User[]`.
         const result = this.server && this.canStartType() ? this.parseType() : undefined;
 
         return {
@@ -158,7 +165,7 @@ export abstract class TypeParser extends ClassParser {
       case '{': {
         const members = this.parseTypeMembers();
 
-        return { kind: 'ObjectType', members, ...this.span(start) };
+        return this.arrays(start, { kind: 'ObjectType', members, ...this.span(start) });
       }
 
       // `queue number` and `topic number`: `queue` and `topic` are types of their own only before
@@ -183,14 +190,32 @@ export abstract class TypeParser extends ClassParser {
         const name = this.parseIdentifier('type');
         const typeArgs = this.parseTypeArgs();
 
-        return { kind: 'TypeReference', name, typeArgs, ...this.span(start) };
+        return this.arrays(start, { kind: 'TypeReference', name, typeArgs, ...this.span(start) });
       }
     }
   }
 
   /**
-   * Grouping, `[](string | number)`, or a function type written as an arrow,
-   * `(paths []string) => Shape`, the same as `func([]string) Shape`. Its parameters may have
+   * `string[]`, `number[][]`: the arrays of a type. `[]` belongs to the type just before it, so
+   * the types written with a word or a sign before them take it inside: `?string[]` is an array or
+   * null, `func() number[]` gives an array, and `(?string)[]` is an array of nullable strings. It
+   * is on the line of the type, since a line may start with an array literal.
+   */
+  private arrays(start: number, type: ast.TypeNode): ast.TypeNode {
+    let result = type;
+
+    while (this.check('[') && !this.peek().newlineBefore && this.peek(1).kind === ']') {
+      this.next();
+      this.next();
+      result = { kind: 'ArrayType', element: result, ...this.span(start) };
+    }
+
+    return result;
+  }
+
+  /**
+   * Grouping, `(string | number)[]`, or a function type written as an arrow,
+   * `(paths string[]) => Shape`, the same as `func(string[]) Shape`. Its parameters may have
    * names, which only document them.
    */
   protected parseParenthesizedType(): ast.TypeNode {
@@ -283,7 +308,7 @@ export abstract class TypeParser extends ClassParser {
 
     const name = this.parsePropertyName('member name');
 
-    if (this.check('(')) {
+    if (this.startsMethod()) {
       const params = this.parseParams(false, { rest: 'typed' });
       const results = this.parseResults(true);
 

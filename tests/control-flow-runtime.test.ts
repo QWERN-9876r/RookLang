@@ -20,7 +20,7 @@ describe('runtime behavior', () => {
     return <li>{title}: {price}</li>
 }
 comp Shop() {
-    state products []Item = [{ title: "Гуава", price: 120 }]
+    state products Item[] = [{ title: "Гуава", price: 120 }]
     state cheap = false
     return <div>
         <button onClick={products.push({ title: "Папайя", price: 90 })}>+</button>
@@ -123,7 +123,7 @@ document.body.append(<Rating />)`);
     done bool
 }
 comp Todos() {
-    state todos []Todo = [{ title: "a", done: false }, { title: "b", done: true }]
+    state todos Todo[] = [{ title: "a", done: false }, { title: "b", done: true }]
     return <div>
         <ul>{for todo in todos {
             <li class={todo.done ? "done" : ""}>

@@ -12,20 +12,20 @@ export type RuntimeMode = 'import' | 'inline';
 
 /**
  * Predeclared names of goroutines and channels, and what they are in JS: `close(ch)` is
- * `$$Channel.close(ch)`, and `Channel` itself is `$$Channel`, so that the names of a program stay
+ * `$$channels.close(ch)`, and `Channel` itself is `$$channels`, so that the names of a program stay
  * its own.
  */
 export const PREDECLARED: ReadonlyMap<string, string> = new Map([
-  ['abortSignal', '$$Channel.abortSignal'],
-  ['after', '$$Channel.after'],
+  ['abortSignal', '$$channels.abortSignal'],
+  ['after', '$$channels.after'],
   ['cancel', '$$cancel'],
-  ['Channel', '$$Channel'],
-  ['close', '$$Channel.close'],
-  ['done', '$$Channel.done'],
-  ['signal', '$$Channel.signal'],
-  ['stream', '$$Channel.stream'],
-  ['tick', '$$Channel.tick'],
-  ['Topic', '$$Topic'],
+  ['Channel', '$$channels'],
+  ['close', '$$channels.close'],
+  ['done', '$$channels.done'],
+  ['signal', '$$channels.signal'],
+  ['stream', '$$channels.stream'],
+  ['tick', '$$channels.tick'],
+  ['Topic', '$$topics'],
   ['transfer', '$$transfer'],
 ]);
 

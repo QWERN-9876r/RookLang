@@ -4,7 +4,7 @@
 
 import { Case } from "../examples/page.rk"
 
-export const CASES []Case = [
+export const CASES Case[] = [
     {
         id: "filters",
         title: "Фильтры картинки на всех ядрах",

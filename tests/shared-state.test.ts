@@ -9,7 +9,7 @@ import { rook } from '../src/vite.ts';
 import { mountJsWithDom, mountWithDom } from './fake-dom.ts';
 import { markupProject } from './project.ts';
 
-// State of a module, `state items []Item = []` at its top level: the components that read it are
+// State of a module, `state items Item[] = []` at its top level: the components that read it are
 // updated when it changes anywhere in its module. Other modules read it and change it only with
 // the functions of its module.
 
@@ -26,7 +26,7 @@ const cart = `export interface Item {
     done bool
 }
 
-export state items []Item = []
+export state items Item[] = []
 
 export func add(name string) {
     items.push({ name: name, done: false })
@@ -91,7 +91,7 @@ describe('syntax and types', () => {
 });
 
 describe('running', () => {
-  const store = `state items []string = []
+  const store = `state items string[] = []
 state total = 0
 
 func add(name string) {
@@ -135,7 +135,7 @@ document.body.append(<App />)
     title string
     done bool
 }
-state todos []Todo = [{ title: "a", done: false }]
+state todos Todo[] = [{ title: "a", done: false }]
 state draft = ""
 
 func finish() {

@@ -39,7 +39,18 @@ export type Expression =
   | ConversionExpression
   | MakeExpression
   | NonNullExpression
-  | TaggedTemplateExpression;
+  | TaggedTemplateExpression
+  | RangeExpression;
+
+/**
+ * `0..n` after `in` of a `for`, the only place it is written: the numbers from `from` up to `to`,
+ * without `to`. The end is computed once, before the loop.
+ */
+export interface RangeExpression extends NodeBase {
+  kind: 'RangeExpression';
+  from: Expression;
+  to: Expression;
+}
 
 /** `user!`: the value is taken not to be null, as in TypeScript; nothing is checked at runtime. */
 export interface NonNullExpression extends NodeBase {
@@ -55,7 +66,7 @@ export interface TaggedTemplateExpression extends NodeBase {
 }
 
 /**
- * `[]byte("rook")`: the UTF-8 bytes of a string. `string(data)`, the way back, is a call, since
+ * `byte[]("rook")`: the UTF-8 bytes of a string. `string(data)`, the way back, is a call, since
  * `string` may be the name of a value.
  */
 export interface ConversionExpression extends NodeBase {
@@ -65,13 +76,15 @@ export interface ConversionExpression extends NodeBase {
 }
 
 /**
- * `make([]float64, n)`: a new typed array of `n` zeros; with `shared`, `make([]float64, n,
+ * `make(File)`: the value of a type that the compiler computes, `{ name: "", size: 0 }`.
+ * `make(float64[], n)` is a new typed array of `n` zeros; with `shared`, `make(float64[], n,
  * shared)`, on a SharedArrayBuffer, which the workers of `go for` write into without copies.
  */
 export interface MakeExpression extends NodeBase {
   kind: 'MakeExpression';
   type: TypeNode;
-  length: Expression;
+  /** The length of a typed array; null for the value of the type itself. */
+  length: Expression | null;
   shared: boolean;
 }
 
@@ -315,6 +328,8 @@ export interface ConditionalExpression extends NodeBase {
 export interface CallExpression extends NodeBase {
   kind: 'CallExpression';
   callee: Expression;
+  /** `create<number>()`: type arguments given, not inferred. */
+  typeArgs?: TypeNode[];
   arguments: (Expression | SpreadElement)[];
   optional: boolean;
 }

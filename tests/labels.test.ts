@@ -29,7 +29,7 @@ function run(source: string): string[] {
   return output;
 }
 
-const GRID = `func find(grid [][]number, target number) {
+const GRID = `func find(grid number[][], target number) {
     outer: for i, row in grid {
         for j, v in row {
             if v < 0 {
@@ -89,10 +89,10 @@ describe('parsing', () => {
   it('reports a label that leaves go for', () => {
     expect(
       parseErrors(
-        'async func f(xs []number) {\n    a: for {\n        go for i, x in xs {\n            break a\n        }\n        break a\n    }\n}',
+        'async func f(xs number[]) {\n    a: for {\n        go for i, x in xs {\n            break a\n        }\n        break a\n    }\n}',
       ),
     ).toEqual(['"break a" cannot leave "go for": its parts run at once in workers']);
-    expect(parseErrors('async func f(xs []number) {\n    a: go for i, x in xs { }\n}')).toContain(
+    expect(parseErrors('async func f(xs number[]) {\n    a: go for i, x in xs { }\n}')).toContain(
       '"go for" cannot have a label: its parts run at once in workers, which break and continue cannot leave',
     );
   });

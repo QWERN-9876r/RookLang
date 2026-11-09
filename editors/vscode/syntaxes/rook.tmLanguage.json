@@ -155,7 +155,7 @@
         {
           "comment": "`queue` and `topic` only before a type or the `<` of `queue<T>()`; elsewhere they are names, `queue < n`.",
           "name": "storage.type.rook",
-          "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\[\\]|\\(|<-)))"
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:(?:let|const|interface|class|chan)(?![\\w$])|(?:queue|topic)(?=<|\\s+(?:(?!(?:in|as|instanceof)(?![\\w$]))[A-Za-z_$]|\\?[A-Za-z_$\\[(]|\\(|<-)))"
         },
         {
           "comment": "`extends`, and `data` and `abstract` only before `class`: `abstract data class Point`.",
@@ -206,9 +206,9 @@
     "types": {
       "patterns": [
         {
-          "comment": "`[]Todo`, `[](A | B)`: the element type is coloured by the rules below.",
+          "comment": "`Todo[]`, `(A | B)[]`: `[]` right after a type; an empty array literal follows an operator or a bracket.",
           "name": "punctuation.definition.type.array.rook",
-          "match": "\\[\\](?=[A-Za-z_$?\\[(])"
+          "match": "(?<=[\\w$)>\\]}\"])\\[\\]"
         },
         {
           "comment": "`?User`, `?(A | B)`; the ternary `?` has a space after it.",
@@ -266,14 +266,16 @@
         },
         {
           "name": "constant.numeric.decimal.rook",
-          "match": "(?<![\\w$.])(?:\\d[\\d_]*n|(?:\\d[\\d_]*(?:\\.\\d[\\d_]*)?|\\.\\d[\\d_]*)(?:[eE][+-]?\\d[\\d_]*)?)(?![\\w$])"
+          "comment": "Not after the dot of a member, `x.0`, but after the two dots of a range, `0..20`.",
+          "match": "(?<![\\w$])(?<![^.]\\.)(?:\\d[\\d_]*n|(?:\\d[\\d_]*(?:\\.\\d[\\d_]*)?|\\.\\d[\\d_]*)(?:[eE][+-]?\\d[\\d_]*)?)(?![\\w$])"
         }
       ]
     },
 
     "calls": {
+      "comment": "`load(x)`, and `create<number>()`: types in `<>` right after the name, then `(`; `a < b` stays a comparison.",
       "name": "entity.name.function.rook",
-      "match": "(?<![\\w$])[a-z_$][\\w$]*(?=\\s*\\()"
+      "match": "(?<![\\w$])[a-z_$][\\w$]*(?=\\s*\\(|<(?:[\\w$\\[\\]?,.| ]|<[\\w$\\[\\]?,.| ]*>)*>\\()"
     },
 
     "object-key": {
@@ -298,6 +300,7 @@
       "patterns": [
         { "name": "storage.type.function.arrow.rook", "match": "=>" },
         { "name": "keyword.operator.spread.rook", "match": "\\.\\.\\." },
+        { "name": "keyword.operator.range.rook", "match": "\\.\\." },
         { "name": "punctuation.accessor.optional.rook", "match": "\\?\\." },
         {
           "name": "keyword.operator.assignment.compound.rook",

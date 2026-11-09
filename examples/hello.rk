@@ -5,7 +5,7 @@ interface Point {
 }
 
 class Stats {
-    private values []number          // нулевое значение — пустой массив
+    private values number[]          // нулевое значение — пустой массив
 
     add(v number) {
         this.values.push(v)
@@ -52,7 +52,7 @@ func quadrant(p Point) string {
     }
 }
 
-func findNegative(points []Point) ?Point {
+func findNegative(points Point[]) ?Point {
     for p in points {
         if p.x < 0 && p.y < 0 {
             return p
@@ -88,7 +88,7 @@ section("stats", () => {
 })
 
 section("points", () => {
-    const points []Point = [{ x: 1, y: 2 }, { x: -3, y: 4 }, { x: -1, y: -1 }]
+    const points Point[] = [{ x: 1, y: 2 }, { x: -3, y: 4 }, { x: -1, y: -1 }]
     for i, p in points {
         console.log(`point ${i}: quadrant ${quadrant(p)}`)
     }

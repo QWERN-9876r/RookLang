@@ -10,7 +10,7 @@ import "./highlight.module.css"
 
 // In the compiler, KEYWORDS is an array of literal types ("func" | "comp" | ...), and here it is
 // compared with any strings.
-const ROOK_KEYWORDS []string = [...KEYWORDS]
+const ROOK_KEYWORDS string[] = [...KEYWORDS]
 
 const ROOK_TYPES = [
     "number", "bigint", "byte", "string", "bool", "any", "error", "void", "never", "Content",
@@ -34,7 +34,9 @@ const MODIFIERS = ["private", "protected", "static", "readonly", "bind"]
 const PUBLIC_NEXT = ["Identifier", "const", "let", "func", "async"]
 
 // What starts the type of the values after queue or topic, besides a name: queue ?string
-const MADE_TYPE_NEXT = ["?", "[", "(", "<-", "func", "comp", "chan"]
+const MADE_TYPE_NEXT = ["?", "(", "<-", "func", "comp", "chan"]
+// What the type arguments of a call, create<number>(), are made of
+const TYPE_ARG_TOKENS = ["Identifier", ",", "[", "]", "?", ".", "|", "String", "chan", "func", "(", ")"]
 
 // Between tokens are spaces and comments; split with a group keeps the comments in the result.
 const COMMENT = new RegExp("(//[^\\n]*|/\\*[\\s\\S]*?\\*/)")
@@ -124,6 +126,9 @@ func tokenClass(tokens any, i number, language string) string {
             isAccessor(tokens, i) {
             return "kw"
         }
+        if language != "js" && isTypeArgsCall(tokens, i) {
+            return "fn"
+        }
         return identifierClass(text, tokens[i + 1].kind, language)
     }
     if LITERALS.includes(text) {
@@ -197,6 +202,31 @@ func isMadeType(tokens any, i number) bool {
     return next.kind == "Identifier" && next.text != "as" || MADE_TYPE_NEXT.includes(next.kind)
 }
 
+// create<number>() is a call with type arguments: types in <> right after the name, then (; a < b
+// is a comparison
+func isTypeArgsCall(tokens any, i number) bool {
+    if tokens[i + 1].kind != "<" || tokens[i + 1].start != tokens[i].end {
+        return false
+    }
+    let depth = 0
+    let j = i + 1
+    for j < tokens.length {
+        const kind = tokens[j].kind
+        if kind == "<" {
+            depth++
+        } else if kind == ">" || kind == ">>" {
+            depth -= kind == ">" ? 1 : 2
+            if depth <= 0 {
+                return depth == 0 && tokens[j + 1].kind == "("
+            }
+        } else if !TYPE_ARG_TOKENS.includes(kind) {
+            return false
+        }
+        j++
+    }
+    return false
+}
+
 // get and set before the name of a method are a getter and a setter: get area() number; get() is a
 // method named get
 func isAccessor(tokens any, i number) bool {
@@ -219,7 +249,7 @@ func isDecorator(tokens any, i number) bool {
 }
 
 // needs is a keyword only after the parameters of a decorator or a component, or the result of a
-// component: dec cartBadge() needs cart, auth {, comp Users() []User needs session {
+// component: dec cartBadge() needs cart, auth {, comp Users() User[] needs session {
 const BEFORE_NEEDS = [")", "Identifier", "]", ">"]
 
 func isNeeds(tokens any, i number) bool {

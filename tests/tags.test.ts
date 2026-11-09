@@ -13,7 +13,7 @@ function errors(source: string): string[] {
 describe('tagged templates', () => {
   it('call the tag with the strings and the values', () => {
     expect(
-      runWithDom(`func sql(parts TemplateStringsArray, ...values []any) string {
+      runWithDom(`func sql(parts TemplateStringsArray, ...values any[]) string {
     return \`\${parts.join("?")} \${values.join(",")}\`
 }
 const id = 7
@@ -32,7 +32,7 @@ console.log(sql\`select * from users where id = \${id} and name = \${"Ann"}\`)`)
 
   it('check the values against the parameters of the tag', () => {
     expect(
-      errors(`func two(parts []string, a number, b string) string {
+      errors(`func two(parts string[], a number, b string) string {
     return parts[0]
 }
 const n number = two\`\${1}\${"x"}\`
@@ -44,7 +44,7 @@ const no = 5\`x\``),
       'cannot use string as number in value 1',
       'cannot use number as string in value 2',
       'too many values for the tag: it takes 2 after the strings',
-      'number cannot be a tag: a tag is a function, e.g. func sql(parts TemplateStringsArray, ...values []any)',
+      'number cannot be a tag: a tag is a function, e.g. func sql(parts TemplateStringsArray, ...values any[])',
     ]);
   });
 });

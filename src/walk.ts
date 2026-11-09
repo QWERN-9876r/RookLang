@@ -144,7 +144,7 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
 
     case 'MakeExpression':
       visit(node.type);
-      visit(node.length);
+      optional(node.length);
       break;
 
     case 'ConversionExpression':
@@ -234,6 +234,11 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       visit(node.quasi);
       break;
 
+    case 'RangeExpression':
+      visit(node.from);
+      visit(node.to);
+      break;
+
     case 'TemplateLiteral':
       node.quasis.forEach((quasi, i) => {
         visit(quasi);
@@ -295,6 +300,11 @@ export function forEachChild(node: ast.Node, visit: (child: ast.Node) => void): 
       break;
 
     case 'CallExpression':
+      visit(node.callee);
+      if (node.typeArgs) each(node.typeArgs);
+      each(node.arguments);
+      break;
+
     case 'NewExpression':
       visit(node.callee);
       each(node.arguments);

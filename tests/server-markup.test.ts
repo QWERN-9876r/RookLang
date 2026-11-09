@@ -132,7 +132,7 @@ describe('markup as a string of HTML', () => {
 
   it('checks attributes by the DOM, as in the browser', () => {
     expect(serverErrors('const i = <input value={[1]} />')).toEqual([
-      'cannot use []number as string for attribute "value"',
+      'cannot use number[] as string for attribute "value"',
     ]);
   });
 

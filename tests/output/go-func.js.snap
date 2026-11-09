@@ -1,6 +1,6 @@
 // go-func.js
 
-import { $$Channel, $$goWorker, $$transfer } from "rooklang/runtime";
+import { $$channels, $$goWorker, $$transfer } from "rooklang/runtime";
 
 async function $$startWorker() {
   if (typeof Worker === "function") {
@@ -17,16 +17,16 @@ const $$go = (name, args) => $$goWorker($$startWorker, name, args);
 
 async function sumInParts(numbers, parts) {
   const size = Math.ceil(numbers.length / parts);
-  const sums = $$Channel.make(parts, 0);
+  const sums = $$channels.make(parts, 0);
   for (let i = 0; i < parts; i++) {
     $$go("$$goroutine0", [numbers, size, sums, i * size]);
   }
 
   let total = 0;
   for (let i = 0; i < parts; i++) {
-    total += await $$Channel.receive(sums, false, 0);
+    total += await $$channels.receive(sums, false, 0);
   }
-  $$Channel.close(sums);
+  $$channels.close(sums);
   return total;
 }
 
@@ -47,7 +47,7 @@ console.log("average:", await pending);
 
 // go-func.worker.js
 
-import { $$Channel, $$serve } from "rooklang/runtime";
+import { $$channels, $$serve } from "rooklang/runtime";
 
 function average(values) {
   return values.reduce((a, b) => a + b, 0) / values.length;
@@ -57,7 +57,7 @@ async function $$goroutine0(numbers, size, sums, from) {
   for (const n of numbers.slice(from, from + size)) {
     sum += n;
   }
-  await $$Channel.send(sums, sum);
+  await $$channels.send(sums, sum);
 }
 
 const $$goroutines = { $$goroutine0, average };

@@ -24,7 +24,7 @@ function run(files: Record<string, string>): { stdout: string; stderr: string } 
   return spawnSync(process.execPath, ['main.js'], options);
 }
 
-const spin = `func spin(ms number) []number {
+const spin = `func spin(ms number) number[] {
     const start = Date.now()
     for Date.now() < start + ms {
     }
@@ -36,8 +36,8 @@ describe('the pool', { timeout: 60_000 }, () => {
   it('gives a call to the first worker that is free, not to one that is still busy', () => {
     const { stdout, stderr } = run({
       'main.rk': `${spin}
-const order []string = []
-const calls []Promise<number> = [(go spin(2000)).then(() => order.push("long"))]
+const order string[] = []
+const calls Promise<number>[] = [(go spin(2000)).then(() => order.push("long"))]
 for let i = 1; i < navigator.hardwareConcurrency; i++ {
     calls.push((go spin(300)).then(() => 0))
 }
@@ -55,12 +55,12 @@ console.log(order.join(" "))
 
   it('is shared by the modules of a program: no more workers than processors', () => {
     const work = `${spin}
-export async func spinAll(count number) [][]number {
-    const calls []Promise<[]number> = []
+export async func spinAll(count number) number[][] {
+    const calls Promise<number[]>[] = []
     for let i = 0; i < count; i++ {
         calls.push(go spin(150))
     }
-    const spans [][]number = []
+    const spans number[][] = []
     for call in calls {
         spans.push(await call)
     }
@@ -101,7 +101,7 @@ describe('channels between threads', { timeout: 60_000 }, () => {
     }
     close(pipe)
 }
-async func consume(pipe chan number, ready chan bool) []number {
+async func consume(pipe chan number, ready chan bool) number[] {
     ready <- true
     let sum = 0
     for n in pipe {

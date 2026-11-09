@@ -14,6 +14,7 @@ import { Control } from "./guide/control.rk"
 import { Iterators } from "./guide/iterators.rk"
 import { Classes } from "./guide/classes.rk"
 import { Generics } from "./guide/generics.rk"
+import { Make } from "./guide/make.rk"
 import { Modules } from "./guide/modules.rk"
 import { Async } from "./guide/async.rk"
 import { Goroutines } from "./guide/goroutines.rk"
@@ -38,7 +39,7 @@ import { ServerComponents } from "./guide/server-components.rk"
 import { Tools } from "./guide/tools.rk"
 import { Adoption } from "./guide/adoption.rk"
 
-export const SECTIONS []Section = [
+export const SECTIONS Section[] = [
     { id: "intro", title: "What is Rook", group: "Language", content: Intro },
     { id: "variables", title: "Variables and types", group: "Language", content: Variables },
     { id: "bigint", title: "bigint and typed arrays", group: "Language", content: Numbers },
@@ -50,6 +51,7 @@ export const SECTIONS []Section = [
     { id: "iterators", title: "Iterators", group: "Language", content: Iterators },
     { id: "classes", title: "Classes and interfaces", group: "Language", content: Classes },
     { id: "generics", title: "Generics", group: "Language", content: Generics },
+    { id: "make", title: "make", group: "Language", content: Make },
     { id: "modules", title: "Modules", group: "Language", content: Modules },
     { id: "async", title: "Async functions", group: "Concurrency", content: Async },
     { id: "goroutines", title: "Goroutines", group: "Concurrency", content: Goroutines },

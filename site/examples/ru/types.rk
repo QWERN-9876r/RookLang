@@ -6,7 +6,7 @@ interface User {
     email ?string          // ?T — значение может быть null
 }
 
-const users []User = [
+const users User[] = [
     { id: 1, name: "Аня", email: null },
     { id: 2, name: "Борис", email: "boris@example.com" },
 ]

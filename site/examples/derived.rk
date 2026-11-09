@@ -1,7 +1,7 @@
 // derived is a value computed from state: it is computed again when the state changes,
 // before the markup that reads it is updated
 comp Basket() {
-    state prices []number = [3, 2]
+    state prices number[] = [3, 2]
     derived total = prices.reduce((sum, price) => sum + price, 0)
     // A block computes it in several steps and returns the value
     derived note {

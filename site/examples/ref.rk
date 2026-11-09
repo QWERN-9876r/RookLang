@@ -1,7 +1,7 @@
 // ref names an element inside the markup: it exists from the start of the body, with the
 // attributes written as strings, and the markup fills it in
 comp Chat() {
-    state messages []string = ["Hi! Write something"]
+    state messages string[] = ["Hi! Write something"]
     state draft = ""
     ref log
     ref input

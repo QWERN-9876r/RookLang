@@ -28,7 +28,7 @@ interface Courier {
 interface Order {
     id number
     customer Customer
-    items []Item
+    items Item[]
     status "new" | "paid" | "sent"
     delivery Pickup | Courier
     note ?string                    // может отсутствовать

@@ -41,6 +41,27 @@ describe('the runtime', () => {
 
     expect(Object.keys(runtime).sort()).toEqual(declared.sort());
   });
+
+  it('has names that no component takes: a component Queue is $$Queue in JS', () => {
+    const capitalized = Object.values(RUNTIME_FILES).flatMap((code) =>
+      [...code.matchAll(/^export (?:async )?(?:function\*?|class|const|let) (\$\$[A-Z]\w*)/gm)].map(
+        (match) => match[1]!,
+      ),
+    );
+
+    expect(capitalized).toEqual([]);
+
+    // Components with the old names of classes of the runtime, which the module uses as well.
+    const code = js(`export comp Queue() {
+    return <p>{queue<number>().length}</p>
+}
+export comp Topic() {
+    return <div><Queue /></div>
+}`);
+
+    expect(code).toContain('import { $$deque } from "rooklang/runtime";');
+    expect(code).toContain('export function $$Queue(');
+  });
 });
 
 describe('import', () => {
@@ -52,7 +73,7 @@ console.log(<-ch, readFileSync)`);
 
     expect(code.split('\n').slice(0, 3)).toEqual([
       'import { readFileSync } from "node:fs";',
-      'import { $$Channel } from "rooklang/runtime";',
+      'import { $$channels } from "rooklang/runtime";',
       '',
     ]);
   });
@@ -63,17 +84,17 @@ close(ch)
 const q = queue<number>()
 const t = topic<number>("t")
 close(t)
-const data = make([]float64, 4, shared)
+const data = make(float64[], 4, shared)
 console.log(q, data, transfer(new Uint8Array(1)))
 cancel(go func() {}())`);
 
     expect(code).toContain(`import {
-  $$Channel,
-  $$Queue,
-  $$Topic,
   $$cancel,
+  $$channels,
+  $$deque,
   $$goWorker,
   $$shared,
+  $$topics,
   $$transfer,
 } from "rooklang/runtime";`);
   });
@@ -98,13 +119,13 @@ describe('inline', () => {
     const code = js('const q = queue<number>([1])\nconsole.log(q.shift())', 'inline');
 
     expect(code).not.toMatch(/^(import|export) /m);
-    expect(code).toContain('class $$Queue {');
+    expect(code).toContain('class $$deque {');
     expect(code).not.toContain('function $$chan(');
 
     const channels = js('const ch = chan<number>(1)\nclose(ch)', 'inline');
 
     // A channel keeps its values in a queue, and threads.js knows its other threads.
-    for (const declaration of ['function $$chan(', 'class $$Queue {', 'function $$registry() {']) {
+    for (const declaration of ['function $$chan(', 'class $$deque {', 'function $$registry() {']) {
       expect(channels).toContain(declaration);
     }
   });
@@ -130,7 +151,7 @@ describe('inline', () => {
 
 // Processes with workers take seconds while the other tests run too.
 describe('modules', { timeout: 30_000 }, () => {
-  // Before the runtime was imported, each module had its own $$Queue, and a channel of another
+  // Before the runtime was imported, each module had its own $$deque, and a channel of another
   // module gave all its receivers after close the same zero value.
   it('share one runtime', () => {
     const dir = moduleProject('rook-runtime-');

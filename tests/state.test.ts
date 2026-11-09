@@ -68,7 +68,7 @@ describe('type checking', () => {
 }
 comp Form(bind user User) {
     state count number
-    state names []string
+    state names string[]
     state subscribed = false
     state choice = "a"
     return <form onSubmit={count++; names.push("x")}>

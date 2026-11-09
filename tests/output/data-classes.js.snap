@@ -26,7 +26,7 @@ class Order {
     return this.items.reduce((sum, price) => sum + price, 0);
   }
 }
-$$dataClass(Order, "Order:e07a3667");
+$$dataClass(Order, "Order:ac68d0cf");
 
 function biggest(orders) {
   let best = orders[0];
@@ -57,7 +57,7 @@ class Order {
     return this.items.reduce((sum, price) => sum + price, 0);
   }
 }
-$$dataClass(Order, "Order:e07a3667");
+$$dataClass(Order, "Order:ac68d0cf");
 
 function biggest(orders) {
   let best = orders[0];

@@ -227,7 +227,7 @@ document.body.append(<Page />)
   });
 
   it('wraps every return of a component that becomes a function', () => {
-    const { body } = mountWithDom(`${notFound}type Item { name string; children []Item }
+    const { body } = mountWithDom(`${notFound}type Item { name string; children Item[] }
 @notFound
 comp Tree(item Item) {
     state count = 0
@@ -246,7 +246,7 @@ document.body.append(<Tree item={{ name: "a", children: [{ name: "b", children: 
   });
 
   it('works with components that become functions and with web components', () => {
-    const { body } = mountWithDom(`${framed}type Item { name string; children []Item }
+    const { body } = mountWithDom(`${framed}type Item { name string; children Item[] }
 @framed("tree")
 comp Tree(item Item) {
     return <ul>{item.name}{for child in item.children { <Tree item={child} /> }}</ul>

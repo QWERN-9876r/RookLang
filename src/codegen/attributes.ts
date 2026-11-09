@@ -146,7 +146,12 @@ export abstract class AttributeEmitter extends UpdateEmitter {
     }
 
     if (property) {
-      this.setLive(live, value, (text) => `${element}.${property.name} = ${text};`);
+      this.setLive(
+        live,
+        value,
+        (text) =>
+          `${element}.${property.name} = ${name === 'class' ? this.classText(value, text) : text};`,
+      );
 
       return;
     }
@@ -191,11 +196,27 @@ export abstract class AttributeEmitter extends UpdateEmitter {
     return value.kind === 'ArrayLiteral' || this.typeOf(value)?.kind === 'array';
   }
 
-  /** The classes of `class={...}` as a string, before the class of the style is added to them. */
+  /**
+   * The classes of `class={...}` as a string. `className = null` would be the class "null", so a
+   * value that may be null gives "" instead.
+   */
   protected classText(value: ast.Expression, text: string): string {
     if (this.isClassList(value)) return `$$classes(${text})`;
 
-    return this.typeOf(value)?.kind === 'string' ? text : `${text} ?? ""`;
+    const type = this.typeOf(value);
+    // Without types (`--no-check`) any value may be null.
+    const mayBeNull =
+      value.kind !== 'StringLiteral' &&
+      (type === undefined || ['nullable', 'null', 'any', 'unknown'].includes(type.kind));
+
+    if (!mayBeNull) return text;
+
+    // `look == "" ? null : look` is in parentheses: ?? would take only its last part.
+    const simple = ['Identifier', 'MemberExpression', 'CallExpression', 'StringLiteral'].includes(
+      value.kind,
+    );
+
+    return simple ? `${text} ?? ""` : `(${text}) ?? ""`;
   }
 
   /** Sets the class of an element: `className`, or the attribute of an SVG element. */

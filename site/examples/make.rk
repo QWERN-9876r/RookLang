@@ -1,0 +1,29 @@
+// make(T) is the value of a type, computed when the program compiles: no type is left in the JS
+interface Song {
+    title string
+    seconds number
+    tags string[]
+    album ?string // may be missing, so it is left out
+}
+
+type Seconds number
+
+const blank = make(Song)      // { title: "", seconds: 0, tags: [] }
+const songs = make(Song[])    // []
+const pause = make(Seconds)   // 0
+
+// In a generic function T comes from each call: the type in <> or from the arguments
+func fill<T>(n number) T[] {
+    const out T[] = []
+    for i in 0..n {
+        out.push(make(T)) // a new value each time
+    }
+    return out
+}
+
+const drafts = fill<Song>(2)
+const zeros = fill<number>(3)
+drafts[0].title = "Intro"
+console.log(blank, songs, pause)
+console.log(drafts, zeros)
+// Called with two types, fill takes a function that makes the value: fill(() => 0, 3)

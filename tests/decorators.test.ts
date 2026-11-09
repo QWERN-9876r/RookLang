@@ -17,7 +17,7 @@ function errors(source: string): string[] {
 const counter = `dec counter(start number = 0) {
     public state count = start
     public const step = 1
-    public state items []number = []
+    public state items number[] = []
     let clicks = 0
 
     public func add() {
@@ -150,6 +150,29 @@ describe('types', () => {
     ]);
     expect(errors(`${counter}dec counter() {\n}`)).toEqual([
       'the decorator @counter is already declared',
+    ]);
+  });
+
+  it('makes a parameter with "public" a member, read-only outside', () => {
+    const titled = `dec titled(public title string, public size number = 1) {
+    public const upper = title.toUpperCase()
+}
+@titled("hi")
+comp Card() {
+`;
+
+    expect(
+      errors(`${titled}    const t string = @titled.title + @titled.upper
+    const n number = @titled.size
+    return <p />
+}`),
+    ).toEqual([]);
+    expect(errors(`${titled}    @titled.title = "x"\n    return <p />\n}`)).toEqual([
+      '"title" of @titled is read-only outside it; give @titled a public function that changes it',
+    ]);
+    expect(errors('dec a(private x string, readonly y string, public z string) {\n}')).toEqual([
+      'a parameter of a decorator is a public member with "public" alone, e.g. dec http(public request Request)',
+      'a parameter of a decorator is a public member with "public" alone, e.g. dec http(public request Request)',
     ]);
   });
 

@@ -1,6 +1,6 @@
 let count number           // без значения — нулевое значение типа: 0
 let title = "Гуава"        // тип выведен из значения: string
-const prices []number = [120, 90, 250]
+const prices number[] = [120, 90, 250]
 
 let a, b = 1, 2
 a, b = b, a                // обмен значениями

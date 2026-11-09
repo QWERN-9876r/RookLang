@@ -1,5 +1,5 @@
 // Параметр типа T: функция работает с массивом любых значений и знает тип результата
-func last<T any>(xs []T) ?T {
+func last<T any>(xs T[]) ?T {
     return xs.length > 0 ? xs[xs.length - 1] : null
 }
 
@@ -11,13 +11,13 @@ interface Named {
     name string
 }
 
-func names<T Named>(items []T) string {
+func names<T Named>(items T[]) string {
     return items.map(x => x.name).join(", ")
 }
 
 // Обобщённый класс; аргумент типа выводится из объявления переменной
 class Stack<T> {
-    private items []T
+    private items T[]
 
     push(item T) {
         this.items.push(item)

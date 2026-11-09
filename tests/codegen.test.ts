@@ -40,7 +40,7 @@ const [q, err] = divide(10, 2);`);
 let n number
 let s string
 let ok bool
-let xs []number
+let xs number[]
 let u ?User
 let e error
 let id ID

@@ -50,17 +50,6 @@ export abstract class ExpressionParser extends TypeParser {
 
       if (precedence < minPrecedence) return left;
 
-      // `await load<number>(1)` reads `await load` first.
-      const callee =
-        left.kind === 'UnaryExpression' && left.operator === 'await' ? left.argument : left;
-
-      if (
-        operator === '<' &&
-        (callee.kind === 'Identifier' || callee.kind === 'MemberExpression')
-      ) {
-        this.rejectTypeArguments();
-      }
-
       this.next();
 
       // `**` is right-associative, all other binary operators are left-associative.
@@ -151,17 +140,6 @@ export abstract class ExpressionParser extends TypeParser {
     return this.parsePostfix(this.parsePrimary());
   }
 
-  /** `make([]float64` starts a `make`: an array literal is not followed by a name. */
-  private isMake(): boolean {
-    return (
-      this.checkWord('make') &&
-      this.peek(1).kind === '(' &&
-      this.peek(2).kind === '[' &&
-      this.peek(3).kind === ']' &&
-      this.peek(4).kind === 'Identifier'
-    );
-  }
-
   /** Member access, indexing and calls: `a.b`, `a?.b`, `a[i]`, `a?.[i]`, `f(x)`, `f?.(x)`. */
   protected override parsePostfix(expression: ast.Expression): ast.Expression {
     while (true) {
@@ -245,7 +223,15 @@ export abstract class ExpressionParser extends TypeParser {
       case 'Identifier':
         if (this.peek(1).kind === '=>') return this.parseArrowFunction();
         if (this.isDecoratorGet()) return this.parseDecoratorGet();
-        if (this.isMake()) return this.parseMake();
+        // `byte[]("text")`: an index is never empty, so `[]` after a name is the type of an array.
+        if (this.peek(1).kind === '[' && this.peek(2).kind === ']') return this.parseConversion();
+
+        if (this.checkWord('make') && this.peek(1).kind === '(') {
+          const make = this.parseMake();
+
+          if (make) return make;
+        }
+
         if (this.checkWord('queue') && this.peek(1).kind === '<') {
           const queue = this.parseQueue();
 
@@ -323,7 +309,8 @@ export abstract class ExpressionParser extends TypeParser {
       case '(':
         return this.isArrowFunctionAhead() ? this.parseArrowFunction() : this.parseParenthesized();
 
-      // `[]byte("text")`: no array literal is followed by a name.
+      // `[]byte("text")` as in Go: no array literal is followed by a name; the type says how
+      // it is written now.
       case '[':
         return this.peek(1).kind === ']' && this.peek(2).kind === 'Identifier'
           ? this.parseConversion()

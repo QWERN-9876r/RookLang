@@ -60,11 +60,11 @@ const host string = new URL("https://example.com").host`),
 describe('members of strings and arrays', () => {
   it('adds the members that the built-in types do not list', () => {
     expect(
-      errors(`const sorted []number = [3, 1, 2].toSorted()
+      errors(`const sorted number[] = [3, 1, 2].toSorted()
 const padded string = "7".padStart(3, "0")
 const code ?number = "a".codePointAt(0)
 const wrong string = [1].toSorted()`),
-    ).toEqual(['cannot use []number as string']);
+    ).toEqual(['cannot use number[] as string']);
   });
 });
 

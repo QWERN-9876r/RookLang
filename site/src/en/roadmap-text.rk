@@ -209,6 +209,12 @@ export comp RoadmapText() {
                 The CSS of components in a file of its own, and the class of a style only on the
                 elements that its selectors can match.
             </li>
+            <li>
+                A program without <code>any</code>: every value has a type it can write, from the
+                {" "}<code>.d.ts</code> of the libraries and the platform, from where it goes and
+                from the declarations of the program; no part of Rook itself makes a program use
+                {" "}<code>any</code>.
+            </li>
         </ul>
         <h3>Phase 2: tools</h3>
         <ul>

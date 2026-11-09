@@ -1,7 +1,7 @@
 // The types are erased: decode checks JSON from outside against a type when the program runs
 interface Order {
     id number
-    items []string
+    items string[]
     status "new" | "paid"
     note ?string // may be missing
 }

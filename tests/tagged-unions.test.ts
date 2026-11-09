@@ -226,7 +226,7 @@ func f(b Box) {
 
   it('does not narrow paths that a loop assigns', () => {
     expect(
-      errors(`${user}${delivery}func f(u User, others []User, order Order) {
+      errors(`${user}${delivery}func f(u User, others User[], order Order) {
     if u.boss != null && order.delivery.kind == "courier" {
         for other in others {
             const name string = u.boss.name
@@ -273,7 +273,7 @@ func f(b Box) {
         return this.lead
     }
 }
-func f(t Team, users []User, u ?User) {
+func f(t Team, users User[], u ?User) {
     if t.boss != null {
         const a string = t.boss.name
     }
@@ -308,7 +308,7 @@ describe('object literals of tagged unions', () => {
       errors(`${delivery}func where(order Order) {}
 where({ id: 1, delivery: { kind: "pickup", shop: "Main st." } })
 where({ id: 2, delivery: { kind: "courier", address: "Elm st. 5", floor: 3 } })
-const all []Delivery = [{ kind: "pickup", shop: "A" }, { kind: "courier", address: "B" }]`),
+const all Delivery[] = [{ kind: "pickup", shop: "A" }, { kind: "courier", address: "B" }]`),
     ).toEqual([]);
   });
 

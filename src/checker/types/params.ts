@@ -294,7 +294,7 @@ export function inferTypeParams(
         break;
       }
 
-      // `Iterable<T>` from `[]number` or a `Set<number>`: T is what `for` gives of it.
+      // `Iterable<T>` from `number[]` or a `Set<number>`: T is what `for` gives of it.
       const values = param.iterates && iteratedBy(arg);
 
       if (values) {

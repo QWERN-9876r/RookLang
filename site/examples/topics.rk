@@ -6,7 +6,7 @@ interface CartEvent {
 }
 
 comp Cart() {
-    state items []string = []
+    state items string[] = []
     const cart = topic<CartEvent>("guide-cart")
 
     func apply(e CartEvent) {

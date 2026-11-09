@@ -30,7 +30,7 @@ describe('channels of one direction', () => {
     const declared = (source: string) => ty(first(source, 'VariableDeclaration').type!);
 
     expect(declared('let out chan<- number = ch')).toBe('chan<- number');
-    expect(declared('let input <-chan []string = ch')).toBe('<-chan []string');
+    expect(declared('let input <-chan string[] = ch')).toBe('<-chan string[]');
     // As in Go, `<-` goes with the leftmost `chan`: parentheses make a channel of `<-chan T`.
     expect(declared('let both chan <-chan number = ch')).toBe('chan<- chan number');
     expect(declared('let both chan (<-chan number) = ch')).toBe('chan <-chan number');

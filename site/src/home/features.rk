@@ -17,7 +17,7 @@ interface Tool {
     label string
 }
 
-const TOOLS []Tool = [
+const TOOLS Tool[] = [
     { icon: "terminal", label: "rook build" },
     { icon: "terminal", label: "rook run" },
     { icon: "package", label: "rooklang/vite" },
@@ -26,8 +26,8 @@ const TOOLS []Tool = [
 ]
 
 /** The numbers of the cores, which light up one after another as goroutines take them. */
-func cores() []number {
-    const all []number = []
+func cores() number[] {
+    const all number[] = []
     for let i = 0; i < CORES; i++ {
         all.push(i)
     }

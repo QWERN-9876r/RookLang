@@ -1,6 +1,6 @@
 // go func(...) { ... }(...) выполняет функциональный литерал горутиной;
 // локальные имена, которыми он пользуется, копируются в неё, как его аргументы
-async func sumInParts(numbers []number, parts number) number {
+async func sumInParts(numbers number[], parts number) number {
     const size = Math.ceil(numbers.length / parts)
     const sums = chan<number>(parts)
     for let i = 0; i < parts; i++ {
@@ -21,7 +21,7 @@ async func sumInParts(numbers []number, parts number) number {
     return total
 }
 
-const numbers []number = []
+const numbers number[] = []
 for let i = 1; i <= 100_000; i++ {
     numbers.push(i)
 }

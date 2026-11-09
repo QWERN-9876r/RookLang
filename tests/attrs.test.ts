@@ -38,7 +38,7 @@ describe('syntax', () => {
       'comp A(...attrs string) {\n    return <p {...attrs} />\n}',
       '...attrs has no type and no default: it gets the type of the element it is spread on',
     ],
-    ['func f(...args) {}', '...args needs the type of its array, e.g. ...args []any'],
+    ['func f(...args) {}', '...args needs the type of its array, e.g. ...args any[]'],
   ])('reports %j', (source, message) => {
     expect(errors(source)).toEqual([message]);
   });
@@ -79,7 +79,7 @@ describe('types', () => {
       '...attrs is spread on another element already: the attributes go to one element',
     ],
     [
-      'comp A(items []string, ...attrs) {\n    return <ul>{for i in items { <li {...attrs}>{i}</li> }}</ul>\n}',
+      'comp A(items string[], ...attrs) {\n    return <ul>{for i in items { <li {...attrs}>{i}</li> }}</ul>\n}',
       '{...attrs} is inside {for}, which may create the element more than once; spread it on an element the component creates once',
     ],
     [
@@ -117,7 +117,7 @@ describe('generated code', () => {
 document.body.append(<App />)`);
 
     expect(code).toContain(
-      'export function $$Button(kind = "primary", children = document.createDocumentFragment(), attrs, $$root) {',
+      'export function $$Button(kind = "primary", children = document.createDocumentFragment(), attrs) {\n  const { $$root } = this ?? {};',
     );
     expect(code).toMatch(/title = "y";\n\s+\$\$attrsElement(\d+)\.title = title;/);
     expect(code).toMatch(/= \$\$Button\(undefined, \$\$children\d+, \$\$attrs\d+\);/);

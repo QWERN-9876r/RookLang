@@ -3,7 +3,7 @@ import { mayChange } from '../methods.ts';
 import { ImportChecker } from './imports.ts';
 import type { Binding } from './context.ts';
 
-// State shared by components: `state items []Item = []` at the top level of a module. Its module
+// State shared by components: `state items Item[] = []` at the top level of a module. Its module
 // changes it anywhere; other modules import it to read, and change it only by calling a function
 // of its module, so that the module keeps its data consistent, as a decorator keeps its state.
 

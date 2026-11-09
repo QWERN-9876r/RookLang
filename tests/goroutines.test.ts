@@ -102,7 +102,7 @@ go Math.max(1, 2)`),
 interface Shape { area() number }
 class Box { size number }
 func take(a any) {}
-func points(ps []Point, m Map<string, Date>, b ?Uint8Array, e error) []Point { return ps }
+func points(ps Point[], m Map<string, Date>, b ?Uint8Array, e error) Point[] { return ps }
 func callback(f func()) {}
 func shape(s Shape) {}
 func box(b Box) {}

@@ -9,7 +9,7 @@ interface Fruit {
 }
 
 // A pretend server: the same fruits with fresh stock, as new objects
-func load() []Fruit {
+func load() Fruit[] {
     return ["Guava", "Lychee", "Mango"].map((name, i) => ({
         id: i + 1,
         name,

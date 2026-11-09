@@ -1,0 +1,31 @@
+// The section "make" of the English guide; guide.rk lists the sections.
+
+import { Example } from "../../example.rk"
+
+export comp Make() {
+    return <>
+        <p>
+            <code>make(T)</code> is the value of a type, which the compiler computes, so no type is
+            left in the JS: <code>make(Song)</code> is <code>{'{ title: "", seconds: 0 }'}</code>,
+            {" "}<code>make(Song[])</code> is <code>[]</code>, <code>make(Seconds)</code> of
+            {" "}<code>type Seconds number</code> is <code>0</code>.
+        </p>
+        <p>
+            An interface gives an object of its fields, each with its own value; a field that may
+            be missing, <code>?T</code> or <code>any</code>, is left out. A literal type gives its
+            literal, <code>Map</code> and <code>Set</code> are empty, and a class whose constructor
+            takes nothing is <code>new Cart()</code>. Each <code>make</code> is a new value. A
+            union, a function, an interface with methods and a type that is its own field have no
+            value of their own: the compiler says why.
+        </p>
+        <p>
+            In a generic function <code>make(T)</code> is the value of the type of each call,
+            {" "}<code>{"fill<Song>(2)"}</code> or one inferred from the arguments. A function called
+            with one type gets the value in its body; one called with several, or exported, takes a
+            function that makes it before its own parameters; one never called is left out of the
+            JS with a warning. <code>{"decode<T>"}</code> takes its type the same way
+            (<a href="../decode/">decode</a>).
+        </p>
+        <Example name="make" />
+    </>
+}

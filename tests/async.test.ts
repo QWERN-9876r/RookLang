@@ -182,6 +182,52 @@ comp A() {
     ).toEqual([]);
   });
 
+  it('infers what a new Promise gives from the calls of resolve', () => {
+    expect(
+      errors(`func wait(ms number, fail bool, name Promise<string>) {
+    const one = new Promise(resolve => resolve(1))
+    const later = new Promise(resolve => setTimeout(() => resolve("x"), 5))
+    const either = new Promise((resolve, reject) => {
+        if fail {
+            resolve(1)
+        } else if ms > 0 {
+            resolve(name)
+        } else {
+            reject(new Error("x"))
+        }
+    })
+    const a bool = one
+    const b bool = later
+    const c bool = either
+}`),
+    ).toEqual([
+      'cannot use Promise<number> as bool',
+      'cannot use Promise<string> as bool',
+      'cannot use Promise<number | string> as bool',
+    ]);
+  });
+
+  it('gives a new Promise void when its resolve is not called or is passed on', () => {
+    expect(
+      errors(`async func pause() {
+    await new Promise(resolve => setTimeout(resolve, 5))
+    const failed = new Promise((resolve, reject) => reject(new Error("x")))
+    const passed = new Promise(resolve => setTimeout(() => resolve(1), 5) ?? resolve)
+    const a bool = failed
+    const b bool = passed
+}
+func apply<T>(f func(T)) {
+}
+apply(x => console.log(x))`),
+    ).toEqual([
+      'cannot use number as void | PromiseLike<void> in argument 1',
+      'cannot use Promise<void> as bool',
+      'cannot use Promise<void> as bool',
+      // A parameter of the callback itself is not inferred from nothing.
+      'cannot infer the type of parameter "x": add a type',
+    ]);
+  });
+
   it('works without the lib files', () => {
     expect(
       browserErrors(`async func load() (string, error) { return "x", null }

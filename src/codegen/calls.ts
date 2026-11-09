@@ -16,9 +16,9 @@ import { hasOptionalLink } from './analysis.ts';
 import { ExpressionEmitter } from './expressions.ts';
 import { ARROW, BINARY, POSTFIX, PRIMARY } from './syntax.ts';
 
-// Calls, `new`, array literals and conversions. A `[]byte` is a Uint8Array: a literal where the
+// Calls, `new`, array literals and conversions. A `byte[]` is a Uint8Array: a literal where the
 // checker found one expected becomes `new Uint8Array([...])`, and the conversions of Go between
-// text and its UTF-8 bytes use TextEncoder and TextDecoder, `[]byte(s)` and `string(data)`. In an
+// text and its UTF-8 bytes use TextEncoder and TextDecoder, `byte[](s)` and `string(data)`. In an
 // iterator, a generator, `yield(v)` yields: its value is `true`, since a generator that the loop
 // over it leaves is closed at that `yield` and goes no further, so `false` is never seen. Making
 // channels, queues and topics is here too, with what a topic needs where it is received or closed.
@@ -27,7 +27,9 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected override call(node: ast.CallExpression): string {
     // After `?.` the arguments may not be evaluated at all.
     const conditional = node.optional || hasOptionalLink(node.callee);
-    const args = this.withHoisting(this.hoist && !conditional, () => this.elements(node.arguments));
+    const args = this.withHoisting(this.hoist && !conditional, () =>
+      this.withTypeValues(node, this.elements(node.arguments)),
+    );
 
     // `error("load user", err)` wraps an error, with its message after this one (runtime/core.js).
     if (this.isBuiltinError(node.callee) && !node.optional) {
@@ -51,7 +53,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
       argument !== undefined &&
       this.isTopicValue(argument)
     ) {
-      return `$$Topic.close(${args})`;
+      return `$$topics.close(${args})`;
     }
 
     return `${this.expression(node.callee, POSTFIX)}${node.optional ? '?.' : ''}(${args})`;
@@ -185,7 +187,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
   }
 
   /**
-   * `make([]float64, n)` → `new Float64Array(n)`; with `shared`, on a SharedArrayBuffer of its
+   * `make(float64[], n)` → `new Float64Array(n)`; with `shared`, on a SharedArrayBuffer of its
    * size in bytes, `new Float64Array($$shared(8 * n))`. Without types the name is the one written.
    */
   protected override make(node: ast.MakeExpression): string {
@@ -197,14 +199,16 @@ export abstract class CallEmitter extends ExpressionEmitter {
           ? node.type.name.name
           : undefined;
     const typed = (type && typedArrayOf(type)) ?? written ?? 'Array';
+    // The value of a type without a length is type-values.ts.
+    const length = node.length!;
 
-    if (!node.shared) return `new ${typed}(${this.expression(node.length, ARROW)})`;
+    if (!node.shared) return `new ${typed}(${this.expression(length, ARROW)})`;
 
     const size = TYPED_ARRAYS.get(typed) ?? 1;
     const bytes =
       size === 1
-        ? this.expression(node.length, ARROW)
-        : `${size} * ${this.expression(node.length, BINARY['*'] + 1)}`;
+        ? this.expression(length, ARROW)
+        : `${size} * ${this.expression(length, BINARY['*'] + 1)}`;
 
     return `new ${typed}($$shared(${bytes}))`;
   }
@@ -217,12 +221,12 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected override chan(node: ast.ChanExpression): string {
     const size = node.size ? this.expression(node.size, ARROW) : '0';
 
-    return `$$Channel.make(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
+    return `$$channels.make(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /** `queue<number>(items)`: the queue copies the values, as `[...items]` would. */
   protected override queue(node: ast.QueueExpression): string {
-    return `new $$Queue(${node.items ? this.expression(node.items, ARROW) : ''})`;
+    return `new $$deque(${node.items ? this.expression(node.items, ARROW) : ''})`;
   }
 
   /** Whether the checker found a topic here, or a `?topic T` in a case of `select`. */
@@ -239,7 +243,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected receivedFrom(node: ast.Expression): string {
     const channel = this.expression(node, ARROW);
 
-    return this.isTopicValue(node) ? `$$Topic.listen(${channel})` : channel;
+    return this.isTopicValue(node) ? `$$topics.listen(${channel})` : channel;
   }
 
   /**
@@ -260,7 +264,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const zero = this.receivedZero(node);
     const args = zero !== 'null' ? `, ${withOk}, ${zero}` : withOk ? ', true' : '';
 
-    return `$$Channel.receive(${this.receivedFrom(node)}${args})`;
+    return `$$channels.receive(${this.receivedFrom(node)}${args})`;
   }
 
   /** `ch <- v` waits until the channel takes the value; a topic sends and goes on. */
@@ -269,13 +273,13 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const value = this.expression(node.value, ARROW);
 
     return this.isTopicValue(node.channel)
-      ? `$$Topic.publish(${channel}, ${value})`
-      : `await $$Channel.send(${channel}, ${value})`;
+      ? `$$topics.publish(${channel}, ${value})`
+      : `await $$channels.send(${channel}, ${value})`;
   }
 
   /** `topic<T>(name)`: a topic keeps the zero value that a closed one gives, as a channel does. */
   protected override topic(node: ast.TopicExpression): string {
-    return `$$Topic.make(${this.expression(node.name, ARROW)}, ${this.zeroValue(node.element) ?? 'null'})`;
+    return `$$topics.make(${this.expression(node.name, ARROW)}, ${this.zeroValue(node.element) ?? 'null'})`;
   }
 
   /**
@@ -289,7 +293,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const channel = type?.kind === 'tuple' ? type.types[0] : undefined;
     const element = channel?.kind === 'object' ? channel.instanceOf?.args[0] : undefined;
 
-    return `$$Channel.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
+    return `$$channels.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
   }
 }
 
@@ -316,10 +320,10 @@ function zeroOf(type: Type): string {
       return '[]';
 
     case 'object':
-      if (isQueue(type)) return 'new $$Queue()';
-      if (isChan(type)) return '$$Channel.EMPTY';
+      if (isQueue(type)) return 'new $$deque()';
+      if (isChan(type)) return '$$channels.EMPTY';
 
-      return isTopic(type) ? '$$Topic.EMPTY' : 'null';
+      return isTopic(type) ? '$$topics.EMPTY' : 'null';
 
     default:
       return 'null';

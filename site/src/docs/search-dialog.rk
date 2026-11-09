@@ -27,9 +27,9 @@ interface Found {
 const AROUND = 60
 
 /** The sections with their text, read from the page: the prose, not the labels of the examples. */
-func readEntries(sections []Section) []Entry {
+func readEntries(sections Section[]) Entry[] {
     return sections.map(section => {
-        const parts []string = []
+        const parts string[] = []
         for element in document.querySelectorAll(`[data-section="${section.id}"] :is(p, li, td, h2, h3)`) {
             parts.push(element.textContent ?? "")
         }
@@ -39,13 +39,13 @@ func readEntries(sections []Section) []Entry {
 }
 
 /** The sections that have the query: those with it in the title first, then by the place of it. */
-func find(entries []Entry, query string) []Found {
+func find(entries Entry[], query string) Found[] {
     const needle = query.trim().toLowerCase()
     if needle == "" {
         return entries.map(entry => ({ entry: entry, before: "", match: "", after: "" }))
     }
-    const found []Found = []
-    const titled []Found = []
+    const found Found[] = []
+    const titled Found[] = []
     for entry in entries {
         const at = entry.text.toLowerCase().indexOf(needle)
         let result Found = { entry: entry, before: "", match: "", after: "" }
@@ -66,11 +66,11 @@ func find(entries []Entry, query string) []Found {
     return [...titled, ...found]
 }
 
-export comp SearchDialog(bind open bool, sections []Section) {
+export comp SearchDialog(bind open bool, sections Section[]) {
     const t = text()
     state query = ""
     state selected = 0
-    state entries []Entry = []
+    state entries Entry[] = []
     derived results = find(entries, query)
     ref input
 

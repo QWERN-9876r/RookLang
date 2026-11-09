@@ -123,10 +123,11 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
         break;
 
       case 'FuncDeclaration': {
-        const [params, body] = this.func(node.params, node.body);
+        if (this.isLeftOut(node)) break;
+
+        const [params, body] = this.func(this.typeValueParams(node), node.body);
         const exported = node.exported ? 'export ' : '';
         const async = node.async ? 'async ' : '';
-
         const star = isIterator(node.params) ? '*' : '';
 
         this.line(
@@ -301,7 +302,7 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
       case 'NullableType':
         return 'null';
 
-      // `[]byte` is a Uint8Array and `[]float64` a Float64Array, unless the program declares a
+      // `byte[]` is a Uint8Array and `float64[]` a Float64Array, unless the program declares a
       // type of that name.
       case 'ArrayType': {
         const { element } = type;
@@ -315,14 +316,14 @@ export abstract class SimpleStatementEmitter extends TryEmitter {
 
       // An empty queue, as `[]` is an empty array.
       case 'QueueType':
-        return 'new $$Queue()';
+        return 'new $$deque()';
 
       // Closed, the same for all types: what is sent to them goes nowhere.
       case 'ChanType':
-        return '$$Channel.EMPTY';
+        return '$$channels.EMPTY';
 
       case 'TopicType':
-        return '$$Topic.EMPTY';
+        return '$$topics.EMPTY';
 
       case 'FuncType':
       case 'ComponentType':

@@ -277,7 +277,7 @@ document.body.append(<App />)
   it('works in recursive components', async () => {
     const { output, body } = mountWithDom(`interface Node {
     name string
-    children []Node
+    children Node[]
 }
 
 comp Tree(node Node) {

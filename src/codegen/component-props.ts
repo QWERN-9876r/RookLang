@@ -42,15 +42,22 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
     // A missing property with a default value is left undefined, so that the default applies.
     const argument = (param: ast.Parameter) =>
       values.get(param.name.name) ?? (param.defaultValue ? 'undefined' : 'null');
-    // The functions that write bound properties into the caller come next, then the element a ref
-    // created for it, as `$$root`.
-    const args = withoutTrailingUndefined([
-      ...component.params.map(argument),
-      ...boundParams(component).map((param) => binders.get(param.name.name) ?? 'undefined'),
-      ...(root === undefined ? [] : [root]),
-    ]);
+    const args = withoutTrailingUndefined(component.params.map(argument));
+    // The functions that write bound properties into the caller and the element a ref created for
+    // it, `$$root`, are given as `this`: `$$Field.call({ $$root: $$input4 }, "Name")`.
+    const given = [
+      ...boundParams(component).flatMap((param) => {
+        const binder = binders.get(param.name.name);
+
+        return binder === undefined ? [] : [`$$bind${upperFirst(param.name.name)}: ${binder}`];
+      }),
+      ...(root === undefined ? [] : [`$$root: ${root}`]),
+    ];
     const fn = this.functionNames.get(component) ?? `$$${name}`;
-    const call = `${fn}(${args.join(', ')})`;
+    const call =
+      given.length > 0
+        ? `${fn}.call({ ${given.join(', ')} }${args.map((arg) => `, ${arg}`).join('')})`
+        : `${fn}(${args.join(', ')})`;
 
     if (!live || reactiveProps.size === 0) {
       this.line(`const [${result}] = ${call};`);

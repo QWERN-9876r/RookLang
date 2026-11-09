@@ -8,7 +8,7 @@ interface Fruit {
     price number
 }
 
-const FRUITS []Fruit = [
+const FRUITS Fruit[] = [
     { name: "Гуава", price: 320 },
     { name: "Киви", price: 60 },
     { name: "Личи", price: 750 },
@@ -43,8 +43,8 @@ interface Request {
 }
 
 comp Search() {
-    state fruits []Fruit = []
-    state log []Request = []
+    state fruits Fruit[] = []
+    state log Request[] = []
     derived asking = log.length > 0 && log[0].status == "запрос"
     let current ?AbortController = null
     let requests = 0
@@ -79,7 +79,7 @@ comp Search() {
             end("прерван")
             return
         }
-        const found, err = decode<[]Fruit>(body)
+        const found, err = decode<Fruit[]>(body)
         if err != null {
             console.log(err.message)
             end("плохой ответ")

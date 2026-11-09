@@ -20,14 +20,14 @@ export comp Example(name string) {
     const code = exampleCode(name)
     const byHand = handwrittenFiles(name)
     // An example that imports modules cannot run on the page.
-    const tabs []TabItem = [
+    const tabs TabItem[] = [
         { id: "code", label: "Rook" },
         { id: "js", label: "JavaScript" },
         ...(byHand.length > 0 ? [{ id: "hand", label: t.withoutRook }] : []),
         ...(code.includes("import ") ? [] : [{ id: "result", label: t.run }]),
     ]
     state tab = "code"
-    state lines []string = []
+    state lines string[] = []
     const preview = previewArea()
 
     func select(id string) {

@@ -24,7 +24,7 @@ export abstract class GoForChecker extends LoopChecker {
     if (iterable && !isSplit(iterable)) {
       if (iterable.kind !== 'unknown' && iterable.kind !== 'any') {
         this.error(
-          `"go for" splits an array among workers, but ${typeToString(iterable)} is not an array; loop over a []T or a typed array, e.g. "go for i, v in pixels { ... }"`,
+          `"go for" splits an array among workers, but ${typeToString(iterable)} is not an array; loop over a T[] or a typed array, e.g. "go for i, v in pixels { ... }"`,
           node.iterable,
         );
       }

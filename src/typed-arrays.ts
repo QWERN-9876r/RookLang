@@ -1,5 +1,5 @@
-// Typed arrays, written as slices of Go: `[]float64` is a Float64Array, as `[]byte` is a
-// Uint8Array. The names of the elements are numbers, and bigints for the integers of 64 bits.
+// Typed arrays, written as arrays of the number types of Go: `float64[]` is a Float64Array, as
+// `byte[]` is a Uint8Array. The names of the elements are numbers, and bigints for the integers of 64 bits.
 
 /** The typed array of each element type of Go. */
 export const TYPED_ELEMENTS: ReadonlyMap<string, string> = new Map([
@@ -36,11 +36,11 @@ export function holdsBigInts(name: string): boolean {
   return name === 'BigInt64Array' || name === 'BigUint64Array';
 }
 
-/** How a typed array is written: `[]float64`, or its own name if Go has none (Uint8ClampedArray). */
+/** How a typed array is written: `float64[]`, or its own name if Go has none (Uint8ClampedArray). */
 export function typedArrayName(name: string): string {
-  if (name === 'Uint8Array') return '[]byte';
+  if (name === 'Uint8Array') return 'byte[]';
 
-  for (const [element, array] of TYPED_ELEMENTS) if (array === name) return `[]${element}`;
+  for (const [element, array] of TYPED_ELEMENTS) if (array === name) return `${element}[]`;
 
   return name;
 }

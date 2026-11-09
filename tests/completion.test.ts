@@ -39,7 +39,7 @@ func sum(count number) number {
     expect(items.slice(0, 4)).toEqual([
       'count variable number',
       'total variable number',
-      'xs variable []number',
+      'xs variable number[]',
       'sum function func(number) number',
     ]);
     expect(items).toContain('console variable console');

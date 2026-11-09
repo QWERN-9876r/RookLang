@@ -17,7 +17,7 @@ function errors(source: string): string[] {
 
 const cart = `dec cart() {
     public state count = 0
-    public state items []string = []
+    public state items string[] = []
 
     public func add() {
         count++

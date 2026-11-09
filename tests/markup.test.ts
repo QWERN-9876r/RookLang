@@ -245,10 +245,10 @@ describe('types', () => {
 
   it.each([
     ['const i = <input checked={1} />', 'cannot use number as bool for attribute "checked"'],
-    ['const d = <div title={[1]} />', 'cannot use []number as string for attribute "title"'],
+    ['const d = <div title={[1]} />', 'cannot use number[] as string for attribute "title"'],
     [
       'const d = <div data-x={[1]} />',
-      'attribute "data-x" needs a string, number or bool, not []number',
+      'attribute "data-x" needs a string, number or bool, not number[]',
     ],
     [
       'const d = <div>{true}</div>',

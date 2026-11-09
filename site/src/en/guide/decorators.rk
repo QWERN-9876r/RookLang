@@ -17,7 +17,9 @@ export comp Decorators() {
                 {" "}<code>public derived</code> and <code>public const</code> as
                 {" "}<code>@ticker.ticks</code> and calls a <code>public func</code> as
                 {" "}<code>@ticker.toggle()</code>. In markup, <code>@ticker.ticks</code> updates
-                like the component's own state. Other names of the
+                like the component's own state. A parameter with <code>public</code> before it,
+                {" "}<code>dec titled(public title string)</code>, is a member too,
+                {" "}<code>@titled.title</code>. Other names of the
                 decorator are its own and cannot clash with the component's.
             </li>
             <li>

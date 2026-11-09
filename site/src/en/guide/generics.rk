@@ -6,16 +6,21 @@ export comp Generics() {
     return <>
         <p>
             Type parameters go in angle brackets, with a constraint after each, as in Go:
-            {" "}<code>{"func last<T any>(xs []T) ?T"}</code>, <code>{"interface Box<T>"}</code>,
+            {" "}<code>{"func last<T any>(xs T[]) ?T"}</code>, <code>{"interface Box<T>"}</code>,
             {" "}<code>{"class Stack<T>"}</code>. Type arguments are in angle brackets too:
             {" "}<code>{"Box<number>"}</code>, <code>{"Stack<string>"}</code>.
         </p>
         <p>
-            Calls do not mention type arguments: the compiler infers them from the arguments or from
-            the expected type. The constraint <code>[T Named]</code> allows only fitting types and
-            gives values of type <code>T</code> the members of <code>Named</code>. In JS the types
-            are erased.
+            The compiler infers the type arguments of a call from the arguments or from the
+            expected type; a call may also give them, <code>{"fill<Song>(2)"}</code>. The
+            constraint <code>{"<T Named>"}</code> allows only fitting types and gives values of type
+            {" "}<code>T</code> the members of <code>Named</code>. In JS the types are erased.
         </p>
         <Example name="generics" />
+        <p>
+            A generic function may make a value of its type, <code>make(T)</code>, or check a value
+            against it, <code>{"decode<T>"}</code>: T then comes from each call
+            (<a href="../make/">make</a>).
+        </p>
     </>
 }

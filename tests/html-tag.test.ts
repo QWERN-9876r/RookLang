@@ -111,7 +111,7 @@ comp OtherCard() {
     name string
 }
 @html-tag("app-user")
-comp UserCard(id string, user User, onPick func(), extra ?User, tags []string) {
+comp UserCard(id string, user User, onPick func(), extra ?User, tags string[]) {
     return <p />
 }`),
     ).toEqual([
@@ -175,7 +175,7 @@ document.body.append(<App />)`);
 
   it('takes arrays and functions as JS properties', () => {
     const { body, output } = mountWithDom(`@html-tag("tag-list")
-comp TagList(tags []string, onPick ?func(string)) {
+comp TagList(tags string[], onPick ?func(string)) {
     return <ul>{for tag in tags { <li onClick={onPick?.(tag)}>{tag}</li> }}</ul>
 }
 const list = <tag-list tags={["a", "b"]} onPick={(tag) => console.log("picked", tag)} />

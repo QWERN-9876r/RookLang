@@ -66,7 +66,7 @@ export abstract class DeclarationParser extends ParamParser {
     return { kind: 'ImportSpecifier', imported, local, ...this.span(token.start) };
   }
 
-  /** `state items []Item = []` at the top level of a module: state its components share. */
+  /** `state items Item[] = []` at the top level of a module: state its components share. */
   protected override parseDeclaration(start: number, exported: boolean): ast.Statement | undefined {
     if (!this.context.topLevel || !this.checkWord('state') || this.peek(1).kind !== 'Identifier') {
       return super.parseDeclaration(start, exported);
@@ -222,7 +222,7 @@ export abstract class DeclarationParser extends ParamParser {
     // `comp Logger<T>(children Content<T>) T`: on the server a wrapper gives what it wraps.
     const typeParams = this.server ? this.parseTypeParams() : [];
     const params = this.parseParams(false, { defaults: true, rest: 'attrs' });
-    // On the server a component gives any value, `comp Users() []User`, and may wait.
+    // On the server a component gives any value, `comp Users() User[]`, and may wait.
     const result =
       this.server && !this.check('{') && !this.checkWord('needs') ? this.parseType() : undefined;
     // `needs session`: a decorator of a component above gives its members (docs/server.md).

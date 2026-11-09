@@ -26,7 +26,7 @@ function js(source: string): string {
 describe('recursive components', () => {
   const tree = `interface Item {
     name string
-    children []Item
+    children Item[]
 }
 
 comp Tree(item Item, depth number = 0) {

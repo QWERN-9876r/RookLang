@@ -10,11 +10,11 @@ export interface NavLink {
 
 export interface NavGroup {
     title string
-    links []NavLink
+    links NavLink[]
 }
 
 export comp NavList(
-    groups []NavGroup,
+    groups NavGroup[],
     active string,
     label string,
     onNavigate func() = func() {},

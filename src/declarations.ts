@@ -1,6 +1,7 @@
 import type * as ast from './ast.ts';
 import type { CheckResult } from './checker/checker.ts';
 import type { FunctionType, ObjectType, Type, TypeParam } from './checker/types.ts';
+import { typeValueNames } from './checker/type-values.ts';
 import { JS_RESERVED } from './codegen/syntax.ts';
 import { generatorType, property, resultType, tsType } from './ts-types.ts';
 
@@ -9,7 +10,7 @@ import { generatorType, property, resultType, tsType } from './ts-types.ts';
 //
 //   number, string, bool   → number, string, boolean
 //   ?T, error              → T | null, Error | null
-//   []T                    → T[]
+//   T[]                    → T[]
 //   (A, B) results         → [A, B], the array that the JS function returns
 //
 // Interfaces, type aliases and classes are declared even when they are not exported, since the
@@ -125,9 +126,19 @@ class DeclarationPrinter {
 
     const name = jsName(node.name.name);
 
-    this.lines.push(
-      `export declare function ${name}${this.typeParams(type.typeParams)}${this.signature(node.params, type)};`,
-    );
+    // `make(T)` and `decode<T>` in it: it takes their values first (checker/type-values.ts).
+    const values = (type.typeValues ?? []).map(({ param, kind }) => {
+      const names = typeValueNames(param);
+
+      return kind === 'make' ? `${names.make}: () => ${param.name}` : `${names.type}: unknown`;
+    });
+    const signature = this.signature(node.params, type);
+    const params =
+      values.length > 0
+        ? `(${values.join(', ')}${signature.startsWith('()') ? '' : ', '}${signature.slice(1)}`
+        : signature;
+
+    this.lines.push(`export declare function ${name}${this.typeParams(type.typeParams)}${params};`);
   }
 
   private variableDeclaration(node: ast.VariableDeclaration): void {

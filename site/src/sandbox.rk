@@ -9,7 +9,7 @@ import styles from "./sandbox.module.css"
 
 export interface Compiled {
     code string
-    errors []string
+    errors string[]
     /** The worker module of `go`; empty without `go`. */
     worker string
 }
@@ -24,7 +24,7 @@ type Compile func(string, string, bool) Compiled
 // The compiler is loaded on the first run, when a JavaScript tab is opened and when the playground
 // comes into view; null until then. Compilations asked for while it loads wait in `waiting`.
 let compiler ?Compile = null
-let waiting []func(?Compile) = []
+let waiting (func(?Compile))[] = []
 
 /** Compiles `source` once the compiler is loaded: right away if it already is. */
 export func compileRook(source string, done func(Compiled)) {
@@ -78,7 +78,7 @@ func resolveWaiting(compile ?Compile) {
 
 interface Owner {
     removed bool
-    cleanups []func()
+    cleanups (func())[]
 }
 
 // The program runs as the owner of its components, with the same key as {if} and {for} in
@@ -117,7 +117,7 @@ let allRuns = 0
  * Runs a program: document.body is `preview`, and the lines of console.log go to `output` right
  * after the run and then with every new line. Compile errors and exceptions are lines too.
  */
-export func runProgram(source string, preview HTMLElement, output func([]string)) {
+export func runProgram(source string, preview HTMLElement, output func(string[])) {
     withCompiler(compile => {
         if compile == null {
             output([text().compilerFailed])
@@ -162,10 +162,10 @@ func workerConsole(channel string) string {
 `
 }
 
-func runCompiled(code string, channel ?string, preview HTMLElement, output func([]string)) {
+func runCompiled(code string, channel ?string, preview HTMLElement, output func(string[])) {
     const run = (runs.get(preview) ?? 0) + 1
     runs.set(preview, run)
-    const lines []string = []
+    const lines string[] = []
     // Output after the run, from mount and timers, is shown right away, line by line.
     let finished = false
     const addLine = (line string) => {
@@ -179,7 +179,7 @@ func runCompiled(code string, channel ?string, preview HTMLElement, output func(
     }
     // The language has no ...rest parameters yet, so extra arguments of console.log are dropped.
     const print = func(a any, b any, c any, d any, e any, f any) {
-        const values []any = [a, b, c, d, e, f]
+        const values any[] = [a, b, c, d, e, f]
         let count = values.length
         for count > 0 && typeof values[count - 1] == "undefined" {
             count--

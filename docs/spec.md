@@ -88,7 +88,7 @@ const label = count == 0
   JS. Its `this` would be the object, not the class around it, so it cannot be used there.
 - A tagged template, `` sql`select * from users where id = ${id}` ``, calls the function before it
   with the strings, a `TemplateStringsArray`, and the values, as in JS: the values are checked as
-  the arguments after the strings, `func sql(parts TemplateStringsArray, ...values []any)`. The tag
+  the arguments after the strings, `func sql(parts TemplateStringsArray, ...values any[])`. The tag
   is on the same line as the template.
 
 ### Keywords
@@ -169,8 +169,8 @@ A variable or a class field without an initial value gets the zero value of its 
 | `bigint`                    | `0n`                                   |
 | `string`                    | `""`                                   |
 | `bool`                      | `false`                                |
-| `[]T`                       | `[]` (a new array each time)           |
-| `[]byte`, `[]float64`, ...  | an empty typed array                   |
+| `T[]`                       | `[]` (a new array each time)           |
+| `byte[]`, `float64[]`, ...  | an empty typed array                   |
 | `queue T`                   | an empty queue (a new one)             |
 | `chan T`, `topic T`         | `Channel.EMPTY`, `Topic.EMPTY`: closed |
 | `?T`, `error`, `any`        | `null`                                 |
@@ -236,10 +236,10 @@ only reports at compile time what would fail at run time.
 | `void`            | no value: `Promise<void>`                    | `undefined`         |
 | `never`           | no value at all: a function that never ends  | —                   |
 | `error`           | an error or `null`                           | `Error` or `null`   |
-| `[]T`             | an array                                     | `Array`             |
-| `[]byte`          | bytes                                        | `Uint8Array`        |
-| `[]float64`, ...  | numbers of a fixed size                      | `Float64Array`, ... |
-| `queue T`         | values in order, taken out at both ends      | `$$Queue`           |
+| `T[]`             | an array                                     | `Array`             |
+| `byte[]`          | bytes                                        | `Uint8Array`        |
+| `float64[]`, ...  | numbers of a fixed size                      | `Float64Array`, ... |
+| `queue T`         | values in order, taken out at both ends      | `$$deque`           |
 | `?T`              | a value of type `T` or `null`                | a value or `null`   |
 | `func(A, B) R`    | a function                                   | a function          |
 | `(a A) => R`      | the same function type, written as an arrow  | a function          |
@@ -251,18 +251,24 @@ only reports at compile time what would fail at run time.
 | a class name      | an instance of the class                     | an instance         |
 | an interface      | any value with the needed fields and methods | —                   |
 
-The type goes after the name, without a colon: `x number`, `xs []string`, `cb func(number) bool`,
+The type goes after the name, without a colon: `x number`, `xs string[]`, `cb func(number) bool`,
 `user ?User`.
 
 Typing is **structural**, as in TypeScript: a value fits a type if it has all the needed fields and
 methods of the needed types.
 
-- **A function type as an arrow,** `(paths []string) => Shape`, is the same as
-  `func([]string) Shape`; the names of the parameters only document them, and `=> void` means no
-  result. Parentheses with one type and no arrow still group: `[](string | number)`.
+- **An array** is written after the type of its elements, as in TypeScript: `string[]`,
+  `number[][]`, `Map<string, User>[]`. `[]` belongs to the type just before it, so a type written
+  with a word or a sign before it takes `[]` inside: `?string[]` is an array or `null`,
+  `func() number[]` gives an array, `queue string[]` holds arrays. An array of such a type puts it in
+  parentheses: `(?string)[]` is an array of nullable strings, `(func() number)[]` an array of
+  functions, `(string | number)[]` an array of both.
+- **A function type as an arrow,** `(paths string[]) => Shape`, is the same as
+  `func(string[]) Shape`; the names of the parameters only document them, and `=> void` means no
+  result. Parentheses with one type and no arrow still group: `(string | number)[]`.
 - **The parameters of a function type** may have names, which only document them; as in Go, if one
   has a name, all have, so `func(a, b number) number` takes two numbers. The rest of the arguments
-  is last, `func(string, ...[]any)`.
+  is last, `func(string, ...any[])`.
 - **`void`** is the value of a Promise without one, `Promise<void>`, and of a callback whose result
   is not used. As the result of a function it is no result: `close() void` is `close()`. A function
   whose result in a `.d.ts` is `any` or `void | T` may end without `return`, and a parameter that
@@ -297,12 +303,12 @@ const n = Number(big) + 0.5   // a number again
 - `typeof b` is `"bigint"` and narrows a `number | bigint`. A bigint goes into markup as text and
   to a goroutine as a copy; `JSON.stringify` cannot write one (JS throws).
 
-### []byte
+### byte[]
 
 ```go
-let header []byte = [0x89, 0x50, 0x4e, 0x47]
-let empty []byte
-const bytes = []byte("rook")
+let header byte[] = [0x89, 0x50, 0x4e, 0x47]
+let empty byte[]
+const bytes = byte[]("rook")
 const text = string(bytes)
 ```
 
@@ -313,26 +319,26 @@ const bytes = new TextEncoder().encode("rook");
 const text = new TextDecoder().decode(bytes);
 ```
 
-`[]byte` is a `Uint8Array`, as a byte slice in Go, and `byte` is a `number` from 0 to 255 (the
+`byte[]` is a `Uint8Array`, as a byte slice in Go, and `byte` is a `number` from 0 to 255 (the
 range is not checked, as for other numbers). `data[i]` reads and writes a `byte`, and the methods
 are those of `Uint8Array`: `subarray`, `slice`, `set`, and no `push`, since its length is fixed.
 
-- **A list of numbers** where a `[]byte` is expected becomes one; the zero value is an empty
+- **A list of numbers** where a `byte[]` is expected becomes one; the zero value is an empty
   `Uint8Array`.
-- **Text and bytes** convert as in Go, in UTF-8: `[]byte("text")` and `string(bytes)`. They are
+- **Text and bytes** convert as in Go, in UTF-8: `byte[]("text")` and `string(bytes)`. They are
   the only conversions written with a type: `string(65)` is an error (in Go it would be `"A"`), and
   other values use `String(x)` or a template string. A program that declares a type `byte` or a
   value `string` uses its own.
-- A `[]byte` goes to a goroutine as a copy, or without one with `transfer(data)`.
+- A `byte[]` goes to a goroutine as a copy, or without one with `transfer(data)`.
 
 ### Typed arrays
 
 ```go
-const samples = make([]float32, 4)
-let weights []float64 = [0.25, 0.5, 0.25]
-let ids []uint32
-const counts = make([]int64, 8)
-const field = make([]float64, 1_000_000, shared)
+const samples = make(float32[], 4)
+let weights float64[] = [0.25, 0.5, 0.25]
+let ids uint32[]
+const counts = make(int64[], 8)
+const field = make(float64[], 1_000_000, shared)
 ```
 
 ```js
@@ -343,38 +349,39 @@ const counts = new BigInt64Array(8);
 const field = new Float64Array($$shared(8 * 1_000_000));
 ```
 
-The typed arrays of JS are written as slices of Go, as `[]byte` is: their lengths are fixed, and
+The typed arrays of JS are written as arrays of the number types of Go, as `byte[]` is: their lengths are fixed, and
 their elements are numbers of a fixed size, stored in a buffer without boxes.
 
 | Rook        | JS               | Elements                     |
 | ----------- | ---------------- | ---------------------------- |
-| `[]int8`    | `Int8Array`      | `number`, from -128 to 127   |
-| `[]uint8`   | `Uint8Array`     | `number`, the same as `byte` |
-| `[]int16`   | `Int16Array`     | `number`                     |
-| `[]uint16`  | `Uint16Array`    | `number`                     |
-| `[]int32`   | `Int32Array`     | `number`                     |
-| `[]uint32`  | `Uint32Array`    | `number`                     |
-| `[]float32` | `Float32Array`   | `number`                     |
-| `[]float64` | `Float64Array`   | `number`                     |
-| `[]int64`   | `BigInt64Array`  | `bigint`                     |
-| `[]uint64`  | `BigUint64Array` | `bigint`                     |
+| `int8[]`    | `Int8Array`      | `number`, from -128 to 127   |
+| `uint8[]`   | `Uint8Array`     | `number`, the same as `byte` |
+| `int16[]`   | `Int16Array`     | `number`                     |
+| `uint16[]`  | `Uint16Array`    | `number`                     |
+| `int32[]`   | `Int32Array`     | `number`                     |
+| `uint32[]`  | `Uint32Array`    | `number`                     |
+| `float32[]` | `Float32Array`   | `number`                     |
+| `float64[]` | `Float64Array`   | `number`                     |
+| `int64[]`   | `BigInt64Array`  | `bigint`                     |
+| `uint64[]`  | `BigUint64Array` | `bigint`                     |
 
 - **The element types** are other names of `number`, and of `bigint` for `int64` and `uint64`, as
   `byte` is: `const x float64 = data[0]`. The ranges are not checked, as for other numbers; a
-  value is converted to the element when it is stored, as in JS. `[]uint8` is `[]byte`.
-- **The JS names are the same types:** a `Float64Array` of a library goes where a `[]float64` is
+  value is converted to the element when it is stored, as in JS. `uint8[]` is `byte[]`.
+- **The JS names are the same types:** a `Float64Array` of a library goes where a `float64[]` is
   expected. `Uint8ClampedArray`, whose values stop at 0 and 255 (the pixels of a canvas), has no
   name in Go and keeps its own.
-- **`make([]float64, n)`** makes a typed array of `n` zeros, as `make` does in Go. `make` makes
-  only typed arrays: a list, `[]number`, starts empty and grows.
-- **`make([]float64, n, shared)`** puts it on a `SharedArrayBuffer`, which the workers of
+- **`make(float64[], n)`** makes a typed array of `n` zeros, as `make` does in Go. A length is
+  only for typed arrays: a list, `number[]`, starts empty and grows. `make(float64[])` is an empty
+  one, as `make` of any type is its value ("make" below).
+- **`make(float64[], n, shared)`** puts it on a `SharedArrayBuffer`, which the workers of
   `go for` write into without copies. A page has one only with cross-origin isolation (the
   headers `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy:
 require-corp`); elsewhere `make` throws an error that says so. Node always has it.
-- **A list** where a typed array is expected becomes one, as for `[]byte`; the zero value is an
+- **A list** where a typed array is expected becomes one, as for `byte[]`; the zero value is an
   empty one. The methods are those of the typed arrays: `subarray`, `slice`, `set`, `fill`, and no
   `push`.
-- A program that declares a type `float64` or another of these names uses its own: `[]float64`
+- A program that declares a type `float64` or another of these names uses its own: `float64[]`
   is then an array of it.
 
 ### Queues
@@ -395,13 +402,13 @@ let waiting queue number         // an empty queue
 ```
 
 ```js
-const jobs = new $$Queue(["build", "test"]);
+const jobs = new $$deque(["build", "test"]);
 jobs.push("deploy");
 jobs.unshift("lint");
 const next = jobs.shift();
 const last = jobs.pop();
 // ...
-let waiting = new $$Queue();
+let waiting = new $$deque();
 ```
 
 `queue T` keeps values of type `T` in order, and they go in and out at both ends. It has the
@@ -418,7 +425,7 @@ another iterable, which it copies.
   `undefined`. There is no `q[i]`, nor `map` or `filter`: `[...q]` makes an array of the values.
 - **`for v in q`** goes over the values from the start, without taking them out. A queue has no
   keys, so `for i, v in q` is an error.
-- **Only a queue is a queue:** a `[]T` is not a `queue T`, nor the other way round. A
+- **Only a queue is a queue:** a `T[]` is not a `queue T`, nor the other way round. A
   `queue number` goes where a `queue ?number` is expected, as an array does, and a queue goes
   where an interface with its members is expected, `{ length number }`.
 - **`queue` is a name elsewhere:** it is a type only before the type of its values, `queue number`,
@@ -426,7 +433,7 @@ another iterable, which it copies.
   compares it. `queue<number>` as a type is an error that says to write `queue number`.
 - **The zero value** is an empty queue, a new one for each variable and field, as `[]` is for an
   array; a closed `chan queue T` gives an empty queue too.
-- **In JS** a queue is an instance of the class `$$Queue`, which the module gets when its code
+- **In JS** a queue is an instance of the class `$$deque`, which the module gets when its code
   uses queues: the values are a ring in an array, copied into one twice as large when it is full
   and into one half as large when it is mostly empty. Its fields are data, so a queue goes to
   another thread as a copy, if its values can be copied, and is a queue there too. TypeScript code
@@ -457,7 +464,7 @@ func show(value string | number) string {
 }
 ```
 
-- **`A | B`** is a value of one of the types. Parentheses group: `[](string | number)`,
+- **`A | B`** is a value of one of the types. Parentheses group: `(string | number)[]`,
   `?(A | B)`. `?` applies to the nearest type, and `func() A | B` is a function that returns a
   union.
 - **A literal type** `"all"`, `42` or `true` allows only that value. A union of literals catches
@@ -467,7 +474,7 @@ func show(value string | number) string {
 - A literal in code gets a literal type only where one is expected: `let f = "all"` is a `string`,
   and `let f Filter = "all"` is `"all"`.
 - Branches of `?:`, array items and the different `return`s of a function without a declared
-  result give a union when their types differ: `[1, "a"]` is `[](number | string)`.
+  result give a union when their types differ: `[1, "a"]` is `(number | string)[]`.
 - Unions and literal types have no zero value: `let f Filter` must be initialized.
 - **A field by a key whose value is known:** `point["x"]`, or `point[axis]` with
   `axis "x" | "y"`, is the field (or the union of the fields) of the object. A key that is not a
@@ -516,7 +523,7 @@ Type parameters go in angle brackets after the name, as in TypeScript, and a con
 its parameter, as in Go:
 
 ```go
-func first<T any>(xs []T) ?T {
+func first<T any>(xs T[]) ?T {
     return xs.length > 0 ? xs[0] : null
 }
 
@@ -527,7 +534,7 @@ interface Box<T> {
 type Pair<A, B any> { first A; second B }
 
 class Stack<T> {
-    private items []T
+    private items T[]
     push(item T) { this.items.push(item) }
     pop() ?T { return this.items.pop() ?? null }
 }
@@ -541,20 +548,104 @@ let s Stack<number> = new Stack()
   `T` have the members of `Named`. `any` means no constraint, and then `T` has no members. Several
   names in a row share one constraint: `<K, V any>`. Interfaces, classes and `type` may leave the
   constraint out: `interface Box<T>`.
-- **Type arguments** are written only in types: `Box<number>`, `Pair<string, ?number>`. In calls
-  and in `new` they are inferred from the arguments, and failing that, from the expected type:
-  `let xs []number = empty()`. There is no explicit `first<number>(xs)`: in an expression it could
-  not be told from a comparison. If there is nothing to infer from, it is an error:
-  `let s = new Stack()`.
+- **Type arguments** of a type are written after it: `Box<number>`, `Pair<string, ?number>`. In
+  calls they are inferred from the arguments, and failing that, from the expected type:
+  `let xs number[] = empty()`. A call may also give them, `empty<number>()`, `first<string>(xs)`:
+  types in `<>` right before `(` are type arguments, and anything else is a comparison, so
+  `a < b && c > (d)` stays two of them. `new` takes none: `new Stack<number>()` is an error, and
+  the variable gets the type, `let s Stack<number> = new Stack()`. If there is nothing to infer
+  from, it is an error: `let s = new Stack()`.
 - Inside a function, `T` is a type of its own: `return 1` in a function with the result `T` is an
-  error. `T` has no zero value.
-- A type can refer to itself: `interface Tree<T> { value T; children []Tree<T> }`.
+  error. `T` has no zero value, but `make(T)` gives the value of the type of each call ("make"
+  below).
+- A type can refer to itself: `interface Tree<T> { value T; children Tree<T>[] }`.
 - `Box<number>` and `Box<string>` are different types, and so are `Stack<number>` and
   `Stack<string>`.
 - A generic class cannot be extended yet: the base after `extends` is a value, as in JS, so
   `extends Stack<number>` cannot be written. Methods with type parameters of their own
   (`map<U any>(...)`) are not supported yet either.
 - In JS, generics are erased, as in TypeScript.
+
+### make
+
+`make(T)` is the value of a type, which the compiler computes, so that no type is left in the JS:
+
+```go
+interface File {
+    name string
+    size number
+    type ?string
+}
+
+type MyNumber number
+
+const a = make(File)                    // { name: "", size: 0 }
+const b = make(File[])                  // []
+const c = make(number)                  // 0
+const d = make(MyNumber)                // 0
+```
+
+```js
+const a = { name: "", size: 0 };
+const b = [];
+const c = 0;
+const d = 0;
+```
+
+- **The value** of a type with a zero value is that zero value: `0`, `0n`, `""`, `false`, `[]`, an
+  empty typed array or queue, a closed channel, `null` of `?T` and `any`. An interface or an object
+  type is an object of its fields, each with its own value; a field that may be missing, `?T` or
+  `any`, is left out. A literal type is its literal: `make(Circle)` with `kind "circle"` gives
+  `{ kind: "circle", r: 0 }`. `Map` and `Set` are empty, `new Map()`. A class of Rook whose
+  constructor takes nothing is `new Cart()`.
+- **No value:** a union, a function, an interface with methods, a type that has itself as a field
+  (`next Node`; `next ?Node` is fine), a class whose constructor takes arguments and a class of a
+  library (`new Date()` would be the time) are errors that say why.
+- Each `make` is a new value: two `make(File)` are two objects.
+- `make` is a word here, as in Go: a program that declares a value `make` gets an error at
+  `make(...)` that asks to rename it. `make(x, 1)`, which is no type, is a call.
+
+**In a generic function**, `make(T)` is the value of the type that each call gives T, and so is the
+type that `decode<T>(x)` checks against (section 7). The compiler finds the types of the calls in
+the module:
+
+```go
+func create<T>() T {
+    return make(T)
+}
+
+const num = create<number>()
+const str = create<string>()
+```
+
+```js
+function create($$Tmake) {
+  return $$Tmake();
+}
+
+const num = create(() => 0);
+const str = create(() => "");
+```
+
+- **Called with one type**, the function gets the value in its body: `create<number>()` alone
+  makes `function create() { return 0; }`, and the call passes nothing.
+- **Called with several, or exported,** it takes what its type parameters give before its own
+  parameters: for `make(T)` a function that makes the value, `$$Tmake`, and for `decode<T>` the type,
+  `$$Ttype`. A function, not a value, so that each `make(T)` is a new object, as it is without
+  generics. Other modules see these parameters too, and so does the `.d.ts`:
+  `create<T>($$Tmake: () => T): T`.
+- **Never called**, it is left out of the JS with a warning: nothing says what T is.
+- A function that passes T on needs it too: `func pair<T>() T[] { return [create<T>(), create<T>()] }`
+  passes its `$$Tmake` to `create`, or its one type.
+- A function whose body has no `make(T)` or `decode<T>` is as before: its types are erased, and
+  nothing is passed.
+- Such a function cannot be a value, `const f = create`, since a value has no T: it is called,
+  `() => create<number>()`. T must come from the call, `create<number>()`, or from the arguments
+  and the expected type.
+- Only the type parameters of `func` give values: `make(T)` with T of a class or a method is an
+  error.
+- With `rook build --no-check`, without the types, `make` writes only what the type as written
+  shows (`0`, `""`, `[]`); others are `undefined`.
 
 ### null and null safety
 
@@ -631,7 +722,7 @@ func greet(name string = "you", times = 1) string {
     return name.repeat(times)
 }
 
-func log(level string, ...parts []any) {
+func log(level string, ...parts any[]) {
     console.log(level, ...parts)
 }
 
@@ -641,7 +732,7 @@ log("info", "saved", 3)
 
 - Parameters with default values come last and may be left out in a call. A default value without
   a type gives the parameter its type, `times = 1`, and sees the parameters before it.
-- `...parts []any` takes the arguments after the others in an array; it is the last parameter, and
+- `...parts any[]` takes the arguments after the others in an array; it is the last parameter, and
   each argument is checked against the type of the elements.
 - Both are written the same way in functions, methods, constructors, `func` literals and arrow
   functions, and stay the same in JS.
@@ -814,6 +905,15 @@ async func sleep(ms number) {
 }
 ```
 
+Without a declared type, what it gives is inferred from the calls of `resolve` in the callback:
+`new Promise(resolve => resolve(1))` is a `Promise<number>`, and calls with a number and a string
+make it `Promise<number | string>`. A `resolve` that is not called, or is passed on, as a pause is
+written, `await new Promise(resolve => setTimeout(resolve, 5))`, gets values the callback does not
+show: then the promise gives nothing, `Promise<void>`, and a value given to `resolve` elsewhere is
+an error that asks for the type. That is so for the parameters of the functions that a callback
+gets, as `resolve`; a parameter of the callback itself, `apply(x => ...)` of
+`func apply<T>(f func(T))`, still needs its type.
+
 ### Goroutines
 
 ```go
@@ -912,7 +1012,7 @@ async function $$goroutine0(pixels, $$from, amount) {
 runs as a goroutine, and the loop waits for all of them, as a `WaitGroup` would. After it, the
 array has what the body wrote into it.
 
-- **What it goes over:** an array `[]T` or a typed array (`[]float64`, `[]byte` and the others)
+- **What it goes over:** an array `T[]` or a typed array (`float64[]`, `byte[]` and the others)
   whose elements can be copied, as the arguments of `go`. `i` is the index in the
   whole array, `v` the element; one variable gets the element, as in `for`.
 - **Its own element:** a worker gets only its part, so the body uses the array only as `items[i]`,
@@ -931,9 +1031,9 @@ array has what the body wrote into it.
   or some processors are slower. The other names are copied with each part, so if one of them is an
   object or an array, there is one part per processor.
 - **Memory:** the part of a typed array is a copy that moves to its worker and back with
-  `transfer`, and goes into the array with `set`; the part of a `[]T` is copied there and back. If
+  `transfer`, and goes into the array with `set`; the part of a `T[]` is copied there and back. If
   the body writes nothing into the array, nothing comes back. A typed array on a
-  `SharedArrayBuffer`, `make([]float64, n, shared)`, is not copied: the workers write into it.
+  `SharedArrayBuffer`, `make(float64[], n, shared)`, is not copied: the workers write into it.
   Only a page with cross-origin isolation (the COOP and COEP headers) can make one; GitHub Pages, where the site of Rook
   is, cannot send them, so its playground copies.
 - Inside a goroutine, `go for` runs its parts in the same worker, as `go` does.
@@ -962,12 +1062,12 @@ close(results)                          // every result is received
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-const results = $$Channel.make(0, 0);
+const jobs = $$channels.make(10, 0);
+const results = $$channels.make(0, 0);
 // ...
-await $$Channel.send(jobs, n);
+await $$channels.send(jobs, n);
 // ...
-console.log(await $$Channel.receive(results, false, 0));
+console.log(await $$channels.receive(results, false, 0));
 ```
 
 Channels pass values between goroutines, as in Go. `chan T` is the type of a channel of `T`, and
@@ -1034,7 +1134,7 @@ default:
 
 ```js
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
   switch ($$case) {
     case 0: {
       const job = $$received;
@@ -1081,9 +1181,9 @@ close(ticks)
 ```
 
 ```js
-const ticks = $$Channel.tick(100);
+const ticks = $$channels.tick(100);
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: $$Channel.after(500), zero: 0 }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: done, zero: 0 }, { channel: $$channels.after(500), zero: 0 }], false);
 // ...
 $$cancel(task);
 ```
@@ -1130,9 +1230,9 @@ case reason = <-done(request.signal):       // the client has gone
 ```
 
 ```js
-const stop = $$Channel.signal("SIGINT", "SIGTERM");
+const stop = $$channels.signal("SIGINT", "SIGTERM");
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: results, zero: "" }, { channel: $$Channel.done(request.signal) }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: results, zero: "" }, { channel: $$channels.done(request.signal) }], false);
 ```
 
 A server stops when the process manager tells it to, with a signal, and a request stops when its
@@ -1179,9 +1279,9 @@ const err = <-failed
 ```
 
 ```js
-const [chunks, failed] = $$Channel.fromStream(text, 4, "");
+const [chunks, failed] = $$channels.fromStream(text, 4, "");
 const words = await $$go("countWords", [chunks]);
-const err = await $$Channel.receive(failed);
+const err = await $$channels.receive(failed);
 ```
 
 A `ReadableStream`, such as the body of a `fetch` response, goes into a channel, and a channel
@@ -1190,7 +1290,7 @@ becomes a stream, so that goroutines make pipelines over the network.
 - **`chan(stream, size)`** gives two channels: a `chan T` with room for `size` values that receives
   the chunks of a `ReadableStream<T>`, and a `<-chan error` that gets the error of the stream, or
   `null` at its end, as the `errc` of the pipelines of Go. Both are unpacked: `const chunks, failed
-= chan(body)`. The chunks of a body are `[]byte`; `pipeThrough(new TextDecoderStream())` makes
+= chan(body)`. The chunks of a body are `byte[]`; `pipeThrough(new TextDecoderStream())` makes
   them strings.
 - **Backpressure:** the next chunk is read only when the last one is in the channel, so the room
   of the channel is all that is read ahead: when it is full, the stream is not read, and the
@@ -1218,7 +1318,7 @@ interface CartEvent {
 }
 
 const cart = topic<CartEvent>("cart")
-let items []number = []
+let items number[] = []
 
 func add(id number) {
     items.push(id)
@@ -1239,11 +1339,11 @@ func stop() {
 ```
 
 ```js
-const cart = $$Topic.make("cart", null);
+const cart = $$topics.make("cart", null);
 // ...
-$$Topic.publish(cart, { kind: "add", id });
+$$topics.publish(cart, { kind: "add", id });
 // ...
-for await (const e of $$Channel.range($$Topic.listen(cart))) {
+for await (const e of $$channels.range($$topics.listen(cart))) {
 ```
 
 A topic passes values between the tabs of a site, as a channel passes them between goroutines:
@@ -1297,16 +1397,16 @@ let none chan string = Channel.EMPTY    // what `let none chan string` gives
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
-const n = await $$Channel.receive(jobs);
-$$Channel.close(jobs);
-let none = $$Channel.EMPTY;
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
+const n = await $$channels.receive(jobs);
+$$channels.close(jobs);
+let none = $$channels.EMPTY;
 ```
 
 `Channel` and `Topic` are predeclared objects with the functions that channels and topics compile
 to, by name, for code that needs them as values: to pass `Channel.close` on, or to receive without
-`await` in the same line. In JS they are `$$Channel` and `$$Topic` of the runtime, so a program
+`await` in the same line. In JS they are `$$channels` and `$$topics` of the runtime, so a program
 may declare names `Channel` and `Topic` of its own, which hide them.
 
 - **`Channel`:** `EMPTY`; `make(size, zero)`, a channel with room for `size` values that gives
@@ -1379,6 +1479,7 @@ The condition narrows the variables, as any condition does: in `if const u = fin
 | Rook                               | JS                                                              |
 | ---------------------------------- | --------------------------------------------------------------- |
 | `for let i = 0; i < n; i++ { }`    | `for (let i = 0; i < n; i++) { }`                               |
+| `for i in 0..n { }`                | `for (let i = 0, $$end = n; i < $$end; i++) { }`                |
 | `for x in items { }`               | `for (const x of items) { }`                                    |
 | `for i, x in items { }` (an array) | `for (let i = 0; i < items.length; i++) { const x = items[i] }` |
 | `for k, v in scores { }` (a Map)   | `for (const [k, v] of scores.entries()) { }`                    |
@@ -1392,6 +1493,13 @@ An array or a typed array with an index goes over its indexes, which is faster t
 of `entries()`: the array is read once, as `entries()` would read it, so a loop that assigns the
 variable of the array goes on over the old one. Without the index, `for _, x in items`, it is
 `for...of`.
+
+**A range,** `for i in 0..n`, goes over the numbers from the first up to the second, without it:
+`0..3` gives 0, 1 and 2, and `5..2` nothing. Both ends are numbers and are computed once, before the
+loop, as in Go: a loop that changes `n` goes on to the old end. The variable is a number that the
+body cannot assign, as any variable of `for ... in`. A range is written only after `in`, with one
+variable (`for i, x in 0..n` is an error), and not with `go for`, which goes over an array. In
+`{for}` of markup it is the array of the numbers, `$$numbers(0, n)`.
 
 `for x in items` goes over the **values**, like `for...of` in JS or `for x in` in Python and Rust,
 not over the keys like `for...in` in JS. In Go, `for i := range xs` with one variable gives the
@@ -1784,9 +1892,10 @@ result is `(T, error)`, as in section 7: `user` may be `null` until `err` is che
   `kind: expected "circle" | "square", got "oval"`.
 - **Which types:** what JSON holds: `number`, `string`, `bool`, literal types, `?T`, arrays, unions,
   interfaces and object types without methods, generic ones with their arguments (`Box<number>`),
-  and types that refer to themselves (`interface Tree { children []Tree }`). A class, `Date`,
-  `Map`, `bigint`, `[]byte`, a function or a channel is a compile error that says what to decode
-  instead, and so is a type parameter: the type must be known when the program compiles.
+  and types that refer to themselves (`interface Tree { children Tree[] }`). A class, `Date`,
+  `Map`, `bigint`, `byte[]`, a function or a channel is a compile error that says what to decode
+  instead. A type parameter of a `func` is the type of each call, as for `make(T)` (section 3,
+  "make"); one of a class or a method is an error.
 - An object type is a constant of the module, `$$typeUser`, so the fields of each call are not
   written again. With `rook build --no-check`, without the types, `decode` parses a string and
   checks nothing.
@@ -1801,7 +1910,7 @@ methods of JS classes.
 class User {
     name string
     private age number             // the zero value: 0
-    tags []string                  // the zero value: []
+    tags string[]                  // the zero value: []
     static count = 0
 
     constructor(name string, age number) {
@@ -2107,16 +2216,18 @@ jobs <- 1
 ```
 
 ```js
-import { $$Channel } from "rooklang/runtime";
+import { $$channels } from "rooklang/runtime";
 
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
 ```
 
 What the code cannot do with JS alone, such as channels, goroutines, queues, `defer` inside a loop
 and the blocks of markup, is done by functions of a small library, the runtime: `rooklang/runtime`
 in the package. A module imports the ones its code uses, by their names, which start with `$$`
-like all names of generated code; a module that needs none imports nothing.
+like all names of generated code; a module that needs none imports nothing. After `$$` they start
+with a small letter (`$$channels`, `$$deque`), and the functions of components with a capital one
+(`$$Card`), so a component may have any name.
 
 - **One runtime for all modules:** a channel or a queue that one module makes works the same in
   another, which imports the same runtime. Each thread has its own copy; what threads share goes
@@ -2158,7 +2269,7 @@ How TypeScript types become Rook types:
 | ----------------------------------------------- | ----------------------------------------------- |
 | `boolean`, `string`, `number`, literals, unions | `bool`, `string`, `number`, literals, unions    |
 | `T \| undefined`, `T \| null`, `x?: T`          | `?T`                                            |
-| `T[]`, `Array<T>`; a tuple `[A, B]`             | `[]T`; `[](A \| B)`                             |
+| `T[]`, `Array<T>`; a tuple `[A, B]`             | `T[]`; `(A \| B)[]`                             |
 | `void` as a result                              | a function without a result                     |
 | an interface, an object type, an intersection   | an interface                                    |
 | a class                                         | a class: `new`, `extends`, `instanceof`         |
@@ -2166,7 +2277,7 @@ How TypeScript types become Rook types:
 | overloads                                       | a call picks the first signature that fits      |
 | `enum`                                          | a union of literals                             |
 | `[key: string]: T`                              | unknown members have the type `T`               |
-| `bigint`; `Uint8Array`, `Float64Array`, ...     | `bigint`; `[]byte`, `[]float64`, the same types |
+| `bigint`; `Uint8Array`, `Float64Array`, ...     | `bigint`; `byte[]`, `float64[]`, the same types |
 | `unknown`, `object`, `symbol`                   | `any`                                           |
 | conditional and mapped types TS did not reduce  | `any`                                           |
 
@@ -2176,9 +2287,9 @@ How TypeScript types become Rook types:
   class can be extended: `class Bus extends EventEmitter`.
 - Constraints of type parameters from a `.d.ts` are not checked.
 - `Iterable<T>` takes what `for` goes over at once, with values of `T`: an array, a string, a `Set`,
-  a typed array; `Array.from(new Set([1]))` is a `[]number`. An array is not an `IterableIterator`
+  a typed array; `Array.from(new Set([1]))` is a `number[]`. An array is not an `IterableIterator`
   or an `AsyncIterable`, as in TypeScript.
-- A tuple `[K, V]` is a `[](K | V)`, but a call infers `K` and `V` by position, from an array literal
+- A tuple `[K, V]` is a `(K | V)[]`, but a call infers `K` and `V` by position, from an array literal
   or another tuple: `new Map([["a", 1]])` is a `Map<string, number>`, and
   `new Map(Object.entries(prices))` a `Map<string, number>` too.
 - Types cannot reach a type inside a namespace (`http.Server`): it is imported by name.
@@ -2197,7 +2308,7 @@ export type Filter "all" | "active" | "done"
 export func divide(a, b number) (number, error) { ... }
 
 export class Stack<T> {
-    private items []T
+    private items T[]
     push(item T) { ... }
     pop() ?T { ... }
 }
@@ -2213,7 +2324,7 @@ export declare class Stack<T> {
 }
 ```
 
-- `bool` → `boolean`, `?T` → `T | null`, `error` → `Error | null`, `[]T` → `T[]`; a field of type
+- `bool` → `boolean`, `?T` → `T | null`, `error` → `Error | null`, `T[]` → `T[]`; a field of type
   `?T` may be left out: `note?: string | null`.
 - Several results → a tuple `[A, B]`: in JS, too, the function returns an array.
 - Parameter names come from the code and types from the checking, so inferred types
@@ -2372,7 +2483,7 @@ document.body.append(<Card title="Profile"><p>Text</p></Card>)
       content comp()
   }
 
-  const SECTIONS []Section = [{ title: "Introduction", content: Intro }]
+  const SECTIONS Section[] = [{ title: "Introduction", content: Intro }]
 
   comp Guide() {
       return <main>{for section in SECTIONS { <section.content /> }}</main>
@@ -2462,7 +2573,7 @@ the updates of what it reads:
 
 ```go
 comp Todos() {
-    state todos []Todo = []
+    state todos Todo[] = []
     derived summary string {
         const done = todos.filter(todo => todo.done).length
         if done == 0 {
@@ -2509,7 +2620,7 @@ the effect runs again, and when `{if}`, `{switch}` or `{for}` removes the compon
 
 ```go
 comp Todos() {
-    state todos []string = load()
+    state todos string[] = load()
     // Saved again on every change of the list.
     effect {
         localStorage.setItem("todos", JSON.stringify(todos))
@@ -2616,7 +2727,7 @@ $$label3.htmlFor = input.id;
   declared, outside the document.
 - **A ref to a component,** `<Card ref={card} />`, points to the element at the top of what `Card`
   creates, through the wrappers of its decorators. The ref creates that element, and `Card` fills
-  it in: an inlined one directly, a function through its last argument, `$$root`. A component with
+  it in: an inlined one directly, a function through `this`, `{ $$root }`. A component with
   several `return`s, one that returns a fragment, or a wrapper that returns some other expression
   cannot be pointed to: the element is not known in advance. A component cannot have a property
   named `ref`.
@@ -2912,7 +3023,7 @@ narrowing almost everywhere.
 - `let x = value` gets the type of the value; `null` and `[]` without a declared type are errors.
 - The parameters of an arrow function take their types from the context: `xs.map(x => x * 2)`,
   `apply(n => n > 0)`. The result of an arrow function is inferred from its body.
-- The type of array items is the common type of all of them: `[1, null]` is `[]?number`.
+- The type of array items is the common type of all of them: `[1, null]` is `(?number)[]`.
 
 ### Built-in JS types
 

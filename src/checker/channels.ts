@@ -57,7 +57,7 @@ export abstract class ChannelChecker extends GoroutineChecker {
       element = stream.instanceOf?.args[0] ?? ANY;
 
       // The bytes of a body are a Uint8Array<ArrayBuffer>, and a channel takes only its own type:
-      // its values are `[]byte`.
+      // its values are `byte[]`.
       const typed = typedArrayOf(element);
 
       if (typed !== null) element = this.typedArray(typed);

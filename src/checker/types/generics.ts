@@ -89,7 +89,7 @@ export function classInstance(info: ClassInfo, args: readonly Type[]): ClassType
 }
 
 /**
- * The type of a member as seen on an instance: `Stack<number>.items` is `[]number`. A member of a
+ * The type of a member as seen on an instance: `Stack<number>.items` is `number[]`. A member of a
  * generic base class gets the arguments that the subclass gives it.
  */
 export function memberTypeOf(object: Type, member: Member): Type {

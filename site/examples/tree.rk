@@ -1,6 +1,6 @@
 interface Item {
     name string
-    children []Item
+    children Item[]
 }
 
 // A recursive component becomes a function: every node has its own open state

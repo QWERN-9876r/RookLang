@@ -26,7 +26,7 @@ const todo = `interface Todo {
 
 /** A component with a list of todos, keyed by `key`, in markup that changes. */
 const list = (key: string) => `${todo}comp List() {
-    state todos []Todo = []
+    state todos Todo[] = []
     return <ul>{for todo in todos with key ${key} { <li>{todo.title}</li> }}</ul>
 }`;
 
@@ -48,7 +48,7 @@ const key = with`);
 
   it.each([
     ['for x in [1, 2] with key x {\n    console.log(x)\n}', 'a loop outside markup'],
-    ['async func f(xs []number) {\n    go for i, x in xs with key x {\n    }\n}', 'go for'],
+    ['async func f(xs number[]) {\n    go for i, x in xs with key x {\n    }\n}', 'go for'],
   ])('rejects a key where there are no blocks: %s', (source) => {
     expect(errors(source)).toContain(
       '"with key" finds again the blocks of a {for} in markup, and this loop has none: remove it',
@@ -88,7 +88,7 @@ describe('runtime behavior', () => {
     return <li onClick={clicks++}>{title}: {clicks}</li>
 }
 comp List() {
-    state todos []Todo = [{ id: 1, title: "a", done: false }, { id: 2, title: "b", done: false }]
+    state todos Todo[] = [{ id: 1, title: "a", done: false }, { id: 2, title: "b", done: false }]
     return <div>
         <button onClick={todos = [
             { id: 2, title: "B", done: true },

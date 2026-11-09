@@ -35,7 +35,7 @@ export abstract class MemberChecker extends ServerDecoratorChecker {
    * Member access, indexing and calls. Returns the type and whether an optional link (`?.`)
    * may short-circuit the chain: `a?.b.c()` is null as a whole when `a` is null.
    */
-  /** `expected` is for the result of a call: it can give type arguments, as in `let xs []number = empty()`. */
+  /** `expected` is for the result of a call: it can give type arguments, as in `let xs number[] = empty()`. */
   protected override checkChain(
     node: ast.MemberExpression | ast.IndexExpression | ast.CallExpression,
     expected: Type | null = null,

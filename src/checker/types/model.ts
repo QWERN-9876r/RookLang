@@ -70,6 +70,17 @@ export interface FunctionType {
    * compiles to a JS generator, and `for v in f` goes over what it yields.
    */
   iterator?: boolean;
+  /**
+   * `make(T)` and `decode<T>(x)` in a generic function that other modules call: the values of its
+   * type parameters that it takes before its own parameters (checker/type-values.ts).
+   */
+  typeValues?: readonly TypeValue[];
+}
+
+/** A value that a type parameter gives a generic function: a function that makes one, or the type. */
+export interface TypeValue {
+  param: TypeParam;
+  kind: 'make' | 'decode';
 }
 
 /**
@@ -128,6 +139,8 @@ export interface ObjectType {
   typeParams?: TypeParam[];
   /** `Box<number>`: the generic interface and the type arguments it was made from. */
   instanceOf?: { template: ObjectType; args: Type[] };
+  /** See ClassType. */
+  alias?: string;
 }
 
 export interface ClassInfo {
@@ -163,6 +176,11 @@ export interface ClassType {
   kind: 'class';
   info: ClassInfo;
   args?: Type[];
+  /**
+   * The `type` alias of an instance, `NumberBox` of `type NumberBox Box<number>`: a `.d.ts` names
+   * it so, since a module that imports NumberBox does not import Box.
+   */
+  alias?: string;
 }
 
 /** The class itself: its constructor and static members. */

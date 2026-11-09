@@ -5,7 +5,7 @@
 // through a MessagePort, which the main thread sets up on the first need (go.js).
 
 import { $$classOf, $$reclass } from './classes.js';
-import { $$Queue } from './queue.js';
+import { $$deque } from './queue.js';
 
 // The state of this thread that its modules share: the channels it made, its ports to the other
 // threads by their keys, and the requests that wait for an answer.
@@ -243,7 +243,7 @@ export function $$walk(
     return found;
   }
 
-  if (Array.isArray(value.$$queue)) Object.setPrototypeOf(value, $$Queue.prototype);
+  if (Array.isArray(value.$$queue)) Object.setPrototypeOf(value, $$deque.prototype);
 
   const id = $$classOf(value);
 

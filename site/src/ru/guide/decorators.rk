@@ -17,7 +17,9 @@ export comp Decorators() {
                 {" "}<code>public derived</code> и <code>public const</code> как
                 {" "}<code>@ticker.ticks</code> и вызывает <code>public func</code> как
                 {" "}<code>@ticker.toggle()</code>. В разметке <code>@ticker.ticks</code>
-                обновляется, как собственное состояние компонента. Остальные
+                обновляется, как собственное состояние компонента. Параметр с <code>public</code>
+                {" "}перед ним, <code>dec titled(public title string)</code>, тоже член,
+                {" "}<code>@titled.title</code>. Остальные
                 имена декоратора — его собственные и не пересекаются с именами компонента.
             </li>
             <li>

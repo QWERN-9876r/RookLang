@@ -1,11 +1,11 @@
 import type * as ast from '../ast.ts';
-import { ControlFlowParser } from './control-flow.ts';
+import { RangeParser } from './ranges.ts';
 import type { Label } from './syntax.ts';
 
 // The statements that jump, `return`, `break` and `continue`, and the labels that `break` and
 // `continue` name: `outer: for ... { for ... { continue outer } }`.
 
-export abstract class JumpParser extends ControlFlowParser {
+export abstract class JumpParser extends RangeParser {
   /** `outer: for`, `outer: switch` or `outer: select`: the statements that break can leave. */
   protected override parseLabeled(): ast.Statement {
     const label = this.parseIdentifier('label');

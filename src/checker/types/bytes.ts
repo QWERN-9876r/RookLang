@@ -2,7 +2,7 @@ import { holdsBigInts } from '../../typed-arrays.ts';
 import { func, method, nullable, property } from './constructors.ts';
 import { ANY, BIGINT, BOOL, NUMBER, STRING, type ObjectType } from './model.ts';
 
-// `[]byte` is a Uint8Array, as in Go a byte slice, and `[]float64` a Float64Array. With the lib
+// `byte[]` is a Uint8Array, as in Go a byte slice, and `float64[]` a Float64Array. With the lib
 // files of TypeScript they are their typed arrays; the browser compiler has none, so these list
 // what code of typed arrays uses most.
 

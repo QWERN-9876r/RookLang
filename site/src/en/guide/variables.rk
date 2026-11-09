@@ -29,7 +29,7 @@ export comp Variables() {
                     <td><code>number</code>, <code>string</code>, <code>bool</code></td>
                     <td>numbers, strings and booleans</td>
                 </tr>
-                <tr><td><code>[]T</code></td><td>an array of values of type <code>T</code></td></tr>
+                <tr><td><code>T[]</code></td><td>an array of values of type <code>T</code></td></tr>
                 <tr><td><code>?T</code></td><td><code>T</code> or <code>null</code></td></tr>
                 <tr>
                     <td><code>func(number) string</code></td>

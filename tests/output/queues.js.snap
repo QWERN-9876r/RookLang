@@ -1,6 +1,6 @@
 // queues.js
 
-import { $$Queue } from "rooklang/runtime";
+import { $$deque } from "rooklang/runtime";
 
 const grid = ["S.#.....", ".##.###.", "....#...", ".##...#E"];
 const width = grid[0].length;
@@ -8,7 +8,7 @@ const cells = grid.join("");
 
 function shortest() {
   let seen = cells.split("").map(() => false);
-  const todo = new $$Queue([{ at: cells.indexOf("S"), steps: 0 }]);
+  const todo = new $$deque([{ at: cells.indexOf("S"), steps: 0 }]);
   while (todo.length > 0) {
     const step = todo.shift();
     if (step == null) {
@@ -31,7 +31,7 @@ function shortest() {
 }
 console.log("shortest path:", shortest());
 
-const recent = new $$Queue();
+const recent = new $$deque();
 for (const page of ["home", "docs", "guide", "playground"]) {
   recent.unshift(page);
   if (recent.length > 3) {

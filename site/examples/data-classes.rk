@@ -1,9 +1,9 @@
 // A copy that goes to another thread has the data of a value but not its class; a data class
 // goes with its class, so the goroutine can call its methods
 data class Order {
-    items []number
+    items number[]
 
-    constructor(items []number) {
+    constructor(items number[]) {
         this.items = items
     }
 
@@ -12,7 +12,7 @@ data class Order {
     }
 }
 
-func biggest(orders []Order) Order {
+func biggest(orders Order[]) Order {
     let best = orders[0]
     for order in orders {
         if order.total() > best.total() {

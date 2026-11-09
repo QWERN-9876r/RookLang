@@ -4,6 +4,7 @@ import { FunctionChecker } from './functions.ts';
 import { expectsLiteral, callName, isUntyped } from './helpers.ts';
 import {
   ANY,
+  arrayOf,
   BIGINT,
   BOOL,
   hasUntypedBase,
@@ -48,7 +49,7 @@ export abstract class ExpressionChecker extends FunctionChecker {
   protected abstract checkTryExpression(node: ast.TryExpression): Type;
   protected abstract checkTaggedTemplate(node: ast.TaggedTemplateExpression): Type;
 
-  /** `[]byte("text")`; implemented by BytesChecker. */
+  /** `byte[]("text")`; implemented by BytesChecker. */
   protected abstract checkConversion(node: ast.ConversionExpression): Type;
 
   protected abstract checkMake(node: ast.MakeExpression): Type;
@@ -186,6 +187,13 @@ export abstract class ExpressionChecker extends FunctionChecker {
       case 'TaggedTemplateExpression':
         return this.checkTaggedTemplate(node);
 
+      // `for i in 0..n` loops over numbers, as over an array of them.
+      case 'RangeExpression':
+        this.expectAssignable(this.checkValue(node.from, NUMBER), NUMBER, node.from);
+        this.expectAssignable(this.checkValue(node.to, NUMBER), NUMBER, node.to);
+
+        return arrayOf(NUMBER);
+
       case 'DecoratorMember':
         return this.checkDecoratorMember(node);
 
@@ -215,7 +223,7 @@ export abstract class ExpressionChecker extends FunctionChecker {
         this.lookupType(node.name)
           ? `"${node.name}" is a type, not a value`
           : node.name === 'make'
-            ? 'make takes the type of a typed array first, e.g. make([]float64, n)'
+            ? 'make takes the type of a typed array first, e.g. make(float64[], n)'
             : node.name === 'decode'
               ? 'decode takes the type first, e.g. decode<User>(body)'
               : `"${node.name}" is not defined`,

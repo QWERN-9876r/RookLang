@@ -4,6 +4,6 @@
 import { ConsoleView } from "./console-view.rk"
 import styles from "./result-view.module.css"
 
-export comp ResultView(preview HTMLElement, lines []string) {
+export comp ResultView(preview HTMLElement, lines string[]) {
     return <div class={styles.result}>{preview}<ConsoleView lines={lines} /></div>
 }

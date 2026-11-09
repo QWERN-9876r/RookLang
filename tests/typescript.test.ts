@@ -146,7 +146,7 @@ listen(event => console.log(event.toFixed(1)))`),
 
   it('converts tuples, intersections, enums and index signatures', () => {
     expect(
-      errors(`${shapes('pair, Named, Color, paint, scores')}const values [](string | number) = pair()
+      errors(`${shapes('pair, Named, Color, paint, scores')}const values (string | number)[] = pair()
 const named Named = { name: "a", id: 1 }
 const partial Named = { name: "a" }
 paint(Color.Red)
@@ -327,8 +327,8 @@ const wrong Iterable<number> = ["a"]
 const nulls Iterable<number> = [1, null]
 const other Iterable<number> = new Set(["a"])`),
     ).toEqual([
-      'cannot use []string as Iterable<number, any, any>',
-      'cannot use []?number as Iterable<number, any, any>',
+      'cannot use string[] as Iterable<number, any, any>',
+      'cannot use (?number)[] as Iterable<number, any, any>',
       'cannot use Set<string> as Iterable<number, any, any>',
     ]);
   });
@@ -337,8 +337,8 @@ const other Iterable<number> = new Set(["a"])`),
     expect(
       libErrors('const a IterableIterator<string> = ["a"]\nconst b AsyncIterable<string> = ["a"]'),
     ).toEqual([
-      'cannot use []string as IterableIterator<string, any, any>',
-      'cannot use []string as AsyncIterable<string, any, any>',
+      'cannot use string[] as IterableIterator<string, any, any>',
+      'cannot use string[] as AsyncIterable<string, any, any>',
     ]);
   });
 

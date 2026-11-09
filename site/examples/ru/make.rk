@@ -1,0 +1,29 @@
+// make(T) — значение типа, вычисленное при компиляции: в JS не остаётся никаких типов
+interface Song {
+    title string
+    seconds number
+    tags string[]
+    album ?string // может не быть, поэтому опускается
+}
+
+type Seconds number
+
+const blank = make(Song)      // { title: "", seconds: 0, tags: [] }
+const songs = make(Song[])    // []
+const pause = make(Seconds)   // 0
+
+// В обобщённой функции T берётся из каждого вызова: тип в <> или выведенный из аргументов
+func fill<T>(n number) T[] {
+    const out T[] = []
+    for i in 0..n {
+        out.push(make(T)) // каждый раз новое значение
+    }
+    return out
+}
+
+const drafts = fill<Song>(2)
+const zeros = fill<number>(3)
+drafts[0].title = "Intro"
+console.log(blank, songs, pause)
+console.log(drafts, zeros)
+// Вызвана с двумя типами, fill принимает функцию, которая создаёт значение: fill(() => 0, 3)

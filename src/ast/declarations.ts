@@ -103,7 +103,7 @@ export interface ComponentDeclaration extends NodeBase {
   /** `comp Logger<T>(children Content<T>) T`: on the server, inferred from the children. */
   typeParams?: TypeParameter[];
   params: Parameter[];
-  /** `comp Users() []User`: on the server a component may give any value (docs/server.md). */
+  /** `comp Users() User[]`: on the server a component may give any value (docs/server.md). */
   result?: TypeNode;
   /** `needs session`: on the server, decorators that a component above it applies. */
   needs?: Identifier[];

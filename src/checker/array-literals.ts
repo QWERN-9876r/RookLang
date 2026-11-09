@@ -12,7 +12,7 @@ import {
 } from './types.ts';
 
 // Array literals: the type of their elements is the expected one, or the common type of all of
-// them, `[1, null]` is a `[]?number`. A literal without spreads also keeps the types of its
+// them, `[1, null]` is a `(?number)[]`. A literal without spreads also keeps the types of its
 // elements by position, so that a call infers `K` and `V` of a tuple `[K, V]` of a `.d.ts` from
 // `["a", 1]`: `new Map([["a", 1]])` is a `Map<string, number>` (types/params.ts).
 
@@ -32,7 +32,7 @@ export abstract class ArrayLiteralChecker extends ExpressionChecker {
 
         if (spread.kind === 'array') type = spread.element;
         else if (spread.kind === 'any' || spread.kind === 'unknown') type = spread;
-        // JS spreads any iterable: a Set, a typed array, a `[]byte`.
+        // JS spreads any iterable: a Set, a typed array, a `byte[]`.
         else if (spread.kind === 'object' && spread.iterates) type = spread.iterates;
         else {
           this.error(

@@ -18,8 +18,8 @@ const SLOWER = 1.5
  * How long each lane of go for takes, as a share of the slowest: equal parts end at about the same
  * time, not at once. The order is shuffled so that the lanes do not end as a staircase.
  */
-func shares() []number {
-    const all []number = []
+func shares() number[] {
+    const all number[] = []
     for let i = 0; i < CORES; i++ {
         all.push(0.86 + 0.14 * ((i * 5) % CORES) / (CORES - 1))
     }

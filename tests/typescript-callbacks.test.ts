@@ -31,7 +31,7 @@ describe('a result of any or void', () => {
       errors(`func log() any {
     console.log("x")
 }
-func first(xs []number) ?number {
+func first(xs number[]) ?number {
     console.log(xs)
 }`),
     ).toEqual(['missing return at the end of the function']);

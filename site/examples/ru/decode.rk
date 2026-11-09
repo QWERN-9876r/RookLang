@@ -1,7 +1,7 @@
 // Типы стираются: decode сверяет JSON, пришедший извне, с типом во время работы программы
 interface Order {
     id number
-    items []string
+    items string[]
     status "new" | "paid"
     note ?string // может отсутствовать
 }

@@ -128,7 +128,7 @@ for i in count(1) {
   it('may be methods, and literals keep this', () => {
     expect(
       run(`class Bag {
-    items []string = ["x", "y"]
+    items string[] = ["x", "y"]
     all() func(yield func(string) bool) {
         return func(yield func(string) bool) {
             for item in this.items {
@@ -159,7 +159,7 @@ for i, item in bag.each {
   it('give a lazy JS iterator when called without arguments', () => {
     expect(
       run(`${COUNT}
-const firstThree []number = count(1_000_000)().take(3).toArray()
+const firstThree number[] = count(1_000_000)().take(3).toArray()
 const doubled = count(3)().map(n => n * 2).toArray()
 console.log(firstThree, doubled)`),
     ).toEqual(['closed', 'closed', '0,1,2 0,2,4']);

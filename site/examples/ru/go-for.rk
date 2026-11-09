@@ -12,7 +12,7 @@ go for i, v in pixels {
 console.log("контраст:", pixels[100], pixels[200])
 
 // тело пишет только свой элемент; соседние берутся из другого массива
-async func smooth(values []number) []number {
+async func smooth(values number[]) number[] {
     const out = values.map(_ => 0)
     go for i, _ in out {
         const left = values[Math.max(i - 1, 0)]

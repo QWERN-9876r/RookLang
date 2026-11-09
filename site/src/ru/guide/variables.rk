@@ -28,7 +28,7 @@ export comp Variables() {
                     <td><code>number</code>, <code>string</code>, <code>bool</code></td>
                     <td>числа, строки и логические значения</td>
                 </tr>
-                <tr><td><code>[]T</code></td><td>массив значений типа <code>T</code></td></tr>
+                <tr><td><code>T[]</code></td><td>массив значений типа <code>T</code></td></tr>
                 <tr><td><code>?T</code></td><td><code>T</code> или <code>null</code></td></tr>
                 <tr>
                     <td><code>func(number) string</code></td>

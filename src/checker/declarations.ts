@@ -10,6 +10,7 @@ import {
   ANY,
   createClass,
   func,
+  elementToString,
   typeToString,
   UNKNOWN,
   type ClassInfo,
@@ -202,7 +203,13 @@ export abstract class DeclarationChecker extends SharedStateChecker {
       info.decorators = info.node.decorators.flatMap(
         (use) => this.decorators.get(use.name.name) ?? [],
       );
-      info.expanded = decorate(info.node, sources);
+      info.expanded = decorate(
+        info.node,
+        sources,
+        undefined,
+        undefined,
+        this.options.server === true,
+      );
     }
 
     // The code of the decorators is part of the component: it may use components too.
@@ -368,14 +375,14 @@ export abstract class DeclarationChecker extends SharedStateChecker {
     );
   }
 
-  /** `...parts []any`: what each of the arguments it takes is, `any`. */
+  /** `...parts any[]`: what each of the arguments it takes is, `any`. */
   private restElement(param: ast.Parameter): Type {
     const type = param.type ? this.resolveType(param.type) : ANY;
 
     if (type.kind === 'array') return type.element;
     if (type.kind !== 'any' && type.kind !== 'unknown') {
       this.error(
-        `...${param.name.name} takes the arguments in an array: write its type as one, e.g. ...${param.name.name} []${typeToString(type)}`,
+        `...${param.name.name} takes the arguments in an array: write its type as one, e.g. ...${param.name.name} ${elementToString(type)}[]`,
         param.type ?? param,
       );
     }

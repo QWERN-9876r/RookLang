@@ -61,7 +61,7 @@ let $$tabs11;
     const [$$current19, $$setCurrent19] = $$component17(name);
     $$block18.append($$current19);
     return [$$block18, () => {
-      $$setCurrent19(name);
+      $$setCurrent19?.(name);
     }];
   });
   $$div14.append($$current17);

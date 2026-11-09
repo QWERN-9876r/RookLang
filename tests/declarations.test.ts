@@ -11,9 +11,29 @@ import { build } from '../src/build.ts';
 const GEOM = `export interface Point {
     x, y number
 }
+
+export class Pair<T> {
+    first, second T
+    constructor(first, second T) {
+        this.first = first
+        this.second = second
+    }
+}
+
+export interface Wrap<T> {
+    value T
+}
+
+export type NumberPair Pair<number>
+export type NumberWrap Wrap<number>
 `;
 
-const TODOS = `import { Point } from "./geom.rk"
+const TODOS = `import { Point, NumberPair, NumberWrap } from "./geom.rk"
+
+// Aliases of instances of generic types, imported without the types themselves.
+export func total(pair NumberPair, wrap NumberWrap) number {
+    return pair.first + pair.second + wrap.value
+}
 
 export type Filter "all" | "active" | "done"
 
@@ -25,7 +45,7 @@ export interface Todo {
     title string
     done bool
     note ?string
-    tags []string
+    tags string[]
     rename(title string) Todo
 }
 
@@ -42,11 +62,11 @@ export func divide(a, b number) (number, error) {
     return a / b, null
 }
 
-export func first<T any>(xs []T) ?T {
+export func first<T any>(xs T[]) ?T {
     return xs.length > 0 ? xs[0] : null
 }
 
-export func filterTodos(todos []Todo, filter Filter) []Todo {
+export func filterTodos(todos Todo[], filter Filter) Todo[] {
     return todos.filter(todo => filter == "all" || (filter == "done") == todo.done)
 }
 
@@ -62,7 +82,7 @@ export func origin() Point {
 }
 
 export class Stack<T> {
-    private items []T
+    private items T[]
     protected size number
     static created = 0
 
@@ -155,7 +175,9 @@ function typescriptErrors(source: string): string[] {
 
 describe('declaration files', () => {
   it('maps Rook types to TypeScript', () => {
-    expect(readFileSync(join(dir, 'todos.d.ts'), 'utf8')).toBe(`import { Point } from "./geom.js";
+    expect(readFileSync(join(dir, 'todos.d.ts'), 'utf8'))
+      .toBe(`import { Point, NumberPair, NumberWrap } from "./geom.js";
+export declare function total(pair: NumberPair, wrap: NumberWrap): number;
 export type Filter = "all" | "active" | "done";
 interface Internal {
     secret: string;
@@ -206,8 +228,11 @@ export declare abstract class Shape {
 
   it('are accepted by the TypeScript compiler', () => {
     expect(
-      typescriptErrors(`import { divide, first, filterTodos, origin, Stack, Dog, VERSION } from "./todos.js";
+      typescriptErrors(`import { divide, first, filterTodos, origin, Stack, Dog, VERSION, total } from "./todos.js";
+import { Pair } from "./geom.js";
 import type { Todo, Filter, Box } from "./todos.js";
+
+const sum: number = total(new Pair(1, 2), { value: 3 });
 
 const [quotient, error] = divide(1, 2);
 const q: number = error == null ? quotient : 0;
@@ -221,7 +246,7 @@ const top: string | null = stack.pop();
 const sound: string = new Dog("Rex").speak();
 const x: number = origin().x;
 const version: string = VERSION;
-console.log(q, error, head, filter, box, top, sound, x, version);
+console.log(q, error, head, filter, box, top, sound, x, version, sum);
 `),
     ).toEqual([]);
   });

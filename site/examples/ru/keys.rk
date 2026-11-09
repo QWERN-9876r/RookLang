@@ -9,7 +9,7 @@ interface Fruit {
 }
 
 // Ненастоящий сервер: те же фрукты со свежим остатком, новыми объектами
-func load() []Fruit {
+func load() Fruit[] {
     return ["Гуава", "Личи", "Манго"].map((name, i) => ({
         id: i + 1,
         name,

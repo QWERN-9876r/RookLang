@@ -28,7 +28,7 @@ comp Cell(text string) {
     return <i>{PREFIX}{text}</i>
 }
 
-export comp Rows(items []Row) {
+export comp Rows(items Row[]) {
     return <ul>{for item in items { <li><Cell text={item.name} />{count}</li> }}</ul>
 }
 
@@ -39,7 +39,7 @@ export dec ticker() {
 
 const app = `import { Rows, Row, add, total, ticker } from "./index.rk"
 
-const items []Row = [{ id: 1, name: "a" }]
+const items Row[] = [{ id: 1, name: "a" }]
 
 @ticker
 comp Clock() {
@@ -105,7 +105,7 @@ describe('types', () => {
     ).toEqual([]);
     expect(
       errors(index, 'import { Rows } from "./index.rk"\nconst r = <Rows items={1} />'),
-    ).toEqual(['cannot use number as []Row for "items" of <Rows>']);
+    ).toEqual(['cannot use number as Row[] for "items" of <Rows>']);
   });
 
   it('reports names the module does not export, and renamed components', () => {

@@ -1,6 +1,6 @@
 interface Item {
     name string
-    children []Item
+    children Item[]
 }
 
 // Рекурсивный компонент становится функцией: у каждого узла своё состояние open

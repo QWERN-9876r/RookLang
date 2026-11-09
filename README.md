@@ -50,8 +50,9 @@ close(results)
   }
   ```
 
-- **Static types with null safety.** A `?User` cannot be used without a check, and
-  `decode<User>(body)` checks JSON from outside against the type when the program runs.
+- **Static types with null safety.** A `?User` cannot be used without a check,
+  `decode<User>(body)` checks JSON from outside against the type when the program runs, and
+  `make(User)` is the value of the type, which the compiler computes: no type is left in the JS.
 - **JavaScript inside.** The same values, classes and modules, any JS library; markup creates real
   DOM elements, and components are compiled away.
 

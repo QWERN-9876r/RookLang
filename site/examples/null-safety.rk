@@ -3,7 +3,7 @@ interface Todo {
     done bool
 }
 
-const todos []Todo = [{ title: "Buy guavas", done: false }]
+const todos Todo[] = [{ title: "Buy guavas", done: false }]
 
 // find returns ?Todo: there may be no such task
 const todo = todos.find(t => t.title == "Buy guavas")

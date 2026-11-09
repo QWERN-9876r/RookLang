@@ -5,7 +5,7 @@ interface Join  { kind "join";  author string }
 type Message Text | Photo | Join
 
 // Литерал выбирает свой член по kind: { kind: "join", body: "привет" } — ошибка
-const samples []Message = [
+const samples Message[] = [
     { kind: "join", author: "Аня" },
     { kind: "text", author: "Аня", body: "У кого манго?" },
     { kind: "photo", author: "Боря", emoji: "🥭", caption: "Вот, спелые" },
@@ -13,7 +13,7 @@ const samples []Message = [
 ]
 
 comp Chat() {
-    state messages []Message = []
+    state messages Message[] = []
 
     func next() {
         messages = [...messages, samples[messages.length % samples.length]]

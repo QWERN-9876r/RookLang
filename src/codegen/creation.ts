@@ -142,7 +142,11 @@ export abstract class CreationEmitter extends AttributeEmitter {
         : { attribute: true, key: name, value: '""' };
     }
 
-    if (property) return this.valueEntry(element, false, property.name, value, live);
+    if (property) {
+      const wrap = name === 'class' ? (text: string) => this.classText(value, text) : undefined;
+
+      return this.valueEntry(element, false, property.name, value, live, wrap);
+    }
 
     // A null value leaves the attribute out, which takes a statement.
     if (this.typeOf(value)?.kind === 'nullable') return null;

@@ -42,7 +42,7 @@ const point = `class Point {
 describe('syntax', () => {
   it('parses unions, literal types and parentheses', () => {
     const { program, diagnostics } = parse(
-      'let a string | number = 1\ntype Filter "all" | "done"\nlet b [](string | 2 | true)\nlet c ?(Filter | number)',
+      'let a string | number = 1\ntype Filter "all" | "done"\nlet b (string | 2 | true)[]\nlet c ?(Filter | number)',
     );
 
     expect(diagnostics).toEqual([]);
@@ -104,7 +104,7 @@ const n number | string = mixed.length > 2 ? 0 : ""`),
 
   it('uses members that every type of a union has', () => {
     expect(errors('func f(x string | number) string {\n    return x.toString()\n}')).toEqual([]);
-    expect(errors('func f(x string | []number) number {\n    return x.length\n}')).toEqual([]);
+    expect(errors('func f(x string | number[]) number {\n    return x.length\n}')).toEqual([]);
   });
 
   it('narrows with typeof, in both branches and in && and ?:', () => {

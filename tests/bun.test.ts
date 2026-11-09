@@ -17,7 +17,7 @@ const squares = `func square(n number) number {
     return n * n
 }
 
-export func squares() []number {
+export func squares() number[] {
     return [1, 2, 3].map(square)
 }
 

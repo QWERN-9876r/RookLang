@@ -135,7 +135,7 @@ export abstract class ClassParser extends DecoratorParser {
         : null;
     const name = this.parsePropertyName('member name');
 
-    if (this.check('(')) {
+    if (this.startsMethod()) {
       return [
         this.parseMethod(start, name, visibility ?? 'public', modifiers, asyncToken, accessorToken),
       ];
@@ -300,6 +300,28 @@ export abstract class ClassParser extends DecoratorParser {
       type,
       ...this.span(start),
     };
+  }
+
+  /**
+   * Whether `(` after the name of a member starts a method. A field may be an array of a type in
+   * parentheses, `cleanups (func())[]`; no method has `[]` right after its parameters.
+   */
+  protected startsMethod(): boolean {
+    if (!this.check('(')) return false;
+
+    let depth = 0;
+
+    for (let offset = 0; ; offset++) {
+      const { kind } = this.peek(offset);
+
+      if (kind === 'EOF') return true;
+      if (kind === '(') depth++;
+      else if (kind === ')' && --depth === 0) {
+        const next = this.peek(offset + 1);
+
+        return !(next.kind === '[' && !next.newlineBefore && this.peek(offset + 2).kind === ']');
+      }
+    }
   }
 }
 

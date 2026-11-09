@@ -53,7 +53,7 @@ export function notDecoded(type: Type, seen = new Set<Type>()): string | null {
       return inner(type.types);
 
     case 'param':
-      return `${type.name} is a type parameter: decode needs a type known when the program compiles`;
+      return `${type.name} of a class or a method is not known when the program compiles; decode takes the type parameters of a func, e.g. func parse<T>(text string) (T, error) { return decode<T>(text) }`;
 
     case 'function':
       return 'a function cannot come from JSON';

@@ -49,8 +49,9 @@ export abstract class LiteralParser extends ObjectParser {
 
     this.expect('=>');
 
-    const body = this.withContext({ ...FUNCTION_BODY, inAsync: async }, () =>
-      this.check('{') ? this.parseBlock() : this.parseExpression(),
+    const body = this.withContext(
+      { ...FUNCTION_BODY, inAsync: async || this.context.wrapperAt === start },
+      () => (this.check('{') ? this.parseBlock() : this.parseExpression()),
     );
 
     return {
@@ -137,23 +138,40 @@ export abstract class LiteralParser extends ObjectParser {
     return { kind: 'ArrayLiteral', elements, ...this.span(start) };
   }
 
-  /** `make([]float64, n)` or `make([]float64, n, shared)`. */
-  protected override parseMake(): ast.MakeExpression {
-    const start = this.next().start;
+  /**
+   * `make(File)`, `make(float64[], n)` or `make(float64[], n, shared)`. Gives null and reads
+   * nothing for other calls of a function named make, `make(x, 1)`: only an array type takes a
+   * length.
+   */
+  protected override parseMake(): ast.MakeExpression | null {
+    const start = this.peek().start;
+    const type = this.speculate(() => {
+      this.next();
+      this.expect('(');
 
-    this.expect('(');
+      const type = this.nested(() => this.parseType());
 
-    const [type, length, shared] = this.nested(() => {
-      const type = this.parseType();
+      if (!this.check(')') && !(this.check(',') && type.kind === 'ArrayType')) {
+        throw new ParseError('not a type');
+      }
 
-      this.expect(',', '"," and the length: e.g. make([]float64, 100)');
+      return type;
+    });
+
+    if (!type) return null;
+    if (this.accept(')')) {
+      return { kind: 'MakeExpression', type, length: null, shared: false, ...this.span(start) };
+    }
+
+    const [length, shared] = this.nested(() => {
+      this.expect(',');
 
       const length = this.parseExpression();
       let shared = false;
 
       if (this.accept(',') && !this.check(')')) {
         if (!this.checkWord('shared')) {
-          this.fail('the third argument of make is the word shared: make([]float64, n, shared)');
+          this.fail('the third argument of make is the word shared: make(float64[], n, shared)');
         }
 
         this.next();
@@ -161,7 +179,7 @@ export abstract class LiteralParser extends ObjectParser {
         this.accept(',');
       }
 
-      return [type, length, shared] as const;
+      return [length, shared] as const;
     });
 
     this.expect(')');
@@ -231,29 +249,19 @@ export abstract class LiteralParser extends ObjectParser {
    * type, gives null and reads nothing, so that `queue < n` stays a comparison.
    */
   private parseMadeType(): ast.TypeNode | null {
-    const { pos } = this;
-    // Closing the type may split a `>>` token, and errors are reported as the type is read.
-    const tokens = this.tokens.slice(pos);
-    const reported = this.diagnostics.length;
-    let element: ast.TypeNode;
-
-    this.next();
-
-    try {
+    const element = this.speculate(() => {
+      this.next();
       this.expect('<');
-      element = this.parseType();
+
+      const element = this.parseType();
+
       this.expectTypeClose('">" after the type of the values');
       if (!this.check('(')) throw new ParseError('not a call');
-    } catch (error) {
-      if (!(error instanceof ParseError)) throw error;
-      tokens.forEach((token, i) => (this.tokens[pos + i] = token));
-      this.diagnostics.length = reported;
-      this.pos = pos;
 
-      return null;
-    }
+      return element;
+    });
 
-    this.next();
+    if (element) this.next();
 
     return element;
   }
@@ -276,12 +284,12 @@ export abstract class LiteralParser extends ObjectParser {
     return { kind: 'StreamChanExpression', stream, size, ...this.span(start) };
   }
 
-  /** `[]byte("text")`: a type, then its value in parentheses. */
+  /** `byte[]("text")`: a type, then its value in parentheses. */
   protected override parseConversion(): ast.ConversionExpression {
     const { start } = this.peek();
     const type = this.parseType();
 
-    this.expect('(', '"(" after the type: e.g. []byte("text") gives the bytes of a string');
+    this.expect('(', '"(" after the type: e.g. byte[]("text") gives the bytes of a string');
 
     const argument = this.nested(() => this.parseExpression());
 

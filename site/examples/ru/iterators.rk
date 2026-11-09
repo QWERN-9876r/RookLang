@@ -20,7 +20,7 @@ for n in fibonacci() {
 }
 
 // yield двух значений даёт ключ и значение
-func numbered(words []string) func(yield func(number, string) bool) {
+func numbered(words string[]) func(yield func(number, string) bool) {
     return func(yield func(number, string) bool) {
         for i, word in words {
             if !yield(i + 1, word) {

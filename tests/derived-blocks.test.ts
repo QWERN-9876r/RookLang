@@ -160,7 +160,7 @@ describe('running', () => {
   it('computes the value again when what it reads changes', () => {
     const { body } = mountWithDom(`interface Todo { title string; done bool }
 comp Todos() {
-    state todos []Todo = [{ title: "a", done: false }]
+    state todos Todo[] = [{ title: "a", done: false }]
     derived summary {
         const done = todos.filter(t => t.done).length
         if done == 0 {

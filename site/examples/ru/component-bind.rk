@@ -19,7 +19,7 @@ comp Check(bind todo Todo) {
 
 comp Page() {
     state menu = false
-    state todos []Todo = [{ title: "Купить гуаву", done: false }, { title: "Помыть лаймы", done: true }]
+    state todos Todo[] = [{ title: "Купить гуаву", done: false }, { title: "Помыть лаймы", done: true }]
     return <div>
         <button onClick={menu = !menu}>{menu ? "Скрыть" : "Показать"} меню</button>
         <Panel bind:open={menu} title="Меню">Закройте его ×: кнопка выше это узнает.</Panel>

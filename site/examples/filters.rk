@@ -9,14 +9,14 @@ const HEIGHT = 900
 interface Filter {
     name string
     size number
-    weights []number
+    weights number[]
 }
 
-func box(size number) []number {
+func box(size number) number[] {
     return Array.from({ length: size * size }, () => 1 / (size * size))
 }
 
-func diagonal(size number) []number {
+func diagonal(size number) number[] {
     const weights = box(size).map(_ => 0)
     for let i = 0; i < size; i++ {
         weights[i * (size + 1)] = 1 / size
@@ -24,7 +24,7 @@ func diagonal(size number) []number {
     return weights
 }
 
-const FILTERS []Filter = [
+const FILTERS Filter[] = [
     { name: "Blur", size: 13, weights: box(13) },
     { name: "Motion", size: 15, weights: diagonal(15) },
     { name: "Sharpen", size: 3, weights: [0, -1, 0, -1, 5, -1, 0, -1, 0] },

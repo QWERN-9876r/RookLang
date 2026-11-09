@@ -266,17 +266,16 @@ export abstract class ComponentEmitter extends StyleEmitter {
       const own = this.takesRoot(component) ? ownRoot(component) : null;
       const preset =
         own && typeof own !== 'string' ? { node: own, name: '$$root', created: false } : null;
-      const params = [
-        this.parameters(component.params, ''),
-        ...this.bindersOf(component, reactive),
-        ...(preset ? ['$$root'] : []),
-      ]
-        .filter((each) => each !== '')
-        .join(', ');
+      const params = this.parameters(component.params, '');
+      // The functions that write bound properties into the caller and the element of a ref come
+      // as `this`, not after the properties: a value of a type with more properties passes those
+      // after its own, which the function does not take, `comp()` as `comp(id string)`.
+      const given = [...this.bindersOf(component, reactive), ...(preset ? ['$$root'] : [])];
       const body = this.withRefs(component, preset, () =>
         this.withStyles(component, result, () =>
           this.inComponent(reactive, mountNode, () =>
             this.block(() => {
+              if (given.length > 0) this.line(`const { ${given.join(', ')} } = this ?? {};`);
               this.line(mountNode ? `let ${result}, ${mountNode};` : `let ${result};`);
               this.body(component, result, reactive, { kind: 'function', props }, null);
             }),

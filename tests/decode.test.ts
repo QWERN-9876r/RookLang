@@ -47,7 +47,7 @@ for input in ${JSON.stringify(inputs)} {
 const USER = `interface User {
     name string
     age number
-    tags []string
+    tags string[]
     role "admin" | "user"
     boss ?User
 }
@@ -56,7 +56,7 @@ const USER = `interface User {
 describe('parsing', () => {
   it('reads decode<T>(x), and keeps decode a name elsewhere', () => {
     expect(sx(expr('decode<User>(body)'))).toBe('(decode User body)');
-    expect(sx(expr('decode<[]?number>(f(x))'))).toBe('(decode []?number (call f x))');
+    expect(sx(expr('decode<(?number)[]>(f(x))'))).toBe('(decode (?number)[] (call f x))');
     expect(sx(expr('decode < n'))).toBe('(< decode n)');
     expect(sx(expr('decode(x)'))).toBe('(call decode x)');
     expect(syntaxErrors('const user, err = decode<User>(body)')).toEqual([]);
@@ -94,8 +94,8 @@ const sum number = n + 1`),
     expect(errors('func f(s ?string) {\n    const v, err = decode<number>(s)\n}')).toEqual([
       'decode takes JSON text, a string, or a value of type any from JS, not ?string: the text may be null, so check it first, e.g. "if text != null"',
     ]);
-    expect(errors('const v, err = decode<number>([]byte("1"))')).toEqual([
-      'decode takes JSON text, a string, or a value of type any from JS, not []byte: make the text of the bytes first, e.g. decode<User>(string(data))',
+    expect(errors('const v, err = decode<number>(byte[]("1"))')).toEqual([
+      'decode takes JSON text, a string, or a value of type any from JS, not byte[]: make the text of the bytes first, e.g. decode<User>(string(data))',
     ]);
   });
 
@@ -104,8 +104,8 @@ const sum number = n + 1`),
       errors(`${declarations}\nconst v, err = decode<${type}>("null")`);
 
     expect(check('?(number | string | bool)')).toEqual([]);
-    expect(check('[]{ x, y number }')).toEqual([]);
-    expect(check('Tree', 'interface Tree { value number; children []Tree }')).toEqual([]);
+    expect(check('{ x, y number }[]')).toEqual([]);
+    expect(check('Tree', 'interface Tree { value number; children Tree[] }')).toEqual([]);
     expect(check('Box<string>', 'interface Box<T> { value T }')).toEqual([]);
     expect(check('Date')).toEqual([
       'cannot decode Date: JSON has no Date: decode a string and make the Date from it, e.g. new Date(s)',
@@ -113,7 +113,7 @@ const sum number = n + 1`),
     expect(check('bigint')).toEqual([
       'cannot decode bigint: JSON has no bigint: decode a string and make it with BigInt(s)',
     ]);
-    expect(check('[]byte')).toEqual(['cannot decode []byte: JSON has no []byte']);
+    expect(check('byte[]')).toEqual(['cannot decode byte[]: JSON has no byte[]']);
     expect(check('Point', 'class Point { x number }')).toEqual([
       'cannot decode Point: decode gives plain objects, without the methods of the class Point: decode an interface with its fields',
     ]);
@@ -131,8 +131,13 @@ const sum number = n + 1`),
     ).toEqual([]);
     expect(
       errors('func parse<T any>(text string) (T, error) {\n    return decode<T>(text)\n}'),
+    ).toEqual([]);
+    expect(
+      errors(
+        'class Store<T> {\n    load(text string) ?T {\n        const v, err = decode<T>(text)\n        return v\n    }\n}',
+      ),
     ).toEqual([
-      'cannot decode T: T is a type parameter: decode needs a type known when the program compiles',
+      'cannot decode T: T of a class or a method is not known when the program compiles; decode takes the type parameters of a func, e.g. func parse<T>(text string) (T, error) { return decode<T>(text) }',
     ]);
   });
 
@@ -148,7 +153,7 @@ describe('the generated code', () => {
   it('writes object types as constants before the code, and the others in place', () => {
     const code = js(`${USER}
 const user, err = decode<User>("{}")
-const ids, idsErr = decode<[]?number>(JSON.parse("[]"))`);
+const ids, idsErr = decode<(?number)[]>(JSON.parse("[]"))`);
 
     expect(code).toContain(`const $$typeUser = $$type("User", () => ({
   name: "string",
@@ -227,18 +232,18 @@ describe('running', () => {
 
   it('decodes numbers, strings, unions and literals', async () => {
     expect(
-      await decodes('?(number | []string)', ['1', 'null', '["a"]', '"a"', '[1]', 'true']),
+      await decodes('?(number | string[])', ['1', 'null', '["a"]', '"a"', '[1]', 'true']),
     ).toEqual([
       '1',
       'null',
       '["a"]',
-      'decode ?(number | []string): expected ?(number | []string), got "a"',
-      'decode ?(number | []string): [0]: expected string, got 1',
-      'decode ?(number | []string): expected ?(number | []string), got true',
+      'decode ?(number | string[]): expected ?(number | string[]), got "a"',
+      'decode ?(number | string[]): [0]: expected string, got 1',
+      'decode ?(number | string[]): expected ?(number | string[]), got true',
     ]);
-    expect(await decodes('[]bool', ['[true, false]', '[0]'])).toEqual([
+    expect(await decodes('bool[]', ['[true, false]', '[0]'])).toEqual([
       '[true,false]',
-      'decode []bool: [0]: expected bool, got 0',
+      'decode bool[]: [0]: expected bool, got 0',
     ]);
     expect(await decodes('"a" | 2 | true', ['"a"', '2', 'true', '"b"'])).toEqual([
       '"a"',
@@ -299,7 +304,7 @@ interface Square { kind "square"; side number }
   it('checks a value from JS without parsing it', async () => {
     expect(
       await run(`interface Point { x, y number }
-const values []any = [{ x: 1, y: 2 }, "{}", null]
+const values any[] = [{ x: 1, y: 2 }, "{}", null]
 for value in values {
     const point, err = decode<Point>(value)
     console.log(err != null ? err.message : point.x + point.y)
@@ -319,7 +324,7 @@ for value in values {
           '{"value": 1, "children": [{"value": 2, "children": []}]}',
           '{"value": 1, "children": [{"value": 2}]}',
         ],
-        'interface Tree { value number; children []Tree }',
+        'interface Tree { value number; children Tree[] }',
       ),
     ).toEqual([
       '{"value":1,"children":[{"value":2,"children":[]}]}',

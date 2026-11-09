@@ -86,7 +86,7 @@ document.body.append(<List />)`);
     done bool
 }
 comp Todos() {
-    state todos []Todo = [{ title: "a", done: false }, { title: "b", done: false }]
+    state todos Todo[] = [{ title: "a", done: false }, { title: "b", done: false }]
     state user = { name: "Ann" }
     func completeAll() {
         for todo in todos {
@@ -327,7 +327,7 @@ document.body.append(<Signup />)`);
     done bool
 }
 comp Todos() {
-    state todos []Todo = [{ title: "a", done: false }]
+    state todos Todo[] = [{ title: "a", done: false }]
     return <div>
         {todos.map(todo => <input type="checkbox" bind:checked={todo.done} />)}
         {todos.filter(todo => todo.done).length}

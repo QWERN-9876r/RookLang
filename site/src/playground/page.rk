@@ -25,7 +25,7 @@ interface CodeEditor {
 /** Code as a part of an address: its UTF-8 bytes in base64url. */
 func encode(code string) string {
     let binary = ""
-    for byte in []byte(code) {
+    for byte in byte[](code) {
         binary += String.fromCharCode(byte)
     }
     return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "")
@@ -34,7 +34,7 @@ func encode(code string) string {
 func decode(encoded string) (string, error) {
     try {
         const binary = atob(encoded.replaceAll("-", "+").replaceAll("_", "/"))
-        const bytes = make([]uint8, binary.length)
+        const bytes = make(uint8[], binary.length)
         for i, _ in bytes {
             bytes[i] = binary.charCodeAt(i)
         }
@@ -65,10 +65,10 @@ comp Playground() {
     const t = text()
     state source = initialCode()
     state tab = "js"
-    state lines []string = []
+    state lines string[] = []
     state linkCopied = false
     const preview = previewArea()
-    const tabs []TabItem = [{ id: "js", label: "JavaScript" }, { id: "result", label: t.run }]
+    const tabs TabItem[] = [{ id: "js", label: "JavaScript" }, { id: "result", label: t.run }]
     // The editor of VS Code has taken the place of the text area.
     state vscode = false
     let editor ?CodeEditor = null

@@ -38,7 +38,7 @@ data[1] = 2
 const a number = data[1]
 const b string = data[0]
 const c = data["x"]
-const copy []number = Array.from(data)`),
+const copy number[] = Array.from(data)`),
     ).toEqual(['cannot use number as string', 'index must be a number, not string']);
   });
 

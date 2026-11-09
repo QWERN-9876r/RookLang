@@ -34,7 +34,7 @@ function invalid(cases: Invalid[]) {
 describe('basic types', () => {
   valid([
     ['inferred variables', 'let n = 1\nconst s = "a"\nlet ok = true\nn = n + 1'],
-    ['zero values', 'let n number\nlet s string\nlet xs []number\nlet u ?string\nlet e error'],
+    ['zero values', 'let n number\nlet s string\nlet xs number[]\nlet u ?string\nlet e error'],
     ['type aliases', 'type ID string\nlet id ID\nconst s string = id'],
     [
       'recursive types',
@@ -52,7 +52,7 @@ describe('basic types', () => {
     ['const b = 1 == "1"', 'cannot compare number and string'],
     ['const PI = 3.14\nPI = 3', 'cannot assign to "PI": it is a constant'],
     ['let x = null', 'cannot infer a type from null: declare it, e.g. "let x ?User = null"'],
-    ['let xs = []', 'cannot infer the type of an empty array: declare it, e.g. "let xs []number"'],
+    ['let xs = []', 'cannot infer the type of an empty array: declare it, e.g. "let xs number[]"'],
     ['undefinedThing()', '"undefinedThing" is not defined'],
     ['let x Missing', 'unknown type "Missing"'],
     ['type A A', 'type "A" refers to itself'],
@@ -300,10 +300,14 @@ describe('builtins', () => {
   valid([
     [
       'array methods',
-      'const xs = [1, 2, 3]\nconst doubled []number = xs.map(x => x * 2)\nconst evens []number = xs.filter(x => x % 2 == 0)\nconst total number = xs.reduce((sum, x) => sum + x, 0)\nxs.push(4)',
+      'const xs = [1, 2, 3]\nconst doubled number[] = xs.map(x => x * 2)\nconst evens number[] = xs.filter(x => x % 2 == 0)\nconst total number = xs.reduce((sum, x) => sum + x, 0)\nxs.push(4)',
     ],
-    ['map to another type', 'const names []string = [1, 2].map(n => `#${n}`)'],
-    ['string methods', 'const parts []string = "a, b".split(",").map(p => p.trim().toUpperCase())'],
+    ['map to another type', 'const names string[] = [1, 2].map(n => `#${n}`)'],
+    [
+      'where a search starts',
+      'const xs = ["a", "-map", "-map"]\nconst i number = xs.indexOf("-map", xs.indexOf("-map") + 1)\nconst j number = xs.lastIndexOf("a", 1)\nconst has bool = xs.includes("a", 1)\nxs.fill("b", 1, 2)',
+    ],
+    ['string methods', 'const parts string[] = "a, b".split(",").map(p => p.trim().toUpperCase())'],
     [
       'console, Math, JSON',
       'console.log(Math.max(1, 2), Math.floor(2.5), JSON.stringify({ a: 1 }))',
@@ -326,7 +330,7 @@ describe('builtins', () => {
     ['const ys = [1].filter(v => v * 2)', 'cannot use number as bool in return'],
     ['const m = Math.max(1, "2")', 'cannot use string as number in argument 2'],
     ['for x in 5 {\n}', 'cannot iterate over number'],
-    ['const s string = [1].map(x => x * 2)', 'cannot use []number as string'],
+    ['const s string = [1].map(x => x * 2)', 'cannot use number[] as string'],
   ]);
 });
 

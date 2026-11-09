@@ -22,7 +22,16 @@ export abstract class ImportChecker extends CheckerBase {
     const specifier = source.value;
 
     if (specifier === SERVER_MODULE) {
-      return serverExports(this.libraryType('Request'), this.libraryType('Response'));
+      const http = this.options.importDeclarations?.('node:http');
+      const types = http && 'exports' in http ? http.exports.types : null;
+
+      return serverExports({
+        request: this.libraryType('Request'),
+        response: this.libraryType('Response'),
+        promise: this.options.library?.type('Promise'),
+        incoming: types?.get('IncomingMessage') ?? ANY,
+        server: types?.get('Server') ?? ANY,
+      });
     }
 
     const result = specifier.endsWith('.rk')

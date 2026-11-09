@@ -1,6 +1,6 @@
 // State at the top level of a module is shared by its components:
 // a change anywhere in the module updates every component that reads it
-state cart []string = []
+state cart string[] = []
 
 func add(fruit string) {
     cart.push(fruit)

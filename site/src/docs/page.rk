@@ -15,8 +15,8 @@ import { SearchButton } from "./search-button.rk"
 import { SearchDialog } from "./search-dialog.rk"
 
 /** The sections in the groups of the tree, in order. */
-func navGroups(sections []Section) []NavGroup {
-    const groups []NavGroup = []
+func navGroups(sections Section[]) NavGroup[] {
+    const groups NavGroup[] = []
     for section in sections {
         const last = groups.at(-1)
         const link = { id: section.id, title: section.title }
@@ -29,7 +29,7 @@ func navGroups(sections []Section) []NavGroup {
     return groups
 }
 
-comp DocsPage(sections []Section) {
+comp DocsPage(sections Section[]) {
     const t = text()
     const groups = navGroups(sections)
     const ids = sections.map(each => each.id)
@@ -124,7 +124,7 @@ comp DocsPage(sections []Section) {
  * Draws the page; the entry module of the language calls it after setLanguage(). The page may be
  * there already, drawn when the site was built for search engines: it is drawn again, alive.
  */
-export func renderDocs(sections []Section) {
+export func renderDocs(sections Section[]) {
     withSections(sections.map(each => each.id))
     document.body.replaceChildren(<DocsPage sections={sections} />)
 }

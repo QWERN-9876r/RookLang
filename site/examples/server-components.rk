@@ -8,7 +8,7 @@ interface Post {
     text string
 }
 
-const POSTS []Post = [
+const POSTS Post[] = [
     { id: "hello", title: "Hello", text: "The first post of the blog." },
     { id: "rook", title: "Why Rook", text: "Go-style syntax, JS semantics." },
 ]
@@ -36,7 +36,7 @@ comp Article(id string) {
 }
 
 // It returns any value: this one is sent as JSON
-comp PostList() []Post {
+comp PostList() Post[] {
     return POSTS
 }
 

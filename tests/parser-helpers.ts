@@ -68,7 +68,7 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
       return `(decode ${ty(node.type)} ${sx(node.argument)})`;
 
     case 'MakeExpression':
-      return `(make ${ty(node.type)} ${sx(node.length)}${node.shared ? ' shared' : ''})`;
+      return `(make ${ty(node.type)}${node.length ? ` ${sx(node.length)}` : ''}${node.shared ? ' shared' : ''})`;
 
     case 'NumberLiteral':
     case 'BigIntLiteral':
@@ -141,8 +141,11 @@ export function sx(node: ast.Expression | ast.SpreadElement | ast.Property): str
     case 'TaggedTemplateExpression':
       return `(tag ${sx(node.tag)} ${sx(node.quasi)})`;
 
+    case 'RangeExpression':
+      return `(.. ${sx(node.from)} ${sx(node.to)})`;
+
     case 'CallExpression':
-      return `(${node.optional ? '?call' : 'call'} ${[node.callee, ...node.arguments].map(sx).join(' ')})`;
+      return `(${node.optional ? '?call' : 'call'}${node.typeArgs ? `<${node.typeArgs.map(ty).join(', ')}>` : ''} ${[node.callee, ...node.arguments].map(sx).join(' ')})`;
 
     case 'NewExpression':
       return `(new ${[node.callee, ...node.arguments].map(sx).join(' ')})`;
@@ -167,8 +170,14 @@ export function ty(node: ast.TypeNode): string {
     case 'TypeReference':
       return node.name.name;
 
-    case 'ArrayType':
-      return `[]${ty(node.element)}`;
+    // A type written with a word or a sign before it is in parentheses: `(?number)[]`.
+    case 'ArrayType': {
+      const element = ty(node.element);
+
+      return /^(\?|func\(|comp\(|chan|<-chan|queue |topic )/.test(element)
+        ? `(${element})[]`
+        : `${element}[]`;
+    }
 
     case 'ChanType':
       return `${{ both: 'chan', send: 'chan<-', receive: '<-chan' }[node.direction]} ${ty(node.element)}`;

@@ -5,7 +5,7 @@ interface Join  { kind "join";  author string }
 type Message Text | Photo | Join
 
 // A literal chooses its member by kind: { kind: "join", body: "hi" } is an error
-const samples []Message = [
+const samples Message[] = [
     { kind: "join", author: "Ann" },
     { kind: "text", author: "Ann", body: "Who has the mangoes?" },
     { kind: "photo", author: "Bob", emoji: "🥭", caption: "Here, ripe ones" },
@@ -13,7 +13,7 @@ const samples []Message = [
 ]
 
 comp Chat() {
-    state messages []Message = []
+    state messages Message[] = []
 
     func next() {
         messages = [...messages, samples[messages.length % samples.length]]

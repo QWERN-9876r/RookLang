@@ -15,12 +15,12 @@ const MAX_OBJECT_MEMBERS = 8;
 const MAX_NESTED_LENGTH = 80;
 let objectDepth = 0;
 
-/** `[]byte`: a Uint8Array, of the lib files or the built-in one. */
+/** `byte[]`: a Uint8Array, of the lib files or the built-in one. */
 export function isBytes(type: Type): boolean {
   return typedArrayOf(type) === 'Uint8Array';
 }
 
-/** The name of a typed array, `[]float64` or `Float64Array`, or null for other types. */
+/** The name of a typed array, `float64[]` or `Float64Array`, or null for other types. */
 export function typedArrayOf(type: Type): string | null {
   const name = type.kind === 'object' ? (type.instanceOf?.template.name ?? type.name) : null;
 
@@ -41,7 +41,7 @@ export function typeToString(type: Type): string {
       return type.kind;
 
     case 'array':
-      return `[]${grouped(type.element)}`;
+      return `${elementToString(type.element)}[]`;
 
     case 'nullable':
       if (type.type === ERROR_CLASS.instance) return 'error';
@@ -137,7 +137,20 @@ export function typeToString(type: Type): string {
   }
 }
 
-/** A union without a name needs parentheses after `[]` and `?`: `[](string | number)`. */
+/**
+ * The type of the elements before `[]`. A type written with a word or a sign before it needs
+ * parentheses, since `[]` belongs to what follows the sign: `?string[]` is an array or null, and
+ * `(?string)[]` an array of nullable strings.
+ */
+export function elementToString(type: Type): string {
+  const text = typeToString(type);
+
+  return /^(\?|func\(|comp\(|chan |chan<- |<-chan |queue |topic )/.test(text)
+    ? `(${text})`
+    : grouped(type);
+}
+
+/** A union without a name needs parentheses after `?` and before `[]`: `(string | number)[]`. */
 function grouped(type: Type): string {
   const text = typeToString(type);
 

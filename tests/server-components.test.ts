@@ -104,7 +104,7 @@ describe('components as functions', () => {
       await runOnServer(`
         interface Node {
             name string
-            children []Node
+            children Node[]
         }
         comp Tree(node Node) Html {
             if node.children.length == 0 {
@@ -125,7 +125,7 @@ describe('the result of a component', () => {
       interface User {
           name string
       }
-      comp Users() []User {
+      comp Users() User[] {
           return [{ name: "Ann" }]
       }
       comp Count() {
@@ -134,7 +134,7 @@ describe('the result of a component', () => {
     `;
 
     expect(
-      serverErrors(`${source}\nconst users []User = <Users />\nconst n number = <Count />`),
+      serverErrors(`${source}\nconst users User[] = <Users />\nconst n number = <Count />`),
     ).toEqual([]);
     expect(serverErrors(`${source}\nconst n string = <Count />`)).toEqual([
       'cannot use number as string',
@@ -147,7 +147,7 @@ describe('the result of a component', () => {
   it('is the value the tag gives', async () => {
     expect(
       await runOnServer(`
-        comp Total(items []number) number {
+        comp Total(items number[]) number {
             return items.reduce((sum, n) => sum + n, 0)
         }
         const total = <Total items={[1, 2, 3]} />
@@ -162,13 +162,13 @@ describe('the result of a component', () => {
         interface User {
             name string
         }
-        comp Users() []User {
+        comp Users() User[] {
             return [{ name: "Ann" }]
         }
         const page = <main><Users /></main>
       `),
     ).toEqual([
-      'a component of type []User cannot be in markup; return it, or show its fields, e.g. {user.name}',
+      'a component of type User[] cannot be in markup; return it, or show its fields, e.g. {user.name}',
     ]);
   });
 

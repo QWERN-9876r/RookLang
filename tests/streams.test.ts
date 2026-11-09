@@ -99,10 +99,10 @@ const n number = lines`),
     expect(
       errors(`const response = new Response("text")
 const chunks, failed = chan(response.body, 4)
-const bytes chan []byte = chunks
+const bytes chan byte[] = chunks
 const errs <-chan error = failed
 const n number = chunks`),
-    ).toEqual(['cannot use chan []byte as number']);
+    ).toEqual(['cannot use chan byte[] as number']);
   });
 
   it('takes only a stream, and gives two values', () => {
@@ -153,10 +153,10 @@ describe('code', () => {
 const body = stream(chunks)`);
 
     expect(code).toContain(
-      'const [chunks, failed] = $$Channel.fromStream(new Response("x").body, 2, new Uint8Array());',
+      'const [chunks, failed] = $$channels.fromStream(new Response("x").body, 2, new Uint8Array());',
     );
-    expect(code).toContain('const body = $$Channel.stream(chunks);');
-    expect(code).toContain('import { $$Channel } from "rooklang/runtime";');
+    expect(code).toContain('const body = $$channels.stream(chunks);');
+    expect(code).toContain('import { $$channels } from "rooklang/runtime";');
   });
 });
 

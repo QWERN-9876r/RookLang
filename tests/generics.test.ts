@@ -4,7 +4,7 @@ import { check } from '../src/checker/checker.ts';
 import { compile } from '../src/index.ts';
 import { parse } from '../src/parser/parser.ts';
 
-// Generics in the style of Go: `func first<T any>(xs []T) T`, `interface Box<T>`,
+// Generics in the style of Go: `func first<T any>(xs T[]) T`, `interface Box<T>`,
 // `class Stack<T>`, and type arguments in types: `Box<number>`.
 
 function errors(source: string): string[] {
@@ -32,7 +32,7 @@ function run(source: string): string[] {
 }
 
 const stack = `class Stack<T> {
-    private items []T
+    private items T[]
 
     push(item T) {
         this.items.push(item)
@@ -50,7 +50,7 @@ const stack = `class Stack<T> {
 
 describe('syntax', () => {
   it('parses type parameters and type arguments', () => {
-    const { program, diagnostics } = parse(`func first<T any>(xs []T) T {
+    const { program, diagnostics } = parse(`func first<T any>(xs T[]) T {
     return xs[0]
 }
 func pick<K, V any, S Shape>(a K) V {
@@ -63,7 +63,7 @@ type Pair<A, B any> {
     first A
     second B
 }
-let b Box<[]number> = { value: [1] }
+let b Box<number[]> = { value: [1] }
 let m Pair<string, ?number> = { first: "a", second: null }`);
 
     expect(diagnostics).toEqual([]);
@@ -92,7 +92,7 @@ let m Pair<string, ?number> = { first: "a", second: null }`);
   });
 
   it('still parses indexing and array types', () => {
-    expect(errors('let xs [][]number = [[1]]\nlet x = xs[0][0]\nlet y number = x')).toEqual([]);
+    expect(errors('let xs number[][] = [[1]]\nlet x = xs[0][0]\nlet y number = x')).toEqual([]);
   });
 
   it('closes nested type arguments written as ">>" and ">>>", and keeps comparisons', () => {
@@ -101,7 +101,7 @@ let m Pair<string, ?number> = { first: "a", second: null }`);
     value T
 }
 let a Box<Box<number>> = { value: { value: 1 } }
-let b []Box<Box<Box<number>>> = []
+let b Box<Box<Box<number>>>[] = []
 const ch = chan<Box<number>>(1)
 let ok bool = a.value.value < 2 && a.value.value > 0 && 4 >> 1 >= 2`),
     ).toEqual([]);
@@ -114,14 +114,14 @@ let ok bool = a.value.value < 2 && a.value.value > 0 && 4 >> 1 >= 2`),
 describe('generic functions', () => {
   it('infers type arguments from the arguments', () => {
     expect(
-      errors(`func first<T any>(xs []T) ?T {
+      errors(`func first<T any>(xs T[]) ?T {
     return xs.length > 0 ? xs[0] : null
 }
 let n ?number = first([1, 2])
 let s ?string = first(["a"])`),
     ).toEqual([]);
     expect(
-      errors(`func first<T any>(xs []T) T {
+      errors(`func first<T any>(xs T[]) T {
     return xs[0]
 }
 let s string = first([1, 2])`),
@@ -140,25 +140,25 @@ same(1, "a")`),
 
   it('infers type arguments from the expected type', () => {
     expect(
-      errors(`func empty<T any>() []T {
+      errors(`func empty<T any>() T[] {
     return []
 }
-let xs []number = empty()
+let xs number[] = empty()
 xs.push(1)`),
     ).toEqual([]);
   });
 
   it('infers type arguments of functions passed as arguments', () => {
     expect(
-      errors(`func mapAll<T, U any>(xs []T, f func(T) U) []U {
-    let out []U
+      errors(`func mapAll<T, U any>(xs T[], f func(T) U) U[] {
+    let out U[]
     for x in xs {
         out.push(f(x))
     }
     return out
 }
-let lengths []number = mapAll(["a", "bc"], s => s.length)
-let wrong []string = mapAll([1], n => n * 2)`),
+let lengths number[] = mapAll(["a", "bc"], s => s.length)
+let wrong string[] = mapAll([1], n => n * 2)`),
     ).toEqual(['cannot use number as string in return']);
   });
 
@@ -179,7 +179,7 @@ let wrong []string = mapAll([1], n => n * 2)`),
     const source = `interface Named {
     name string
 }
-func names<T Named>(xs []T) []string {
+func names<T Named>(xs T[]) string[] {
     return xs.map(x => x.name)
 }
 `;
@@ -192,11 +192,11 @@ func names<T Named>(xs []T) []string {
 
   it('reports type parameters that nothing gives', () => {
     expect(
-      errors(`func empty<T any>() []T {
+      errors(`func empty<T any>() T[] {
     return []
 }
 let xs = empty()`),
-    ).toEqual(['cannot infer T: declare the type of the result']);
+    ).toEqual(['cannot infer T: give it, e.g. empty<number>(), or declare the type of the result']);
     expect(
       errors(`func zero<T any>() T {
     let x T
@@ -207,7 +207,7 @@ let xs = empty()`),
 
   it('compiles to plain JS functions', () => {
     expect(
-      run(`func last<T any>(xs []T) ?T {
+      run(`func last<T any>(xs T[]) ?T {
     return xs.length > 0 ? xs[xs.length - 1] : null
 }
 console.log(last([1, 2, 3]), last(["a"]), last([]))`),
@@ -230,7 +230,7 @@ let s string = b.value`),
 
   it('supports generic aliases of any type', () => {
     expect(
-      errors(`type List<T> []T
+      errors(`type List<T> T[]
 type Maybe<T> ?T
 let xs List<string> = ["a"]
 let x Maybe<number> = null
@@ -243,7 +243,7 @@ let z List<number> = ["a"]`),
     expect(
       errors(`interface Tree<T> {
     value T
-    children []Tree<T>
+    children Tree<T>[]
 }
 func sum(tree Tree<number>) number {
     let total = tree.value

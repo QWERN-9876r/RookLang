@@ -7,7 +7,7 @@ import { $$abortSignal, $$done, $$signal } from './signals.js';
 import { $$fromStream, $$stream } from './streams.js';
 import { $$after, $$tick } from './timers.js';
 
-export const $$Channel = Object.freeze({
+export const $$channels = Object.freeze({
   // The zero value of channel types: closed, and the same in every thread (threads.js).
   EMPTY: Object.freeze({ $$chan: 'empty', size: 0, zero: null }),
   make: $$chan,

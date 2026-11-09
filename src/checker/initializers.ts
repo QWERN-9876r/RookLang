@@ -214,7 +214,7 @@ export abstract class InitializerChecker extends TypeResolver {
   }
 
   /**
-   * `const LIMIT = 5` or `const NAMES []string = ...` of the module: its type, before the
+   * `const LIMIT = 5` or `const NAMES string[] = ...` of the module: its type, before the
    * statements are checked, for the fields of classes (Binding.early). Only a written type or a
    * literal value, which reads no other names; what is reported here is reported again later.
    */

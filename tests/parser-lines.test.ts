@@ -77,13 +77,11 @@ describe('results and parameters of functions', () => {
 });
 
 describe('mistakes that get a hint', () => {
-  it('reports type arguments of a call, which are inferred', () => {
-    const hint =
-      'a call takes no type arguments: they are inferred from the arguments and the expected type; give the variable a type instead, e.g. const done Promise<void> = new Promise(...)';
-
-    expect(errors('const n = load<number>(1)')).toEqual([hint]);
-    expect(errors('async func f() {\n    const n = await load<number>(1)\n}')).toEqual([hint]);
-    expect(errors('const p = new Promise<void>(resolve => resolve())')).toEqual([hint]);
+  it('reports type arguments of new, which are inferred', () => {
+    expect(errors('const p = new Promise<void>(resolve => resolve())')).toEqual([
+      'new takes no type arguments: they are inferred from the arguments and the expected type; give the variable a type instead, e.g. const done Promise<void> = new Promise(...)',
+    ]);
+    expect(errors('const n = load<number>(1)')).toEqual([]);
     expect(errors('const ok = a < b && c > (d)')).toEqual([]);
   });
 

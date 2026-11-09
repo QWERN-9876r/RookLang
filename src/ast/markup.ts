@@ -147,7 +147,7 @@ export interface TypeReference extends NodeBase {
   typeArgs: TypeNode[];
 }
 
-/** `[]T` */
+/** `T[]` */
 export interface ArrayType extends NodeBase {
   kind: 'ArrayType';
   element: TypeNode;
@@ -163,7 +163,7 @@ export interface NullableType extends NodeBase {
 export interface FuncType extends NodeBase {
   kind: 'FuncType';
   params: TypeNode[];
-  /** `func(string, ...[]any)`: the array of the arguments after the others. */
+  /** `func(string, ...any[])`: the array of the arguments after the others. */
   rest?: TypeNode;
   results: TypeNode[];
   /** `func(yield func(T) bool)`: its one parameter is named `yield`, so it is an iterator. */
@@ -174,11 +174,11 @@ export interface FuncType extends NodeBase {
 export interface ComponentType extends NodeBase {
   kind: 'ComponentType';
   params: Parameter[];
-  /** `comp(id string) []User`: on the server, what the component gives; `Html` without it. */
+  /** `comp(id string) User[]`: on the server, what the component gives; `Html` without it. */
   result?: TypeNode;
 }
 
-/** `string | number`; a member may be in parentheses: `[](string | number)`. */
+/** `string | number`; a member may be in parentheses: `(string | number)[]`. */
 export interface UnionType extends NodeBase {
   kind: 'UnionType';
   types: TypeNode[];

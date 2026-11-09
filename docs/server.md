@@ -3,8 +3,8 @@
 **English** · [Русский](server.ru.md)
 
 > Status: implemented are markup as HTML, components of the server, their results, `Response`
-> going up, `Content<T>`, component values with a result, decorators with guards and the context
-> through `needs`, and `rooklang/server`; the server of the site, `site/server/main.rk`, is written
+> going up, `Content<T>`, component values with a result, decorators with guards, wrappers that
+> take the body and the context through `needs`, routes, and `rooklang/server`; the server of the site, `site/server/main.rk`, is written
 > with them, and the guide has a section on them. The decisions are collected at the end of the
 > document, together with what is not decided yet. Every section is **experimental**: it may change
 > in any release before 1.0.
@@ -68,7 +68,7 @@ const link = $$html`<a href="/users?sort=name" class="nav">Hello, ${name}</a>`;
 - **Children** are `Html`, strings, numbers, arrays of them and `null`, as in the browser. A
   `Response` among them stops the rendering (see "A `Response` goes up"); any other value is a
   compile error:
-  `a component of type []User cannot be in markup; return it, or show its fields, e.g. {user.name}`.
+  `a component of type User[] cannot be in markup; return it, or show its fields, e.g. {user.name}`.
 - **`class={[...]}`, `bool` in ARIA attributes, SVG** work as in the browser. A `bool` attribute
   without a value, `<input disabled={off}>`, is written only when it is true.
 - **`<html>` at the top of a result** gets `<!doctype html>` in front of it.
@@ -108,7 +108,7 @@ comp UserPage(id string) {
   and may be written after the properties, as the result of a function:
 
   ```go
-  comp Users() []User {                 // JSON for an API
+  comp Users() User[] {                 // JSON for an API
       return await db.users.all()
   }
 
@@ -124,7 +124,7 @@ comp UserPage(id string) {
   Another module takes the type of an exported component from its module.
 
 - **A tag of a component is its use.** `<UserCard user={user} />` gives the result of the
-  component, and the tag's type is the type of that result: `Html` for `UserCard`, `[]User` for
+  component, and the tag's type is the type of that result: `Html` for `UserCard`, `User[]` for
   `Users`. The tag waits for the component by itself, so `await <UserCard />` is not written.
 - **Tags side by side run at the same time.** In `<main><Header /><Feed /><Footer /></main>` the
   three components start together and the markup is joined in order once all of them end, so the
@@ -164,6 +164,9 @@ comp Account() needs session {
 - A component that wants the `Response` of a child as a value, to look at it, takes it outside
   markup: `const page = <Account />` gives `Html | Response`, which
   `if page instanceof Response` narrows.
+- **`try` lets it go up:** `const value, err = try await children()` of an error boundary catches
+  errors, and a `Response` from below is not one of them, so a redirect or a 401 under the boundary
+  is still the answer.
 
 This is what `redirect()` and `notFound()` do in Next.js and Remix, but with a value instead of an
 exception: the type of a component says that it may answer instead of the page.
@@ -191,13 +194,16 @@ comp Logger<T>(children Content<T>) T needs session {
   gives `Html`, and a `Response` of `Article` goes up when `Layout` calls them, also with
   `await children()`.
 - **Type parameters of a component**, `comp Logger<T>(...)`, are new: they are written as for a
-  function (see "Generics" in [spec.md](spec.md)) and are inferred from the children of the tag.
-  The type of `<Logger><Users /></Logger>` is `[]User`, that of `<Logger><Profile /></Logger>` is
+  function (see "Generics" in [spec.md](spec.md)) and are inferred from the properties and the
+  children of the tag, as those of a call are from its arguments:
+  `<List items={[1, 2]} render={n => String(n)} />` of
+  `comp List<T>(items T[], render func(T) string)` takes `T` from `items`, and `n` is a number.
+  The type of `<Logger><Users /></Logger>` is `User[]`, that of `<Logger><Profile /></Logger>` is
   `Html | Response`, that of `<Logger><p>...</p></Logger>` is `Html`. One component among the
   children of `Content<T>` gives its own value; other children are markup.
 - **The children are checked** against `Content<T>` of a type: `<Names><Users /></Names>` of
-  `comp Names(children Content<[]string>)` is an error,
-  `the children of <Names> give []User, but it takes Content<[]string>`.
+  `comp Names(children Content<string[]>)` is an error,
+  `the children of <Names> give User[], but it takes Content<string[]>`.
 - **Calling the children twice** renders them twice; that is allowed, as for any function.
 
 ## Components as values
@@ -248,8 +254,39 @@ comp Dashboard() {
   not applied. Its type is added to the type of the component's tag: `<Dashboard />` is
   `Html | Response`. This is a guard: an access check, a limit of requests, a cache that already has
   the answer.
+- **The arguments read what the component needs:** `@guard(@api.secret, request)` of
+  `comp Page(request Request) needs api`. The members are taken from above before the bodies of the
+  decorators run, so a guard does not have to need the context itself. Without `needs api` it is an
+  error, `@api.secret in an argument comes from a component above: add "needs api" to Page`.
+- **A parameter with `public`** is a member, `dec http(public request Request, public ip string)`,
+  read as `@http.request`, so a context does not copy its parameters into constants.
 - **The last `return`** is still the wrapper, `(page T) => U`. `T` limits where the decorator can be
   applied, as `(form HTMLFormElement) => ...` does in the browser; `U` is the result of the tag.
+  The wrapper may wait, as the body does.
+- **A wrapper that takes `Content<T>`** gets the body instead of what it gave: a function that runs
+  the component's body, with the wrappers of the decorators below, when the wrapper calls it. So a
+  decorator decides whether the body runs and catches what it throws, an error boundary written in
+  Rook:
+
+  ```go
+  dec fallback(view func(Error) Html) {
+      return (page Content<Html | Response>) => {
+          const value, err = try await page()
+          if err != null {
+              return view(err)
+          }
+          return value
+      }
+  }
+
+  @fallback((err) => <Oops message={err.message} />)
+  comp Feed() { ... }
+  ```
+
+  `try` lets a `Response` from below go up, so a redirect under the boundary is still the answer.
+  The bodies of the decorators run before, as always: the boundary catches the component and what
+  it renders. What the component gives is checked against `T`.
+
 - **`mount`** does not exist on the server: there is nothing to mount. The cleanup of a decorator
   is a `defer` in its body, which runs when the component ends, after its children.
 - The order is that of the browser: bodies from top to bottom, wrappers from the bottom up; a
@@ -279,7 +316,7 @@ comp Header() needs session {
 ```
 
 - **`needs` is written after the properties and the result** of a component, as after the
-  parameters of a decorator: `comp Users() []User needs session { ... }`.
+  parameters of a decorator: `comp Users() User[] needs session { ... }`.
 - **It is satisfied** by the decorator applied to the component itself, as now, or to any
   component above it in the tree of the request. The nearest one is taken.
 - **A decorator that needs another** one, `dec admin() needs session`, is satisfied the same way:
@@ -318,6 +355,14 @@ serve(App, { port: PORT })
   `Request` and writes the `Response` back.
 - **The root takes `request Request`** and may take other properties that `handler` is given:
   `handler(App, { db })`, `serve(App, { port: 3000, props: { db } })`.
+- **Properties of each request** come from a function instead of an object,
+  `Bun.serve({ fetch: handler(App, (request, server) => ({ ip: server.requestIP(request)?.address })) })`:
+  it gets the request and what the platform gives with it, as the server of `Bun.serve` (up to two
+  values: `env` and `ctx` of Workers), and may wait. Their types come from where the function of
+  `handler` goes, here the `.d.ts` of Bun; elsewhere they are written,
+  `(request Request, server Server)` with `import { Server } from "bun"`. `serve` gives the function
+  the `IncomingMessage` of `node:http`, whose `socket` has the address of the client, and returns
+  the `Server`. An error of the function is one of the request, 500.
 - **The result becomes the response:**
 
   | The result   | The response                                 |
@@ -334,30 +379,64 @@ serve(App, { port: PORT })
   `reply(user, { headers: { "Cache-Control": "no-store" } })`. It gives a `Response`; a `Response`
   given to it stays as it is.
 
+## Routes
+
+`route` of `rooklang/server` ties a path to a page. The parameters of the path are the properties
+of the page, and the compiler checks them against each other:
+
+```go
+import { route, Route, reply } from "rooklang/server"
+
+comp UserPage(id string) { ... }
+
+const ROUTES Route<Html | Response>[] = [
+    route("/", Home),
+    route("/users/:id", UserPage),
+    route("/users/:uid/posts", Posts),   // error: Posts has no property "uid"
+]
+
+comp Router(routes Route<Html | Response>[]) needs session {
+    for each in routes {
+        const Page = each.match(@session.url.pathname)
+        if Page != null {
+            return <Page />
+        }
+    }
+    return reply(<NotFound />, { status: 404 })
+}
+```
+
+- **The path is a string literal,** so that its parameters are known: `:id` is a segment that
+  gives its text, decoded, to the property `id`.
+- **Checked both ways:** each parameter is a property of the page that takes a string, and each
+  property the page needs is a parameter. Errors say what to do:
+  `UserPage has no property "uid" for ":uid" of "/users/:uid": rename it to ":id", or add the property`.
+- **`Route<T>`** has the `path` and `match(pathname)`, which gives the page with the parameters as
+  its properties, `comp() T`, or null for another path. `T` is what the page gives; `Route` alone
+  is `Route<Html>`. Empty segments do not count: `/users/7/` is `/users/7`.
+- **The router itself is Rook code,** a loop over a table, as the goals of this document ask: the
+  order of the table is the order of the matches, and a router of a framework adds what it needs,
+  the method, a prefix, nested tables.
+
 ## Example: the pieces of a framework
 
 The router, the middleware and the access checks below are ordinary Rook code; a framework would
 put such pieces into a library.
 
 ```go
-import { serve, reply } from "rooklang/server"
+import { serve, reply, route, Route } from "rooklang/server"
 
 interface User {
     name string
     role "admin" | "user"
 }
 
-interface Route {
-    page comp()
-    open bool
-}
-
-const ROUTES { [string]: Route } = {
-    "/": { page: Home, open: true },
-    "/account": { page: Account, open: false },
-    "/admin": { page: Dashboard, open: false },
-    "/404": { page: NotFound, open: true },
-}
+const ROUTES Route<Html | Response>[] = [
+    route("/", Home),
+    route("/account", Account),
+    route("/admin", Dashboard),
+    route("/users/:id", UserPage),
+]
 
 dec session(request Request) {
     public const url = new URL(request.url)
@@ -375,12 +454,18 @@ comp Logger<T>(children Content<T>) T needs session {
     return await children()
 }
 
-comp Router(routes { [string]: Route }) needs session {
-    const route = routes[@session.url.pathname] ?? routes["/404"]
-    if route.open {
-        return <route.page />
+comp Router(routes Route<Html | Response>[]) needs session {
+    for each in routes {
+        const Page = each.match(@session.url.pathname)
+        if Page != null {
+            return <Page />
+        }
     }
-    return <Private><route.page /></Private>
+    return reply(<NotFound />, { status: 404 })
+}
+
+comp Account() {
+    return <Private><Profile /></Private>
 }
 
 comp Private<T>(children Content<T>) needs session {          // T | Response
@@ -408,8 +493,8 @@ serve(App, { port: PORT })
 
 - `Logger` names `session` with `needs`, or it could not read the path: a component sees only what
   it asks for.
-- `Router` is not special: a table of component values and `<route.page />`. A router with
-  parameters (`/users/:id`) gives the page its parameters as properties.
+- `Router` is not special: a table of routes and `<Page />` of the one that matches; `/users/:id`
+  gives `UserPage` its `id`.
 - The guard is written twice, as a component (`Private`) and as a decorator (`admin`), to show both.
   A component fits a check that depends on where it is in the tree, a decorator one that belongs to
   the page itself.
@@ -471,7 +556,7 @@ async function $$Page({ title }, $$ctx) {
 - **The generator:** the layers `html-markup.ts` (templates of `$$html`) and `server-components.ts`
   (functions of components, their calls, the context); `src/server-context.ts` says what a
   component takes and gives, for the checker and the generator alike.
-- **The runtime:** `src/runtime/html.js` (`$$Html`, `$$html`, `$$attr`, `$$need`, `$$provide`) and
+- **The runtime:** `src/runtime/html.js` (`$$safeHtml`, `$$html`, `$$attr`, `$$need`, `$$provide`) and
   `src/runtime/server.js`, exported as `rooklang/server` (`handler`, `serve`, `reply`, `html`).
 
 ## Stages
@@ -503,6 +588,10 @@ async function $$Page({ title }, $$ctx) {
 6. **A guard is an early `return` in the body of a decorator.**
 7. **The entry is `serve(App)` and `handler(App)` of `rooklang/server`,** on the web standard
    `Request` and `Response`, so one server runs in Node, Bun, Deno and Workers.
+8. **An error boundary is a wrapper that takes `Content<T>`,** not a decorator of the language:
+   the wrapper gets the body to run, and `@fallback` is a few lines of Rook.
+9. **Routes are `route("/users/:id", UserPage)`,** a function whose literal path the compiler
+   checks against the properties of the page; the router stays Rook code.
 
 ## Not decided yet
 
@@ -514,15 +603,11 @@ async function $$Page({ title }, $$ctx) {
    life. What is missing is how the server knows which scripts a page needs.
 3. **The CSS of `style`.** A component of the server with `style` could add its CSS once per
    response, into `<head>`; until then `style` is an error on the server.
-4. **Errors inside the tree.** A decorator that catches what the component throws and shows an
-   error page instead, `@fallback(<Oops />)`, an error boundary.
-5. **One component for both modes.** A component without state, handlers and refs could be compiled
+4. **One component for both modes.** A component without state, handlers and refs could be compiled
    both to DOM and to HTML, so that a page and its client share the markup.
-6. **Typed parameters of routes:** `/users/:id` giving `id string` to the page, checked against its
-   properties.
-7. **A decorator of a cache,** `@cache("60s")`, that answers from memory before the body runs (a
+5. **A decorator of a cache,** `@cache("60s")`, that answers from memory before the body runs (a
    guard) and keeps the result after it (a wrapper).
-8. **Whether a component of the server is marked `async`.** Now it is not: all of them are. The
+6. **Whether a component of the server is marked `async`.** Now it is not: all of them are. The
    order `comp X() T needs a` is open as well.
-9. **A flag of the CLI for markup as HTML,** as `--markup` is for that of the browser; now the CLI
+7. **A flag of the CLI for markup as HTML,** as `--markup` is for that of the browser; now the CLI
    takes it from the package.

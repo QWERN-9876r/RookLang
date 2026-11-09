@@ -23,13 +23,23 @@ describe('VS Code grammar', () => {
     expect(scopeOf(source, '0')).toBe('constant.numeric.decimal');
   });
 
+  it('colours ranges and the public parameters of decorators', () => {
+    const range = 'for i in 0..20 {\n    console.log(xs.0, i)\n}';
+
+    expect(scopeOf(range, '..')).toBe('keyword.operator.range');
+    expect(scopeOf(range, '0')).toBe('constant.numeric.decimal');
+    expect(scopeOf(range, '20')).toBe('constant.numeric.decimal');
+    expect(scopeOf('const third = 1.5..3', '3')).toBe('constant.numeric.decimal');
+    expect(scopeOf('dec http(public request Request) {', 'public')).toBe('storage.modifier');
+  });
+
   it('colours bigints, bytes and iterators', () => {
     expect(scopesOf('let big bigint = 10n * 0xffn', 'bigint')).toEqual(['support.type.primitive']);
     expect(scopeOf('let big = 10n * 0xffn', '10n')).toBe('constant.numeric.decimal');
     expect(scopeOf('let big = 10n * 0xffn', '0xffn')).toBe('constant.numeric.hex');
-    expect(scopeOf('let data []byte = []byte("guava")', 'byte')).toBe('support.type.primitive');
-    expect(scopeOf('const xs = make([]float64, n)', 'float64')).toBe('support.type.primitive');
-    expect(scopeOf('let ids []uint32', 'uint32')).toBe('support.type.primitive');
+    expect(scopeOf('let data byte[] = byte[]("guava")', 'byte')).toBe('support.type.primitive');
+    expect(scopeOf('const xs = make(float64[], n)', 'float64')).toBe('support.type.primitive');
+    expect(scopeOf('let ids uint32[]', 'uint32')).toBe('support.type.primitive');
     expect(scopeOf('const int32s = 1', 'int32s')).not.toBe('support.type.primitive');
 
     const iterator = 'func count(yield func(number) bool) {';
@@ -50,7 +60,7 @@ describe('VS Code grammar', () => {
     expect(scopeOf(header, 'User')).toBe('entity.other.inherited-class');
     expect(scopeOf(header, 'implements')).toBe('storage.modifier');
     expect(scopeOf('interface Todo {', 'Todo')).toBe('entity.name.type');
-    expect(scopeOf('let items []Todo', 'Todo')).toBe('entity.name.type');
+    expect(scopeOf('let items Todo[]', 'Todo')).toBe('entity.name.type');
     expect(scopeOf('let user ?User = null', '?')).toBe('keyword.operator.type.nullable');
     expect(scopeOf('const x = ok ? a : b', '?')).toBe('keyword.operator.ternary');
     expect(scopeOf('const MAX_TITLE = 80', 'MAX_TITLE')).toBe('variable.other.constant');
@@ -64,7 +74,7 @@ describe('VS Code grammar', () => {
     expect(scopeOf(header, 'Base')).toBe('entity.other.inherited-class');
     expect(scopeOf(header, 'implements')).toBe('storage.modifier');
 
-    const func = 'func first<T any>(xs []T) ?T {';
+    const func = 'func first<T any>(xs T[]) ?T {';
 
     expect(scopeOf(func, 'first')).toBe('entity.name.function');
     expect(scopeOf(func, 'any')).toBe('support.type.primitive');
@@ -75,7 +85,7 @@ describe('VS Code grammar', () => {
     expect(scopesOf(typed, 'Box')).toEqual(Array(3).fill('entity.name.type'));
     expect(scopesOf(typed, 'number')).toEqual(Array(2).fill('support.type.primitive'));
     expect(scopeOf('let x ?(A | B) = null', '?')).toBe('keyword.operator.type.nullable');
-    expect(scopeOf('let xs [](A | B)', '[]')).toBe('punctuation.definition.type.array');
+    expect(scopeOf('let xs (A | B)[]', '[]')).toBe('punctuation.definition.type.array');
   });
 
   it('tells object keys from the ternary operator', () => {
@@ -120,7 +130,7 @@ describe('VS Code grammar', () => {
     expect(scopeOf(logger, 'needs')).toBe('storage.modifier.needs');
     expect(scopeOf(logger, 'session')).toBe('entity.name.function.decorator');
     expect(scopeOf(logger, 'auth')).toBe('entity.name.function.decorator');
-    expect(scopeOf('comp Users() []User needs session {', 'needs')).toBe('storage.modifier.needs');
+    expect(scopeOf('comp Users() User[] needs session {', 'needs')).toBe('storage.modifier.needs');
     expect(scopeOf('comp Users() ?User needs session {', 'session')).toBe(
       'entity.name.function.decorator',
     );
@@ -136,7 +146,7 @@ describe('VS Code grammar', () => {
     expect(scopeOf('const includes = 1', 'includes')).toBe('variable.other.readwrite');
     expect(scopeOf('    public state shown = false', 'public')).toBe('storage.modifier');
     expect(scopeOf('    public state shown = false', 'state')).toBe('storage.type.state');
-    expect(scopeOf('export state items []Item = []', 'state')).toBe('storage.type.state');
+    expect(scopeOf('export state items Item[] = []', 'state')).toBe('storage.type.state');
     expect(scopeOf('    public func show() {', 'func')).toBe('storage.type.function');
     expect(scopeOf('@visible("300px")', 'visible')).toBe('entity.name.function.decorator');
     expect(scopeOf('    @visible.show()', 'visible')).toBe('entity.name.function.decorator');
@@ -252,7 +262,7 @@ describe('VS Code grammar', () => {
     const scope = (source: string) => scopeOf(source.replaceAll('queue', word), word);
 
     expect(scope('func f(q queue number) queue ?string {')).toBe('storage.type');
-    expect(scopesOf(`let q ${word} []number = ${word}<[]number>([])`, word)).toEqual([
+    expect(scopesOf(`let q ${word} number[] = ${word}<number[]>([])`, word)).toEqual([
       'storage.type',
       'storage.type',
     ]);

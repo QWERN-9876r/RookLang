@@ -150,7 +150,7 @@ comp Badge(text string) {
     return <b>{MARK}{text}</b>
 }
 
-type Item { name string; children []Item }
+type Item { name string; children Item[] }
 
 comp Tree(item Item) {
     return <ul>{item.name}{for child in item.children { <Tree item={child} /> }}</ul>

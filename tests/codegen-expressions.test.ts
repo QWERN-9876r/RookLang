@@ -82,7 +82,7 @@ describe('defer', () => {
 
   it('uses a stack of deferred calls when a defer is inside a loop', () => {
     expect(
-      js(`func closeAll(files []File) {
+      js(`func closeAll(files File[]) {
     for file in files {
         defer file.close()
     }

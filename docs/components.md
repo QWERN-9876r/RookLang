@@ -81,7 +81,7 @@ What can be passed as a child in `{...}`:
 
 - `string` or `number` becomes text;
 - a `Node` is inserted as it is;
-- a `[]T` of such values is inserted item by item;
+- a `T[]` of such values is inserted item by item;
 - a `?T`: `null` shows nothing.
 
 `bool` is an error: in Rook `&&` works only with `bool` anyway, so the JSX idiom
@@ -100,10 +100,14 @@ The compiler knows the DOM and chooses how to set a value:
 The value of an attribute is a `string`, `number`, `bool` or `?T` (`null` means no attribute). For
 known properties the type is checked more precisely: `checked={1}` is an error.
 
-- **A list of classes.** `class` also takes a `[]?string`: the classes that are not `null` or empty
+- **A list of classes.** `class` also takes a `(?string)[]`: the classes that are not `null` or empty
   are joined with spaces by `$$classes` of the runtime, so a class that depends on a condition
   needs no template string:
   `<button class={[styles.tab, item.id == active ? styles.active : null]}>`.
+- **A class that may be null.** `class` takes a `?string` too, `class={look == "" ? null : look}`:
+  null leaves the element without classes. In the browser `className = null` would be the class
+  `"null"`, so such a value is written as `className = value ?? ""`; the server leaves the
+  attribute out.
 - **A `bool` in `aria-*`** (and in any attribute without a DOM property) is written as `"true"` or
   `"false"`, which is what ARIA expects: `aria-selected={item.id == active}`. A property that is
   a `bool`, like `disabled`, is set as one.
@@ -248,7 +252,7 @@ document.body.append(<Counter initialValue={0} />)
 
 | Construct                               | What it does                                                      |
 | --------------------------------------- | ----------------------------------------------------------------- |
-| `state count = 0`, `state items []Todo` | a reactive variable, like `let`; without a value, the zero value  |
+| `state count = 0`, `state items Todo[]` | a reactive variable, like `let`; without a value, the zero value  |
 | `derived double = count * 2`            | a computed value, read-only, like `const`                         |
 | `derived total number { ... }`          | the same, computed by a block that ends with `return`             |
 | `effect { ... }`                        | code that runs after creation and whenever what it reads changes  |
@@ -586,7 +590,7 @@ greeting, and there is no `$$updateName2` at all.
 
 ```go
 comp Chat() {
-    state messages []string = ["Hi! Write something"]
+    state messages string[] = ["Hi! Write something"]
     state draft = ""
     ref log
     ref input
@@ -653,11 +657,12 @@ markup, or what it got. Otherwise it is an error:
 
 Whether `Field` is inlined or becomes a function is the compiler's choice, so a ref works with both.
 An inlined component fills the element in, under a name of its own (`$$root4`) if its own names
-could hide the ref. A function gets it as its last argument, `$$root`, and creates one when it is
-not given:
+could hide the ref. A function gets it as `this`, `{ $$root }`, apart from its properties, and
+creates one when it is not given:
 
 ```js
-function $$Field(label, $$root) {
+function $$Field(label) {
+  const { $$root } = this ?? {};
   const $$label3 = $$root ?? document.createElement("label");
   $$label3.className = "field";
   // ...
@@ -666,8 +671,12 @@ function $$Field(label, $$root) {
 // <Form>
 const name = $$element("label", { className: "field" });
 // ...
-const [$$field8] = $$Field("Name", name);
+const [$$field8] = $$Field.call({ $$root: name }, "Name");
 ```
+
+The element is not an argument after the properties, so that a component value of a type with
+more properties, which the tag passes, does not put one of them in its place (see "Components as
+values").
 
 Only functions whose element is known and that a ref may point to have `$$root`: exported
 components, those with a ref to them in the module, and those at the top of such components. If the
@@ -989,8 +998,8 @@ const $$bind5 = ($$value) => {
 
 When the parent changes `menu`, it sets `open` by the setter of the property, which updates the
 component but does not call the function back. A component that is a function gets these
-functions as arguments after its properties, `$$Drawer(open, children, $$bindOpen)`, and calls
-`$$bindOpen?.(open)`: without `bind:` there is none.
+functions as `this`, apart from its properties, `$$Drawer.call({ $$bindOpen: ... }, open, children)`,
+and calls `$$bindOpen?.(open)`: without `bind:` there is none.
 
 ### State of a module
 
@@ -1007,7 +1016,7 @@ export interface Item {
     done bool
 }
 
-export state items []Item = []
+export state items Item[] = []
 
 export func add(name string) {
     items.push({ name: name, done: false })
@@ -1095,7 +1104,7 @@ comp Intro() {
     return <p>Rook compiles to JavaScript.</p>
 }
 
-const SECTIONS []Section = [{ title: "Introduction", content: Intro }]
+const SECTIONS Section[] = [{ title: "Introduction", content: Intro }]
 
 comp Guide() {
     return <main>
@@ -1114,7 +1123,9 @@ comp Guide() {
   property with a default value fits `?T`: null gives it the default value. So
   `Card(title string, kind Kind = "info")` fits `comp(title string)` and
   `comp(title string, kind ?Kind)`, but not `comp(heading string)` or
-  `comp(kind ?Kind, title string)`.
+  `comp(kind ?Kind, title string)`. It may also have fewer at the end: the tag passes them and the
+  component does not take them, so `Health()` fits `comp(id string)`, and
+  `Item(id string)` fits `comp(id string, user ?User)`.
 - **The tag is checked against the type:** the properties it needs, their types, children. `ref`,
   a spread `{...object}` and attributes passed on with `...attrs` are not possible, since the
   component is not known at compile time. A value of type `?comp()` is shown with `{if}`, which
@@ -1272,7 +1283,11 @@ comp Playground() {
   - `visible.shown` without `@` is an error that suggests `@visible.shown`. The earlier
     `get(@visible.shown)` is an error too, which shows the new form;
   - there is no `public let`: a value that changes and is read outside is a `state` (or a
-    `derived` one, computed from state), and one that does not change is a `const`.
+    `derived` one, computed from state), and one that does not change is a `const`;
+  - **a parameter** is a public member with `public` before it,
+    `dec titled(public title string)`, read as `@titled.title`. It changes when its argument does,
+    as a property does. Only `public` is written there: `private` and `readonly` are of the
+    parameters of constructors.
 
   Without `public`, members are visible only inside the decorator, where they are used by their
   plain names: `shown`, `show()`.
@@ -1548,7 +1563,7 @@ body of `for`: the code of one row of the list is written there once, and no ext
    component is mounted and saves after each change, in IndexedDB or `localStorage`. IndexedDB
    keeps what `structuredClone` copies, the same values that `go` passes to a worker, so the check
    that `go` makes reports a value that cannot be stored. The syntax is open, for example
-   `state todos []Todo = [] stored("todos")`, and so is what the component shows before the value
+   `state todos Todo[] = [] stored("todos")`, and so is what the component shows before the value
    is loaded.
 
 ## Decisions
@@ -1648,7 +1663,7 @@ body of `for`: the code of one row of the list is written there once, and no ext
     decorators, which mount after it, run first. `mount() { ... }` is an error that shows the new
     form.
 24. **`class` takes a list of classes,** `class={[styles.tab, active ? styles.active : null]}`, of
-    type `[]?string`: `null`s and empty strings are left out. No syntax of its own, such as
+    type `(?string)[]`: `null`s and empty strings are left out. No syntax of its own, such as
     `class:active={...}`: a list is an ordinary value, and it works with CSS modules.
 25. **A `bool` in an attribute without a DOM property is `"true"` or `"false"`,** as
     `setAttribute` writes it, which is what `aria-*` needs: `aria-selected={item.id == active}`.

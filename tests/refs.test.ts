@@ -28,7 +28,7 @@ const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /** A component with `body` before `return <main>{markup}</main>`. */
 const component = (body: string, markup = '') =>
-  `comp A(items []string) {\n${body}\n    return <main>${markup}</main>\n}\n`;
+  `comp A(items string[]) {\n${body}\n    return <main>${markup}</main>\n}\n`;
 
 describe('syntax', () => {
   it('keeps ref an ordinary name elsewhere', () => {

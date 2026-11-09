@@ -1,0 +1,30 @@
+// make.js
+
+const blank = { title: "", seconds: 0, tags: [] };
+const songs = [];
+const pause = 0;
+
+function fill($$Tmake, n) {
+  const out = [];
+  for (let i = 0, $$end = n; i < $$end; i++) {
+    out.push($$Tmake());
+  }
+  return out;
+}
+
+const drafts = fill(() => ({ title: "", seconds: 0, tags: [] }), 2);
+const zeros = fill(() => 0, 3);
+drafts[0].title = "Intro";
+console.log(blank, songs, pause);
+console.log(drafts, zeros);
+
+// make.d.ts
+
+interface Song {
+    title: string;
+    seconds: number;
+    tags: string[];
+    album?: string | null;
+}
+type Seconds = number;
+export {};

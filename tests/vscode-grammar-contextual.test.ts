@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { loadGrammar, scopeOf } from './textmate.ts';
+import { loadGrammar, scopeOf, scopesOf } from './textmate.ts';
 
 // Words of the VS Code grammar that are keywords only in some places and names elsewhere.
 
@@ -38,5 +38,21 @@ describe('VS Code grammar: contextual keywords', () => {
     expect(scopeOf('func mime(type string) {', 'type')).not.toBe('storage.type');
     expect(scopeOf('func fail() never {', 'never')).toBe('support.type.primitive');
     expect(scopeOf('close() Promise<void>', 'void')).toBe('support.type.primitive');
+  });
+
+  it('colours a call with type arguments, and keeps a comparison', () => {
+    expect(scopeOf('const n = create<number>()', 'create')).toBe('entity.name.function');
+    expect(scopeOf('const b = boxed<Box<string[]>>(text)', 'boxed')).toBe('entity.name.function');
+    expect(scopeOf('const ok = a < b && c > (d)', 'a')).not.toBe('entity.name.function');
+  });
+
+  it('colours [] after the type of the elements, not an empty array', () => {
+    expect(scopeOf('let tags ?string[] = null', '[]')).toBe('punctuation.definition.type.array');
+    expect(scopeOf('const data = byte[]("rook")', '[]')).toBe('punctuation.definition.type.array');
+    expect(scopeOf('let rows Map<string, number>[]', '[]')).toBe(
+      'punctuation.definition.type.array',
+    );
+    // The literal is two tokens, `[` and `]`: only the type is coloured as one.
+    expect(scopesOf('let xs number[] = []', '[]')).toEqual(['punctuation.definition.type.array']);
   });
 });

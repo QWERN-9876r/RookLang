@@ -33,21 +33,21 @@ const squares = `const LIMIT = 3
 func square(n number) number {
     return n * n
 }
-async func run(factor number) []number {
+async func run(factor number) number[] {
     const results = chan<number>(LIMIT)
     for let i = 1; i <= LIMIT; i++ {
         go async func(n number) {
             results <- square(n) * factor
         }(i)
     }
-    const all []number = []
+    const all number[] = []
     for let i = 1; i <= LIMIT; i++ {
         all.push(<-results)
     }
     return all.sort((a, b) => a - b)
 }
 console.log(await run(10))
-const doubled = await go async func(xs []number) []number {
+const doubled = await go async func(xs number[]) number[] {
     const inner = go func() number {
         return xs.length
     }()

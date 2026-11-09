@@ -70,7 +70,7 @@ describe('constants of a module in the fields of a class', () => {
   it('gives a field the type of a constant with a written type or a literal value', () => {
     expect(
       errors(`const LIMIT = 5
-const NAMES []string = ["a"]
+const NAMES string[] = ["a"]
 const RETRIES = { count: 3, delay: 100 }
 class Box {
     limit = LIMIT

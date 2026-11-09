@@ -61,7 +61,7 @@ describe('types', () => {
 interface Section {
     content comp(title string, kind ?string, children Content)
 }
-const sections []Section = [{ content: Card }]
+const sections Section[] = [{ content: Card }]
 func f(section Section) Node {
     return <section.content title="a"><p /></section.content>
 }`),
@@ -86,6 +86,45 @@ func f(section Section) Node {
   it('lets a property with a default value take a nullable one, and more that may be left out', () => {
     expect(errors(`${card}const c comp(title string, kind ?string) = Card`)).toEqual([]);
     expect(errors(`${card}const c comp(title string) = Card`)).toEqual([]);
+  });
+
+  it('lets a component have fewer properties at the end than the type', () => {
+    expect(
+      errors(
+        `${card}const c comp(title string, kind ?string, children Content, size number) = Card`,
+      ),
+    ).toEqual([]);
+    expect(
+      errors(`comp Health() {\n    return <p />\n}\nconst c comp(id string) = Health`),
+    ).toEqual([]);
+  });
+
+  it('calls a component with fewer properties, which does not take the others', () => {
+    // A ref points to Health, so it takes the element of the ref, as this, apart from the
+    // properties: the property that the type passes does not take its place.
+    const { body } = mountWithDom(`comp Health() {
+    return <b>ok</b>
+}
+comp Item(id string) {
+    return <i>{id}</i>
+}
+comp Checked() {
+    ref health
+    return <p><Health ref={health} /></p>
+}
+const PAGES (comp(id string))[] = [Health, Item]
+comp App() {
+    state id = "a"
+    return <main onClick={id = "b"}>
+        {for Page in PAGES { <Page id={id} /> }}
+    </main>
+}
+document.body.append(<App />)
+`);
+
+    expect(String(body)).toBe('<body><main><b>ok</b><i>a</i></main></body>');
+    body.find('main').click();
+    expect(String(body)).toBe('<body><main><b>ok</b><i>b</i></main></body>');
   });
 
   it.each([
@@ -160,7 +199,7 @@ describe('generated code', () => {
 interface Section {
     content comp(title string, kind ?string, children Content)
 }
-const SECTIONS []Section = [{ content: Card }]
+const SECTIONS Section[] = [{ content: Card }]
 for section in SECTIONS {
     document.body.append(<section.content title="a"><b /></section.content>)
 }`);
@@ -221,9 +260,9 @@ comp Counter(title string, kind ?string) {
     return <button onClick={clicks++}>{title}:{kind ?? "-"}:{clicks}</button>
 }
 
-const SECTIONS []Section = [{ title: "Intro", content: Intro }]
+const SECTIONS Section[] = [{ title: "Intro", content: Intro }]
 
-comp Page(sections []Section) {
+comp Page(sections Section[]) {
     state title = "a"
     state Current comp(title string, kind ?string) = Card
     return <main>
@@ -279,7 +318,7 @@ comp Item() {
 
 // Its code uses Item as a value, which is the function of this module: so it is always called.
 export comp Menu() {
-    const items []comp() = [Item]
+    const items (comp())[] = [Item]
     return <ul>{for Entry in items { <Entry /> }}</ul>
 }
 `;
@@ -300,7 +339,7 @@ export comp Menu() {
 
   it('imports the function of a component used as a value, not the component', () => {
     const code = compileMain(`import { Card } from "./pages.rk"
-const all []comp(title string) = [Card]`);
+const all (comp(title string))[] = [Card]`);
 
     expect(code).toMatch(/^import \{ \$\$Card \} from "\.\/pages\.js";$/m);
     expect(code).toContain('const all = [$$Card];');

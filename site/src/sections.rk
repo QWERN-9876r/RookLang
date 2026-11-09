@@ -5,7 +5,7 @@
 import { otherLanguageHref } from "./i18n.rk"
 
 /** The index of the section that the last folder of `path` names, or -1. */
-export func sectionIn(ids []string, path string) number {
+export func sectionIn(ids string[], path string) number {
     const parts = path.split("/").filter(part => part != "")
     return ids.indexOf(decodeURIComponent(parts.at(-1) ?? ""))
 }
@@ -14,7 +14,7 @@ export func sectionIn(ids []string, path string) number {
  * Before the page is drawn: docs/ and the old docs/#goroutines go to the address of a section,
  * docs/goroutines/, for which the links of the page are written.
  */
-export func withSections(ids []string) {
+export func withSections(ids string[]) {
     if sectionIn(ids, location.pathname) >= 0 {
         return
     }
@@ -33,7 +33,7 @@ func folderOf(path string) string {
  * again, and the buttons back and forward; `update` shows the section of the new address. Returns
  * the function that stops it.
  */
-export func sectionLinks(ids []string, update func()) func() {
+export func sectionLinks(ids string[], update func()) func() {
     // The links to the other language lead to the section shown.
     func show() {
         update()

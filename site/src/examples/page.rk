@@ -18,7 +18,7 @@ export interface Case {
     example string
 }
 
-comp ExamplesPage(cases []Case) {
+comp ExamplesPage(cases Case[]) {
     const t = text()
     const ids = cases.map(each => each.id)
     state current = Math.max(0, sectionIn(ids, location.pathname))
@@ -68,7 +68,7 @@ comp ExamplesPage(cases []Case) {
 }
 
 /** Draws the page, again if the build drew it for search engines; see renderDocs(). */
-export func renderExamples(cases []Case) {
+export func renderExamples(cases Case[]) {
     withSections(cases.map(each => each.id))
     document.body.replaceChildren(<ExamplesPage cases={cases} />)
 }

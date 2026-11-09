@@ -1,5 +1,6 @@
 import type * as ast from '../ast.ts';
-import { CallChecker, withDefaults } from './calls.ts';
+import { withDefaults } from './calls.ts';
+import { RouteChecker } from './routes.ts';
 import { callSignature, isUntyped, signaturesOf } from './helpers.ts';
 import {
   ANY,
@@ -19,7 +20,7 @@ import {
 // of the template, a TemplateStringsArray, and its values, which are checked as the arguments that
 // follow the strings.
 
-export abstract class TagChecker extends CallChecker {
+export abstract class TagChecker extends RouteChecker {
   protected override checkTaggedTemplate(node: ast.TaggedTemplateExpression): Type {
     const tag = this.checkValue(node.tag);
     const values = node.quasi.expressions;
@@ -28,7 +29,7 @@ export abstract class TagChecker extends CallChecker {
     if (!signature) {
       if (!isUntyped(tag)) {
         this.error(
-          `${typeToString(tag)} cannot be a tag: a tag is a function, e.g. func sql(parts TemplateStringsArray, ...values []any)`,
+          `${typeToString(tag)} cannot be a tag: a tag is a function, e.g. func sql(parts TemplateStringsArray, ...values any[])`,
           node.tag,
         );
       }
@@ -67,7 +68,7 @@ export abstract class TagChecker extends CallChecker {
   }
 }
 
-/** Whether the first parameter takes the strings of a template: TemplateStringsArray or []string. */
+/** Whether the first parameter takes the strings of a template: TemplateStringsArray or string[]. */
 function takesTemplate(signature: FunctionType): boolean {
   const [first] = signature.params;
 

@@ -1,0 +1,47 @@
+// server-routes.js
+
+import { reply, route, serve } from "rooklang/server";
+import { $$catchAsync, $$html, $$provide } from "rooklang/runtime";
+
+async function $$Home($$props, $$ctx) {
+  return $$html`<h1>Orders</h1>`;
+}
+
+async function $$Order({ id }, $$ctx) {
+  const $$fallback$message = "This order cannot be shown";
+
+  $$ctx = $$provide($$ctx, { fallback: {} });
+  const $$fallback$page = async () => {
+    const n = Number(id);
+    if (Number.isNaN(n)) {
+      throw new Error(`not a number: ${id}`);
+    }
+    return $$html`<h1>Order #${n}</h1>`;
+  };
+  const [$$fallback$value, $$fallback$err] = await $$catchAsync(async () => await $$fallback$page());
+  if ($$fallback$err != null) {
+    console.error($$fallback$err);
+    return $$html`<p class="error">${$$fallback$message}</p>`;
+  }
+  return $$fallback$value;
+}
+
+const ROUTES = [route("/", $$Home), route("/orders/:id", $$Order)];
+
+async function $$App({ request }, $$ctx) {
+  const path = new URL(request.url).pathname;
+  for (const each of ROUTES) {
+    const Page = each.match(path);
+    if (Page != null) {
+      return await Page({}, $$ctx);
+    }
+  }
+  return reply("Not Found", { status: 404 });
+}
+
+serve($$App, { port: 3000 });
+
+// server-routes.d.ts
+
+import { reply, route, Route, serve } from "rooklang/server";
+export {};

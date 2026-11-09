@@ -5,7 +5,7 @@ import { CodeView } from "./code-view.rk"
 import { HandwrittenFile } from "./i18n.rk"
 import styles from "./handwritten-view.module.css"
 
-export comp HandwrittenView(files []HandwrittenFile) {
+export comp HandwrittenView(files HandwrittenFile[]) {
     return <div>{for file in files {
         <p class={styles.file}>{file.name}</p>
         <CodeView code={file.code} language="js" />

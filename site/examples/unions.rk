@@ -13,14 +13,14 @@ func label(filter Filter) string {
 }
 
 // typeof and instanceof narrow a union: in each branch the type is more precise
-func show(value string | number | []string) string {
+func show(value string | number | string[]) string {
     if typeof value == "string" {
         return value.toUpperCase()
     }
     if typeof value == "number" {
         return value.toFixed(2)
     }
-    return value.join(", ")    // only []string is left
+    return value.join(", ")    // only string[] is left
 }
 
 console.log(label("done"), show("guava"), show(3), show(["lychee", "papaya"]))

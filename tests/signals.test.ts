@@ -102,10 +102,10 @@ const controller = new AbortController()
 const cancelled = done(controller.signal)
 const aborts = abortSignal(cancelled)`);
 
-    expect(code).toContain('const stop = $$Channel.signal("SIGINT");');
-    expect(code).toContain('$$Channel.close(done);');
-    expect(code).toContain('const cancelled = $$Channel.done(controller.signal);');
-    expect(code).toContain('const aborts = $$Channel.abortSignal(cancelled);');
+    expect(code).toContain('const stop = $$channels.signal("SIGINT");');
+    expect(code).toContain('$$channels.close(done);');
+    expect(code).toContain('const cancelled = $$channels.done(controller.signal);');
+    expect(code).toContain('const aborts = $$channels.abortSignal(cancelled);');
   });
 });
 

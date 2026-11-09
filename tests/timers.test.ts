@@ -138,7 +138,7 @@ cancel(task)
 func square(n number) number {
     return n * n
 }
-const spinning []Promise<number> = []
+const spinning Promise<number>[] = []
 for let i = 0; i < navigator.hardwareConcurrency; i++ {
     spinning.push(go spin())
 }

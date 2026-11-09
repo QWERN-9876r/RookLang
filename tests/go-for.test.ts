@@ -111,7 +111,7 @@ go for c in "text" {}
 go for h in handlers {}
 go for v in new Set([1]) {}`),
     ).toEqual([
-      '"go for" splits an array among workers, but string is not an array; loop over a []T or a typed array, e.g. "go for i, v in pixels { ... }"',
+      '"go for" splits an array among workers, but string is not an array; loop over a T[] or a typed array, e.g. "go for i, v in pixels { ... }"',
       '"go for" copies the parts of the array to workers, but a function cannot be copied',
       expect.stringContaining('"go for" splits an array among workers, but Set<number> is not'),
     ]);
@@ -123,7 +123,7 @@ go for v in new Set([1]) {}`),
 go for i, v in pixels {
     pixels[i] = v + pixels[i]
     console.log(pixels.length)
-    const f = func(pixels []number) number {
+    const f = func(pixels number[]) number {
         return pixels.length
     }
 }
@@ -138,11 +138,11 @@ go for v in pixels {
 
   it('copies the names the body uses, which must be data and stay unchanged there', () => {
     expect(
-      errors(`const results []number = []
-async func blur(src []number, el HTMLElement) {
+      errors(`const results number[] = []
+async func blur(src number[], el HTMLElement) {
     let count = 0
     const out = src.map(_ => 0)
-    const seen []number = []
+    const seen number[] = []
     go for i, _ in out {
         out[i] = (src[i] + src[i + 1]) / 2
         count++
@@ -257,7 +257,7 @@ go for i, w in words {
 }
 console.log(words.join(" "))
 
-const squares = await go async func() []number {
+const squares = await go async func() number[] {
     const xs = [1, 2, 3, 4]
     go for i, x in xs {
         xs[i] = x * x
@@ -266,7 +266,7 @@ const squares = await go async func() []number {
 }()
 console.log(squares.join(" "))
 
-const empty []number = []
+const empty number[] = []
 go for i, x in empty {
     empty[i] = x
 }

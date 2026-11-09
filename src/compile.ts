@@ -7,6 +7,7 @@ import {
   type ModuleExports,
 } from './checker/checker.ts';
 import { property, STRING, type Type } from './checker/types.ts';
+import type { TypeValues } from './checker/type-values.ts';
 import type { ImportedDecorator } from './codegen/options.ts';
 import type { ImportedComponent } from './codegen/imported.ts';
 import { generateJs } from './codegen/js.ts';
@@ -99,6 +100,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
   if (problems.length > 0) return { code: '', diagnostics: problems, warnings: [], dependencies };
 
   let types: WeakMap<ast.Expression, Type> | undefined;
+  let typeValues: TypeValues | undefined;
   let declarations: string | undefined;
   // Without the checker, only the data classes that the module declares are known.
   let dataClasses: ReadonlySet<string> = new Set(
@@ -119,6 +121,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     }
 
     types = checked.types;
+    typeValues = checked.typeValues;
     dataClasses = checked.dataClasses;
     if (options.declarations) declarations = printDeclarations(program, checked);
   }
@@ -128,6 +131,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     source,
     rewriteImports,
     types,
+    typeValues,
     styleModules,
     runtime: options.runtime,
     dataClasses,

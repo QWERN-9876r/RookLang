@@ -208,12 +208,12 @@ comp A() {
 document.body.append(<A />)
 `;
 
-  it('gives the function the element as its last argument', () => {
+  it('gives the function the element as this, apart from its properties', () => {
     const code = js(tree);
 
-    expect(code).toContain('function $$Tree(depth, $$root) {');
+    expect(code).toContain('function $$Tree(depth) {\n  const { $$root } = this ?? {};');
     expect(code).toContain('= $$root ?? document.createElement("li");');
-    expect(code).toMatch(/\$\$Tree\(0, tree\)/);
+    expect(code).toMatch(/\$\$Tree\.call\(\{ \$\$root: tree \}, 0\)/);
   });
 
   it('fills in the element, and creates one without a ref', () => {
@@ -237,7 +237,7 @@ describe('modules', () => {
     return <section class="card">{title}</section>
 }
 
-type Item { name string; children []Item }
+type Item { name string; children Item[] }
 
 export comp Tree(item Item) {
     return <ul class="tree">{item.name}{for child in item.children { <Tree item={child} /> }}</ul>
@@ -268,7 +268,7 @@ document.body.append(<App />)
     expect(diagnostics).toEqual([]);
     expect(code).toContain('  const card = $$element("section", { className: "card" });');
     expect(code).toContain('  const tree = $$element("ul", { className: "tree" });');
-    expect(code).toMatch(/= \$\$Tree\(\$\$0, tree\);/);
+    expect(code).toMatch(/= \$\$Tree\.call\(\{ \$\$root: tree \}, \$\$0\);/);
     expect(code).toContain('$$card');
   });
 });

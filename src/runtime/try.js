@@ -3,6 +3,8 @@
 // for several. With `withError` the last of them is an error already, as of `(User, error)` or of a
 // function that returns only an error, and an exception takes its place.
 
+const ANSWER = Symbol.for('rooklang.answer');
+
 export function $$catch(f, results = 1, withError = false) {
   let value;
 
@@ -35,8 +37,14 @@ function succeeded(value, results, withError) {
   return results === 1 ? [value, null] : [...value, null];
 }
 
-/** JS can throw anything; what is not an Error becomes one, so that the error has a message. */
+/**
+ * JS can throw anything; what is not an Error becomes one, so that the error has a message. A
+ * Response that goes up from markup on the server ($$answer of html.js) is not an error: it goes on
+ * up, to handler().
+ */
 function failed(thrown, results, withError) {
+  if (thrown?.[ANSWER] === true) throw thrown;
+
   const error = thrown instanceof Error ? thrown : new Error(String(thrown));
 
   if (results === 0 || (withError && results === 1)) return error;

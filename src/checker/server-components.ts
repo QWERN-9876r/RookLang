@@ -1,5 +1,5 @@
 import type * as ast from '../ast.ts';
-import { ComponentChecker } from './components.ts';
+import { ComponentGenericsChecker } from './component-generics.ts';
 import type { ComponentInfo } from './context.ts';
 import { contextOf, neededDecorators } from '../server-context.ts';
 import { isComponentTag } from './server-markup.ts';
@@ -23,7 +23,7 @@ import {
 // component may come before its body is checked, so the body is checked when its result is first
 // needed. What only the browser has, state and mount among others, is an error.
 
-export abstract class ServerComponentChecker extends ComponentChecker {
+export abstract class ServerComponentChecker extends ComponentGenericsChecker {
   /**
    * The bodies of the decorators that a component applies or needs, checked before its own: it
    * reads their public members. Implemented by ServerDecoratorChecker.

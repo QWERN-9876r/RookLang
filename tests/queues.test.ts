@@ -56,10 +56,10 @@ function runBuilt(source: string): { stdout: string; stderr: string } {
 
 describe('parsing', () => {
   it('reads queue types and making queues', () => {
-    const declaration = first('let q queue []number = queue<[]number>([])', 'VariableDeclaration');
+    const declaration = first('let q queue number[] = queue<number[]>([])', 'VariableDeclaration');
 
-    expect(ty(declaration.type!)).toBe('queue []number');
-    expect(sx(declaration.values[0]!)).toBe('(queue []number [])');
+    expect(ty(declaration.type!)).toBe('queue number[]');
+    expect(sx(declaration.values[0]!)).toBe('(queue number[] [])');
     expect(sx(expr('queue<string>()'))).toBe('(queue string)');
     expect(sx(expr('queue<queue number>()'))).toBe('(queue queue number)');
     expect(sx(expr('queue<chan<- number>()'))).toBe('(queue chan<- number)');
@@ -95,7 +95,7 @@ q.clear()
 for v in q {
     const x number = v
 }
-const all []number = [...q]`),
+const all number[] = [...q]`),
     ).toEqual([]);
   });
 
@@ -105,8 +105,8 @@ const all []number = [...q]`),
       'const q = queue<number>()\nconst n number = q.shift()',
       'cannot use ?number as number: it may be null, check it first',
     ],
-    ['let q queue number = [1, 2]', 'cannot use []number as queue number'],
-    ['let xs []number = queue<number>()', 'cannot use queue number as []number'],
+    ['let q queue number = [1, 2]', 'cannot use number[] as queue number'],
+    ['let xs number[] = queue<number>()', 'cannot use queue number as number[]'],
     ['let a = queue<number>()\nlet b queue string = a', 'cannot use queue number as queue string'],
     [
       'const q = queue<number>(5)',
@@ -152,10 +152,10 @@ describe('generated code', () => {
   it('makes a queue of the class of the module', () => {
     const code = js('const q = queue<number>([1, 2])\nlet empty queue string');
 
-    expect(code).toContain('class $$Queue {');
-    expect(code).toContain('const q = new $$Queue([1, 2]);');
-    expect(code).toContain('let empty = new $$Queue();');
-    expect(js('const n = 1')).not.toContain('$$Queue');
+    expect(code).toContain('class $$deque {');
+    expect(code).toContain('const q = new $$deque([1, 2]);');
+    expect(code).toContain('let empty = new $$deque();');
+    expect(js('const n = 1')).not.toContain('$$deque');
   });
 });
 
@@ -163,7 +163,7 @@ describe('runtime', () => {
   it('takes values out at both ends and goes round its ring', async () => {
     expect(
       await run(`const q = queue<number>()
-let taken []number
+let taken number[]
 for let i = 0; i < 50; i++ {
     q.push(i, i + 100)
     taken.push(q.shift() ?? -1)

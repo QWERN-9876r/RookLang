@@ -1,7 +1,7 @@
 import type * as ast from '../ast.ts';
 import { type BindingKind, Scope, type Flow, type Place } from './context.ts';
 import { isTerminating } from './flow.ts';
-import { isUntyped, callSignature } from './helpers.ts';
+import { isUntyped, contextSignature } from './helpers.ts';
 import { awaitedResults, isPromise } from './promise.ts';
 import { TaggedUnionChecker } from './tagged-unions.ts';
 import {
@@ -61,7 +61,7 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
       // A generic function: its type parameters are types in its body.
       for (const typeParam of type.typeParams) this.scope.types.set(typeParam.name, typeParam);
       params.forEach((param, i) => {
-        // `...parts []any` is the array of the arguments; `times = 1` sees the parameters before it.
+        // `...parts any[]` is the array of the arguments; `times = 1` sees the parameters before it.
         const paramType =
           param.rest && type.rest ? arrayOf(type.rest) : (type.params[i] ?? UNKNOWN);
 
@@ -170,7 +170,7 @@ export abstract class FunctionChecker extends TaggedUnionChecker {
   }
 
   protected checkArrowFunction(node: ast.ArrowFunction, expected: Type | null): Type {
-    const context = expected ? callSignature(nonNull(expected)) : null;
+    const context = expected ? contextSignature(nonNull(expected)) : null;
     // Callbacks passed to untyped JS functions get untyped parameters.
     const untypedContext = expected !== null && isUntyped(nonNull(expected));
     const last = node.params.at(-1);

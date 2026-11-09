@@ -12,7 +12,7 @@ go for i, v in pixels {
 console.log("contrast:", pixels[100], pixels[200])
 
 // the body writes only its own element; neighbours come from another array
-async func smooth(values []number) []number {
+async func smooth(values number[]) number[] {
     const out = values.map(_ => 0)
     go for i, _ in out {
         const left = values[Math.max(i - 1, 0)]

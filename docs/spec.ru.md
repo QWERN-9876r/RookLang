@@ -89,7 +89,7 @@ const label = count == 0
   Его `this` был бы объектом, а не классом вокруг, поэтому использовать `this` в нём нельзя.
 - Теговый шаблон, `` sql`select * from users where id = ${id}` ``, вызывает функцию перед ним со
   строками (`TemplateStringsArray`) и значениями, как в JS: значения проверяются как аргументы
-  после строк, `func sql(parts TemplateStringsArray, ...values []any)`. Тег стоит на той же строке,
+  после строк, `func sql(parts TemplateStringsArray, ...values any[])`. Тег стоит на той же строке,
   что и шаблон.
 
 ### Ключевые слова
@@ -171,8 +171,8 @@ const { "content-type": mime } = headers
 | `bigint`                   | `0n`                                     |
 | `string`                   | `""`                                     |
 | `bool`                     | `false`                                  |
-| `[]T`                      | `[]` (каждый раз новый массив)           |
-| `[]byte`, `[]float64`, ... | пустой типизированный массив             |
+| `T[]`                      | `[]` (каждый раз новый массив)           |
+| `byte[]`, `float64[]`, ... | пустой типизированный массив             |
 | `queue T`                  | пустая очередь (каждый раз новая)        |
 | `chan T`, `topic T`        | `Channel.EMPTY`, `Topic.EMPTY`: закрытые |
 | `?T`, `error`, `any`       | `null`                                   |
@@ -239,10 +239,10 @@ func f() {
 | `void`            | нет значения: `Promise<void>`                  | `undefined`         |
 | `never`           | значения нет: функция не возвращается          | —                   |
 | `error`           | ошибка или `null`                              | `Error` или `null`  |
-| `[]T`             | массив                                         | `Array`             |
-| `[]byte`          | байты                                          | `Uint8Array`        |
-| `[]float64`, ...  | числа фиксированного размера                   | `Float64Array`, ... |
-| `queue T`         | значения по порядку, вынимаются с обоих концов | `$$Queue`           |
+| `T[]`             | массив                                         | `Array`             |
+| `byte[]`          | байты                                          | `Uint8Array`        |
+| `float64[]`, ...  | числа фиксированного размера                   | `Float64Array`, ... |
+| `queue T`         | значения по порядку, вынимаются с обоих концов | `$$deque`           |
 | `?T`              | значение типа `T` или `null`                   | значение или `null` |
 | `func(A, B) R`    | функция                                        | функция             |
 | `(a A) => R`      | тот же тип функции, записанный стрелкой        | функция             |
@@ -254,18 +254,24 @@ func f() {
 | имя класса        | экземпляр класса                               | экземпляр класса    |
 | имя интерфейса    | любое значение с нужными полями и методами     | —                   |
 
-Тип пишется после имени без двоеточия: `x number`, `xs []string`, `cb func(number) bool`,
+Тип пишется после имени без двоеточия: `x number`, `xs string[]`, `cb func(number) bool`,
 `user ?User`.
 
 Типизация **структурная**, как в TypeScript: значение подходит под тип, если у него есть все нужные
 поля и методы нужных типов.
 
-- **Тип функции стрелкой,** `(paths []string) => Shape`, — то же, что `func([]string) Shape`;
+- **Массив** пишется после типа элементов, как в TypeScript: `string[]`, `number[][]`,
+  `Map<string, User>[]`. `[]` относится к типу прямо перед ним, поэтому тип, перед которым стоит
+  слово или знак, берёт `[]` внутрь: `?string[]` — массив или `null`, `func() number[]` возвращает
+  массив, `queue string[]` хранит массивы. Массив такого типа берёт его в скобки: `(?string)[]` —
+  массив строк, которые могут быть `null`, `(func() number)[]` — массив функций,
+  `(string | number)[]` — массив и тех и других.
+- **Тип функции стрелкой,** `(paths string[]) => Shape`, — то же, что `func(string[]) Shape`;
   имена параметров только поясняют их, а `=> void` значит «без результата». Скобки с одним типом
-  без стрелки по-прежнему группируют: `[](string | number)`.
+  без стрелки по-прежнему группируют: `(string | number)[]`.
 - **Параметры типа функции** могут иметь имена, которые только поясняют их; как в Go, если имя
   есть у одного, оно есть у всех, поэтому `func(a, b number) number` принимает два числа. Остаток
-  аргументов идёт последним: `func(string, ...[]any)`.
+  аргументов идёт последним: `func(string, ...any[])`.
 - **`void`** — значение Promise без значения, `Promise<void>`, и колбэка, результат которого не
   используется. Как результат функции это отсутствие результата: `close() void` — то же, что
   `close()`. Функция, у которой в `.d.ts` результат `any` или `void | T`, может закончиться без
@@ -302,12 +308,12 @@ const n = Number(big) + 0.5   // снова number
 - `typeof b` — это `"bigint"`, и он сужает `number | bigint`. bigint попадает в разметку как текст
   и в горутину как копия; `JSON.stringify` его записать не может (JS бросает исключение).
 
-### []byte
+### byte[]
 
 ```go
-let header []byte = [0x89, 0x50, 0x4e, 0x47]
-let empty []byte
-const bytes = []byte("rook")
+let header byte[] = [0x89, 0x50, 0x4e, 0x47]
+let empty byte[]
+const bytes = byte[]("rook")
 const text = string(bytes)
 ```
 
@@ -318,25 +324,25 @@ const bytes = new TextEncoder().encode("rook");
 const text = new TextDecoder().decode(bytes);
 ```
 
-`[]byte` — это `Uint8Array`, как срез байтов в Go, а `byte` — `number` от 0 до 255 (диапазон не
+`byte[]` — это `Uint8Array`, как срез байтов в Go, а `byte` — `number` от 0 до 255 (диапазон не
 проверяется, как и у других чисел). `data[i]` читает и записывает `byte`, а методы — как у
 `Uint8Array`: `subarray`, `slice`, `set`, но не `push`, потому что длина у него постоянная.
 
-- **Список чисел** там, где ждут `[]byte`, становится им; нулевое значение — пустой `Uint8Array`.
-- **Текст и байты** преобразуются как в Go, в UTF-8: `[]byte("text")` и `string(bytes)`. Это
+- **Список чисел** там, где ждут `byte[]`, становится им; нулевое значение — пустой `Uint8Array`.
+- **Текст и байты** преобразуются как в Go, в UTF-8: `byte[]("text")` и `string(bytes)`. Это
   единственные преобразования, которые пишутся через тип: `string(65)` — ошибка (в Go это было бы
   `"A"`), а другие значения переводят через `String(x)` или шаблонную строку. Программа, которая
   объявляет тип `byte` или значение `string`, пользуется своими.
-- `[]byte` уходит в горутину копией или без копии через `transfer(data)`.
+- `byte[]` уходит в горутину копией или без копии через `transfer(data)`.
 
 ### Типизированные массивы
 
 ```go
-const samples = make([]float32, 4)
-let weights []float64 = [0.25, 0.5, 0.25]
-let ids []uint32
-const counts = make([]int64, 8)
-const field = make([]float64, 1_000_000, shared)
+const samples = make(float32[], 4)
+let weights float64[] = [0.25, 0.5, 0.25]
+let ids uint32[]
+const counts = make(int64[], 8)
+const field = make(float64[], 1_000_000, shared)
 ```
 
 ```js
@@ -347,39 +353,40 @@ const counts = new BigInt64Array(8);
 const field = new Float64Array($$shared(8 * 1_000_000));
 ```
 
-Типизированные массивы JS пишутся как срезы Go, так же как `[]byte`: длина у них постоянная, а
+Типизированные массивы JS пишутся как массивы числовых типов Go, так же как `byte[]`: длина у них постоянная, а
 элементы — числа фиксированного размера, которые хранятся в буфере без обёрток.
 
 | Rook        | JS               | Элементы                    |
 | ----------- | ---------------- | --------------------------- |
-| `[]int8`    | `Int8Array`      | `number`, от -128 до 127    |
-| `[]uint8`   | `Uint8Array`     | `number`, то же, что `byte` |
-| `[]int16`   | `Int16Array`     | `number`                    |
-| `[]uint16`  | `Uint16Array`    | `number`                    |
-| `[]int32`   | `Int32Array`     | `number`                    |
-| `[]uint32`  | `Uint32Array`    | `number`                    |
-| `[]float32` | `Float32Array`   | `number`                    |
-| `[]float64` | `Float64Array`   | `number`                    |
-| `[]int64`   | `BigInt64Array`  | `bigint`                    |
-| `[]uint64`  | `BigUint64Array` | `bigint`                    |
+| `int8[]`    | `Int8Array`      | `number`, от -128 до 127    |
+| `uint8[]`   | `Uint8Array`     | `number`, то же, что `byte` |
+| `int16[]`   | `Int16Array`     | `number`                    |
+| `uint16[]`  | `Uint16Array`    | `number`                    |
+| `int32[]`   | `Int32Array`     | `number`                    |
+| `uint32[]`  | `Uint32Array`    | `number`                    |
+| `float32[]` | `Float32Array`   | `number`                    |
+| `float64[]` | `Float64Array`   | `number`                    |
+| `int64[]`   | `BigInt64Array`  | `bigint`                    |
+| `uint64[]`  | `BigUint64Array` | `bigint`                    |
 
 - **Типы элементов** — другие имена `number`, а для `int64` и `uint64` — `bigint`, как и `byte`:
   `const x float64 = data[0]`. Диапазоны не проверяются, как и у других чисел; при записи
-  значение приводится к типу элемента по правилам JS. `[]uint8` — это `[]byte`.
-- **Имена JS — те же типы:** `Float64Array` из библиотеки подходит туда, где ждут `[]float64`.
+  значение приводится к типу элемента по правилам JS. `uint8[]` — это `byte[]`.
+- **Имена JS — те же типы:** `Float64Array` из библиотеки подходит туда, где ждут `float64[]`.
   У `Uint8ClampedArray`, значения которого останавливаются на 0 и 255 (пиксели canvas), имени в
   Go нет, и он остаётся под своим.
-- **`make([]float64, n)`** создаёт типизированный массив из `n` нулей, как `make` в Go. `make`
-  создаёт только типизированные массивы: список, `[]number`, начинается пустым и растёт.
-- **`make([]float64, n, shared)`** кладёт его на `SharedArrayBuffer`, в который воркеры
+- **`make(float64[], n)`** создаёт типизированный массив из `n` нулей, как `make` в Go. Длина
+  бывает только у типизированных массивов: список, `number[]`, начинается пустым и растёт.
+  `make(float64[])` — пустой массив, как и `make` любого типа даёт его значение («make» ниже).
+- **`make(float64[], n, shared)`** кладёт его на `SharedArrayBuffer`, в который воркеры
   `go for` пишут без копий. Он есть у страницы только с cross-origin isolation (заголовки
   `Cross-Origin-Opener-Policy: same-origin` и `Cross-Origin-Embedder-Policy: require-corp`); в
   остальных случаях `make` бросает ошибку, которая это объясняет. В Node он есть всегда.
-- **Список** там, где ждут типизированный массив, становится им, как для `[]byte`; нулевое
+- **Список** там, где ждут типизированный массив, становится им, как для `byte[]`; нулевое
   значение — пустой массив. Методы — как у типизированных массивов: `subarray`, `slice`, `set`,
   `fill`, но не `push`.
 - Программа, которая объявляет тип `float64` или другой из этих имён, пользуется своим:
-  `[]float64` тогда — массив из него.
+  `float64[]` тогда — массив из него.
 
 ### Очереди
 
@@ -399,13 +406,13 @@ let waiting queue number         // пустая очередь
 ```
 
 ```js
-const jobs = new $$Queue(["build", "test"]);
+const jobs = new $$deque(["build", "test"]);
 jobs.push("deploy");
 jobs.unshift("lint");
 const next = jobs.shift();
 const last = jobs.pop();
 // ...
-let waiting = new $$Queue();
+let waiting = new $$deque();
 ```
 
 `queue T` хранит значения типа `T` по порядку, и они входят и выходят с обоих концов. У неё есть
@@ -422,7 +429,7 @@ let waiting = new $$Queue();
   `map` и `filter`: `[...q]` делает из значений массив.
 - **`for v in q`** проходит значения от начала, не вынимая их. У очереди нет ключей, поэтому
   `for i, v in q` — ошибка.
-- **Очередь — только очередь:** `[]T` не `queue T`, и наоборот. `queue number` подходит туда, где
+- **Очередь — только очередь:** `T[]` не `queue T`, и наоборот. `queue number` подходит туда, где
   ждут `queue ?number`, как и массив, а очередь подходит туда, где ждут интерфейс с её членами,
   `{ length number }`.
 - **В остальных местах `queue` — имя:** это тип только перед типом значений, `queue number`, и
@@ -430,7 +437,7 @@ let waiting = new $$Queue();
   сравнивает её. `queue<number>` в типе — ошибка, которая подсказывает писать `queue number`.
 - **Нулевое значение** — пустая очередь, своя у каждой переменной и поля, как `[]` у массива;
   закрытый `chan queue T` тоже даёт пустую очередь.
-- **В JS** очередь — экземпляр класса `$$Queue`, который модуль получает, когда его код
+- **В JS** очередь — экземпляр класса `$$deque`, который модуль получает, когда его код
   использует очереди: значения лежат кольцом в массиве, который копируется в вдвое больший, когда
   заполнен, и в вдвое меньший, когда почти пуст. Его поля — данные, поэтому очередь уходит в
   другой поток копией, если её значения можно копировать, и там тоже остаётся очередью. Код на
@@ -461,7 +468,7 @@ func show(value string | number) string {
 }
 ```
 
-- **`A | B`** — значение одного из типов. Скобки группируют: `[](string | number)`,
+- **`A | B`** — значение одного из типов. Скобки группируют: `(string | number)[]`,
   `?(A | B)`. `?` относится к ближайшему типу, а `func() A | B` — функция, которая возвращает
   union.
 - **Литеральный тип** `"all"`, `42` или `true` допускает только это значение. Union литералов ловит
@@ -471,7 +478,7 @@ func show(value string | number) string {
 - Литерал в коде получает литеральный тип только там, где его ожидают: `let f = "all"` — это
   `string`, а `let f Filter = "all"` — `"all"`.
 - Ветки `?:`, элементы массива и разные `return` функции без объявленного результата разных типов
-  дают union: `[1, "a"]` — это `[](number | string)`.
+  дают union: `[1, "a"]` — это `(number | string)[]`.
 - У union и литеральных типов нет нулевого значения: `let f Filter` нужно инициализировать.
 - **Поле по ключу с известным значением:** `point["x"]` или `point[axis]` при `axis "x" | "y"` —
   поле объекта (или union его полей). Ключ, которого нет среди полей, — ошибка.
@@ -519,7 +526,7 @@ where({ id: 1, delivery: { kind: "pickup", shop: "Main st." } })
 параметра, как в Go:
 
 ```go
-func first<T any>(xs []T) ?T {
+func first<T any>(xs T[]) ?T {
     return xs.length > 0 ? xs[0] : null
 }
 
@@ -530,7 +537,7 @@ interface Box<T> {
 type Pair<A, B any> { first A; second B }
 
 class Stack<T> {
-    private items []T
+    private items T[]
     push(item T) { this.items.push(item) }
     pop() ?T { return this.items.pop() ?? null }
 }
@@ -544,18 +551,101 @@ let s Stack<number> = new Stack()
   значений типа `T` есть члены `Named`. `any` — без ограничения, тогда членов у `T` нет.
   Несколько имён подряд делят одно ограничение: `<K, V any>`. Для интерфейсов, классов и `type`
   ограничение можно не писать: `interface Box<T>`.
-- **Аргументы типа** пишутся только в типах: `Box<number>`, `Pair<string, ?number>`. При вызове
-  функции и в `new` они выводятся из аргументов, а если не получилось — из ожидаемого типа:
-  `let xs []number = empty()`. Явного `first<number>(xs)` нет: в выражении это неотличимо от
-  сравнения. Если вывести тип не из чего, это ошибка: `let s = new Stack()`.
+- **Аргументы типа** у типа пишутся после него: `Box<number>`, `Pair<string, ?number>`. При
+  вызове они выводятся из аргументов, а если не получилось — из ожидаемого типа:
+  `let xs number[] = empty()`. Вызов может и сам их дать: `empty<number>()`, `first<string>(xs)`.
+  Типы в `<>` прямо перед `(` — аргументы типа, всё остальное — сравнение, поэтому
+  `a < b && c > (d)` остаётся двумя сравнениями. У `new` их нет: `new Stack<number>()` — ошибка,
+  тип получает переменная: `let s Stack<number> = new Stack()`. Если вывести тип не из чего, это
+  ошибка: `let s = new Stack()`.
 - Внутри функции `T` — отдельный тип: `return 1` в функции с результатом `T` — ошибка. Нулевого
-  значения у `T` нет.
-- Тип может ссылаться на себя: `interface Tree<T> { value T; children []Tree<T> }`.
+  значения у `T` нет, но `make(T)` даёт значение типа каждого вызова («make» ниже).
+- Тип может ссылаться на себя: `interface Tree<T> { value T; children Tree<T>[] }`.
 - `Box<number>` и `Box<string>` — разные типы, `Stack<number>` и `Stack<string>` — тоже.
 - Наследоваться от обобщённого класса пока нельзя: после `extends` стоит значение, как в JS, и
   `extends Stack<number>` не написать. Методы со своими параметрами типа (`map<U any>(...)`) тоже
   пока не поддерживаются.
 - В JS дженерики стираются, как в TypeScript.
+
+### make
+
+`make(T)` — значение типа, которое вычисляет компилятор, так что в JS не остаётся никаких типов:
+
+```go
+interface File {
+    name string
+    size number
+    type ?string
+}
+
+type MyNumber number
+
+const a = make(File)                    // { name: "", size: 0 }
+const b = make(File[])                  // []
+const c = make(number)                  // 0
+const d = make(MyNumber)                // 0
+```
+
+```js
+const a = { name: "", size: 0 };
+const b = [];
+const c = 0;
+const d = 0;
+```
+
+- **Значение** типа с нулевым значением — это нулевое значение: `0`, `0n`, `""`, `false`, `[]`,
+  пустой типизированный массив или очередь, закрытый канал, `null` для `?T` и `any`. Интерфейс или
+  объектный тип — объект его полей, у каждого своё значение; поле, которого может не быть, `?T` или
+  `any`, опускается. Литеральный тип — его литерал: `make(Circle)` с `kind "circle"` даёт
+  `{ kind: "circle", r: 0 }`. `Map` и `Set` пустые, `new Map()`. Класс Rook, конструктор которого
+  ничего не принимает, — `new Cart()`.
+- **Без значения:** union, функция, интерфейс с методами, тип, у которого он сам — поле
+  (`next Node`; `next ?Node` можно), класс, конструктор которого принимает аргументы, и класс
+  библиотеки (`new Date()` было бы текущим временем) — ошибки, которые объясняют причину.
+- Каждый `make` — новое значение: два `make(File)` — два разных объекта.
+- `make` здесь — слово, как в Go: программа, которая объявляет значение `make`, получает на
+  `make(...)` ошибку с просьбой его переименовать. `make(x, 1)`, где нет типа, — обычный вызов.
+
+**В обобщённой функции** `make(T)` — значение типа, который T даёт каждый вызов, как и тип, по
+которому проверяет `decode<T>(x)` (раздел 7). Типы вызовов компилятор находит в модуле:
+
+```go
+func create<T>() T {
+    return make(T)
+}
+
+const num = create<number>()
+const str = create<string>()
+```
+
+```js
+function create($$Tmake) {
+  return $$Tmake();
+}
+
+const num = create(() => 0);
+const str = create(() => "");
+```
+
+- **Вызвана с одним типом** — значение пишется прямо в её тело: один `create<number>()` даёт
+  `function create() { return 0; }`, и вызов ничего не передаёт.
+- **Вызвана с несколькими или экспортирована** — она принимает то, что дают её параметры типа,
+  перед своими параметрами: для `make(T)` функцию, которая создаёт значение, `$$Tmake`, для
+  `decode<T>` тип, `$$Ttype`. Функцию, а не значение, чтобы каждый `make(T)` был новым объектом, как
+  и без дженериков. Эти параметры видят и другие модули, и `.d.ts`:
+  `create<T>($$Tmake: () => T): T`.
+- **Нигде не вызвана** — её нет в JS, и компилятор предупреждает об этом: T взять неоткуда.
+- Функция, которая передаёт T дальше, тоже его принимает:
+  `func pair<T>() T[] { return [create<T>(), create<T>()] }` передаёт `create` свой `$$Tmake` или
+  свой единственный тип.
+- Функция, в теле которой нет `make(T)` или `decode<T>`, — как раньше: типы стираются, ничего не
+  передаётся.
+- Такая функция не может быть значением, `const f = create`: у значения нет T. Её вызывают:
+  `() => create<number>()`. T берётся из вызова, `create<number>()`, или из аргументов и ожидаемого
+  типа.
+- Значения дают только параметры типа `func`: `make(T)` с T класса или метода — ошибка.
+- С `rook build --no-check`, без типов, `make` пишет только то, что видно из типа как он записан
+  (`0`, `""`, `[]`); остальное — `undefined`.
 
 ### null и null-safety
 
@@ -632,7 +722,7 @@ func greet(name string = "you", times = 1) string {
     return name.repeat(times)
 }
 
-func log(level string, ...parts []any) {
+func log(level string, ...parts any[]) {
     console.log(level, ...parts)
 }
 
@@ -642,7 +732,7 @@ log("info", "saved", 3)
 
 - Параметры со значениями по умолчанию идут последними, и при вызове их можно опустить. Значение
   по умолчанию без типа задаёт тип параметра, `times = 1`, и видит параметры перед ним.
-- `...parts []any` собирает аргументы после остальных в массив; это последний параметр, и каждый
+- `...parts any[]` собирает аргументы после остальных в массив; это последний параметр, и каждый
   аргумент проверяется по типу элементов.
 - И то и другое пишется одинаково в функциях, методах, конструкторах, литералах `func` и стрелочных
   функциях и так же остаётся в JS.
@@ -813,6 +903,15 @@ async func sleep(ms number) {
 }
 ```
 
+Без объявленного типа то, что он даёт, выводится из вызовов `resolve` в колбэке:
+`new Promise(resolve => resolve(1))` — это `Promise<number>`, а вызовы с числом и строкой дают
+`Promise<number | string>`. `resolve`, который не вызывается или передаётся дальше, как в паузе
+`await new Promise(resolve => setTimeout(resolve, 5))`, получает значения, которых колбэк не
+показывает: тогда промис не даёт ничего, `Promise<void>`, а значение, переданное в `resolve` в
+другом месте, — ошибка, которая просит указать тип. Так с параметрами функций, которые получает
+колбэк, как `resolve`; параметру самого колбэка, `apply(x => ...)` у `func apply<T>(f func(T))`,
+тип по-прежнему нужен.
+
 ### Горутины
 
 ```go
@@ -910,7 +1009,7 @@ async function $$goroutine0(pixels, $$from, amount) {
 выполняется горутиной, а цикл ждёт их все, как `WaitGroup`. После него в массиве то, что в него
 записало тело.
 
-- **По чему он идёт:** по массиву `[]T` или типизированному массиву (`[]float64`, `[]byte` и
+- **По чему он идёт:** по массиву `T[]` или типизированному массиву (`float64[]`, `byte[]` и
   другие), элементы которого можно скопировать, как аргументы `go`. `i` — индекс во всём
   массиве, `v` — элемент; одна переменная получает элемент, как в `for`.
 - **Свой элемент:** воркер получает только свою часть, поэтому тело пользуется массивом только как
@@ -928,9 +1027,9 @@ async function $$goroutine0(pixels, $$from, amount) {
   большие `i`) или одни процессоры медленнее других. Остальные имена копируются с каждой частью,
   поэтому если среди них есть объект или массив, части по одной на процессор.
 - **Память:** часть типизированного массива — копия, которая переезжает в свой воркер и обратно
-  через `transfer` и попадает в массив через `set`; часть `[]T` копируется туда и обратно. Если тело
+  через `transfer` и попадает в массив через `set`; часть `T[]` копируется туда и обратно. Если тело
   ничего не пишет в массив, обратно ничего не идёт. Типизированный массив на `SharedArrayBuffer`,
-  `make([]float64, n, shared)`, не копируется: воркеры пишут прямо в него. Создать такой может
+  `make(float64[], n, shared)`, не копируется: воркеры пишут прямо в него. Создать такой может
   только страница с cross-origin isolation (заголовки COOP и COEP); GitHub Pages, где живёт сайт
   Rook, не может их отдавать, поэтому песочница копирует.
 - Внутри горутины `go for` выполняет свои части в том же воркере, как и `go`.
@@ -959,12 +1058,12 @@ close(results)                          // все результаты полу�
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-const results = $$Channel.make(0, 0);
+const jobs = $$channels.make(10, 0);
+const results = $$channels.make(0, 0);
 // ...
-await $$Channel.send(jobs, n);
+await $$channels.send(jobs, n);
 // ...
-console.log(await $$Channel.receive(results, false, 0));
+console.log(await $$channels.receive(results, false, 0));
 ```
 
 Каналы передают значения между горутинами, как в Go. `chan T` — тип канала значений `T`, а
@@ -1033,7 +1132,7 @@ default:
 
 ```js
 {
-  const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
+  const [$$case, $$received, $$ok] = await $$channels.select([{ channel: jobs }, { channel: control }, { channel: results, value: last }, { channel: quit }], true);
   switch ($$case) {
     case 0: {
       const job = $$received;
@@ -1081,9 +1180,9 @@ close(ticks)
 ```
 
 ```js
-const ticks = $$Channel.tick(100);
+const ticks = $$channels.tick(100);
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: done, zero: 0 }, { channel: $$Channel.after(500), zero: 0 }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: done, zero: 0 }, { channel: $$channels.after(500), zero: 0 }], false);
 // ...
 $$cancel(task);
 ```
@@ -1130,9 +1229,9 @@ case reason = <-done(request.signal):       // клиент ушёл
 ```
 
 ```js
-const stop = $$Channel.signal("SIGINT", "SIGTERM");
+const stop = $$channels.signal("SIGINT", "SIGTERM");
 // ...
-const [$$case, $$received, $$ok] = await $$Channel.select([{ channel: results, zero: "" }, { channel: $$Channel.done(request.signal) }], false);
+const [$$case, $$received, $$ok] = await $$channels.select([{ channel: results, zero: "" }, { channel: $$channels.done(request.signal) }], false);
 ```
 
 Сервер останавливается, когда ему говорит менеджер процессов, сигналом, а запрос — когда уходит его
@@ -1179,9 +1278,9 @@ const err = <-failed
 ```
 
 ```js
-const [chunks, failed] = $$Channel.fromStream(text, 4, "");
+const [chunks, failed] = $$channels.fromStream(text, 4, "");
 const words = await $$go("countWords", [chunks]);
-const err = await $$Channel.receive(failed);
+const err = await $$channels.receive(failed);
 ```
 
 `ReadableStream`, например тело ответа `fetch`, превращается в канал, а канал — в поток, чтобы
@@ -1190,7 +1289,7 @@ const err = await $$Channel.receive(failed);
 - **`chan(stream, size)`** даёт два канала: `chan T` с местом на `size` значений, который получает
   куски `ReadableStream<T>`, и `<-chan error`, в который приходит ошибка потока или `null` в его
   конце, как `errc` в конвейерах Go. Оба распаковываются: `const chunks, failed = chan(body)`.
-  Куски тела ответа — `[]byte`; `pipeThrough(new TextDecoderStream())` делает их строками.
+  Куски тела ответа — `byte[]`; `pipeThrough(new TextDecoderStream())` делает их строками.
 - **Обратное давление:** следующий кусок читается, только когда предыдущий уже в канале, так что
   вперёд читается не больше, чем помещается в канал: когда он полон, поток не читается, и сеть
   ждёт.
@@ -1217,7 +1316,7 @@ interface CartEvent {
 }
 
 const cart = topic<CartEvent>("cart")
-let items []number = []
+let items number[] = []
 
 func add(id number) {
     items.push(id)
@@ -1238,11 +1337,11 @@ func stop() {
 ```
 
 ```js
-const cart = $$Topic.make("cart", null);
+const cart = $$topics.make("cart", null);
 // ...
-$$Topic.publish(cart, { kind: "add", id });
+$$topics.publish(cart, { kind: "add", id });
 // ...
-for await (const e of $$Channel.range($$Topic.listen(cart))) {
+for await (const e of $$channels.range($$topics.listen(cart))) {
 ```
 
 Топик передаёт значения между вкладками сайта, как канал передаёт их между горутинами: `topic T` —
@@ -1296,16 +1395,16 @@ let none chan string = Channel.EMPTY    // то, что даёт `let none chan 
 ```
 
 ```js
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
-const n = await $$Channel.receive(jobs);
-$$Channel.close(jobs);
-let none = $$Channel.EMPTY;
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
+const n = await $$channels.receive(jobs);
+$$channels.close(jobs);
+let none = $$channels.EMPTY;
 ```
 
 `Channel` и `Topic` — заранее объявленные объекты с функциями, в которые компилируются каналы и
 топики, по именам, для кода, которому они нужны как значения: передать `Channel.close` дальше или
-принять значение без `await` в той же строке. В JS это `$$Channel` и `$$Topic` из runtime, так
+принять значение без `await` в той же строке. В JS это `$$channels` и `$$topics` из runtime, так
 что программа может объявить свои имена `Channel` и `Topic`, и они их скроют.
 
 - **`Channel`:** `EMPTY`; `make(size, zero)` — канал с местом на `size` значений, который после
@@ -1378,6 +1477,7 @@ if const user, err = load(id); err != null {
 | Rook                             | JS                                                              |
 | -------------------------------- | --------------------------------------------------------------- |
 | `for let i = 0; i < n; i++ { }`  | `for (let i = 0; i < n; i++) { }`                               |
+| `for i in 0..n { }`              | `for (let i = 0, $$end = n; i < $$end; i++) { }`                |
 | `for x in items { }`             | `for (const x of items) { }`                                    |
 | `for i, x in items { }` (массив) | `for (let i = 0; i < items.length; i++) { const x = items[i] }` |
 | `for k, v in scores { }` (Map)   | `for (const [k, v] of scores.entries()) { }`                    |
@@ -1391,6 +1491,13 @@ if const user, err = load(id); err != null {
 `entries()`. Массив читается один раз, как его прочитал бы `entries()`, поэтому цикл, который
 присваивает переменной массива другой, идёт дальше по старому. Без индекса, `for _, x in items`,
 это `for...of`.
+
+**Диапазон** `for i in 0..n` перебирает числа от первого до второго, не включая его: `0..3` даёт
+0, 1 и 2, а `5..2` — ничего. Оба конца — числа, и вычисляются они один раз, до цикла, как в Go:
+цикл, который меняет `n`, идёт до старого конца. Переменная — число, которое тело не может
+присвоить, как любая переменная `for ... in`. Диапазон пишется только после `in`, с одной
+переменной (`for i, x in 0..n` — ошибка), и не с `go for`, который перебирает массив. В `{for}`
+разметки это массив чисел, `$$numbers(0, n)`.
 
 `for x in items` перебирает **значения**, как `for...of` в JS или `for x in` в Python и Rust, а
 не ключи, как `for...in` в JS. В Go `for i := range xs` с одной переменной даёт индекс; здесь одна
@@ -1784,9 +1891,10 @@ const [user, err] = $$decodeJson(await request.text(), $$typeUser);
   `kind: expected "circle" | "square", got "oval"`.
 - **Какие типы:** то, что умеет JSON: `number`, `string`, `bool`, литеральные типы, `?T`, массивы,
   union, интерфейсы и объектные типы без методов, дженерики с аргументами (`Box<number>`) и типы,
-  которые ссылаются на себя (`interface Tree { children []Tree }`). Класс, `Date`, `Map`, `bigint`,
-  `[]byte`, функция или канал — ошибка компиляции, которая говорит, что декодировать вместо них;
-  параметр типа тоже: тип должен быть известен при компиляции.
+  которые ссылаются на себя (`interface Tree { children Tree[] }`). Класс, `Date`, `Map`, `bigint`,
+  `byte[]`, функция или канал — ошибка компиляции, которая говорит, что декодировать вместо них.
+  Параметр типа `func` — тип каждого вызова, как для `make(T)` (раздел 3, «make»); параметр типа
+  класса или метода — ошибка.
 - Объектный тип — константа модуля, `$$typeUser`, поэтому поля не пишутся заново в каждом вызове.
   С `rook build --no-check`, без типов, `decode` разбирает строку и ничего не проверяет.
 - В остальных местах `decode` — обычное имя, как `topic`: декодирует он только перед `<T>(`.
@@ -1800,7 +1908,7 @@ const [user, err] = $$decodeJson(await request.text(), $$typeUser);
 class User {
     name string
     private age number             // нулевое значение: 0
-    tags []string                  // нулевое значение: []
+    tags string[]                  // нулевое значение: []
     static count = 0
 
     constructor(name string, age number) {
@@ -2106,16 +2214,18 @@ jobs <- 1
 ```
 
 ```js
-import { $$Channel } from "rooklang/runtime";
+import { $$channels } from "rooklang/runtime";
 
-const jobs = $$Channel.make(10, 0);
-await $$Channel.send(jobs, 1);
+const jobs = $$channels.make(10, 0);
+await $$channels.send(jobs, 1);
 ```
 
 То, что код не может сделать одними средствами JS, — каналы, горутины, очереди, `defer` внутри
 цикла и блоки разметки, — делают функции маленькой библиотеки, рантайма: `rooklang/runtime` в
 пакете. Модуль импортирует те из них, которые использует его код, по именам, которые начинаются с
 `$$`, как все имена сгенерированного кода; модуль, которому они не нужны, ничего не импортирует.
+После `$$` они начинаются со строчной буквы (`$$channels`, `$$deque`), а функции компонентов — с
+заглавной (`$$Card`), поэтому компонент может называться как угодно.
 
 - **Один рантайм на все модули:** канал или очередь, созданные одним модулем, так же работают в
   другом, который импортирует тот же рантайм. У каждого потока своя копия; то, что потоки делят
@@ -2156,7 +2266,7 @@ func handle(request IncomingMessage, response ServerResponse) {
 | ---------------------------------------------- | -------------------------------------------- |
 | `boolean`, `string`, `number`, литералы, union | `bool`, `string`, `number`, литералы, union  |
 | `T \| undefined`, `T \| null`, `x?: T`         | `?T`                                         |
-| `T[]`, `Array<T>`; кортеж `[A, B]`             | `[]T`; `[](A \| B)`                          |
+| `T[]`, `Array<T>`; кортеж `[A, B]`             | `T[]`; `(A \| B)[]`                          |
 | `void` в результате                            | функция без результата                       |
 | интерфейс, объектный тип, пересечение          | интерфейс                                    |
 | класс                                          | класс: `new`, `extends`, `instanceof`        |
@@ -2164,7 +2274,7 @@ func handle(request IncomingMessage, response ServerResponse) {
 | перегрузки                                     | вызов выбирает первую подходящую сигнатуру   |
 | `enum`                                         | union литералов                              |
 | `[key: string]: T`                             | неизвестные члены имеют тип `T`              |
-| `bigint`; `Uint8Array`, `Float64Array`, ...    | `bigint`; `[]byte`, `[]float64` — те же типы |
+| `bigint`; `Uint8Array`, `Float64Array`, ...    | `bigint`; `byte[]`, `float64[]` — те же типы |
 | `unknown`, `object`, `symbol`                  | `any`                                        |
 | условные и mapped-типы, которые TS не свёл     | `any`                                        |
 
@@ -2174,9 +2284,9 @@ func handle(request IncomingMessage, response ServerResponse) {
   `Buffer<ArrayBufferLike>`. От такого класса можно наследоваться: `class Bus extends EventEmitter`.
 - Ограничения параметров типа из `.d.ts` не проверяются.
 - `Iterable<T>` принимает то, что `for` перебирает сразу, со значениями типа `T`: массив, строку,
-  `Set`, типизированный массив; `Array.from(new Set([1]))` — это `[]number`. Массив — не
+  `Set`, типизированный массив; `Array.from(new Set([1]))` — это `number[]`. Массив — не
   `IterableIterator` и не `AsyncIterable`, как и в TypeScript.
-- Кортеж `[K, V]` — это `[](K | V)`, но вызов выводит `K` и `V` по позициям, из литерала массива
+- Кортеж `[K, V]` — это `(K | V)[]`, но вызов выводит `K` и `V` по позициям, из литерала массива
   или другого кортежа: `new Map([["a", 1]])` — это `Map<string, number>`, и
   `new Map(Object.entries(prices))` — тоже `Map<string, number>`.
 - В типах нельзя обратиться к типу внутри пространства имён (`http.Server`): его импортируют по
@@ -2194,7 +2304,7 @@ export type Filter "all" | "active" | "done"
 export func divide(a, b number) (number, error) { ... }
 
 export class Stack<T> {
-    private items []T
+    private items T[]
     push(item T) { ... }
     pop() ?T { ... }
 }
@@ -2210,7 +2320,7 @@ export declare class Stack<T> {
 }
 ```
 
-- `bool` → `boolean`, `?T` → `T | null`, `error` → `Error | null`, `[]T` → `T[]`; поле типа `?T`
+- `bool` → `boolean`, `?T` → `T | null`, `error` → `Error | null`, `T[]` → `T[]`; поле типа `?T`
   можно не передавать: `note?: string | null`.
 - Несколько результатов → кортеж `[A, B]`: функция и в JS возвращает массив.
 - Имена параметров берутся из кода, типы — из проверки, поэтому выведенные типы (`const n = 1`)
@@ -2370,7 +2480,7 @@ document.body.append(<Card title="Профиль"><p>Текст</p></Card>)
       content comp()
   }
 
-  const SECTIONS []Section = [{ title: "Введение", content: Intro }]
+  const SECTIONS Section[] = [{ title: "Введение", content: Intro }]
 
   comp Guide() {
       return <main>{for section in SECTIONS { <section.content /> }}</main>
@@ -2459,7 +2569,7 @@ function $$updateCount2() {
 
 ```go
 comp Todos() {
-    state todos []Todo = []
+    state todos Todo[] = []
     derived summary string {
         const done = todos.filter(todo => todo.done).length
         if done == 0 {
@@ -2507,7 +2617,7 @@ function $$updateTodos2() {
 
 ```go
 comp Todos() {
-    state todos []string = load()
+    state todos string[] = load()
     // Сохраняется заново при каждом изменении списка.
     effect {
         localStorage.setItem("todos", JSON.stringify(todos))
@@ -2614,7 +2724,7 @@ $$label3.htmlFor = input.id;
   объявлен, вне документа.
 - **Ref на компонент,** `<Card ref={card} />`, указывает на элемент наверху того, что создаёт
   `Card`, с учётом обёрток его декораторов. Этот элемент создаёт ref, а `Card` его заполняет:
-  встроенный — напрямую, функция — через последний аргумент `$$root`. На компонент с несколькими
+  встроенный — напрямую, функция — через `this`, `{ $$root }`. На компонент с несколькими
   `return`, на компонент, который возвращает фрагмент, и на обёртку, которая возвращает другое
   выражение, указать нельзя: элемент заранее неизвестен. Свойство с именем `ref` у компонента
   быть не может.
@@ -2912,7 +3022,7 @@ hello.rk:9:11: error: cannot add string and number: use a template string, e.g. 
 - `let x = value` получает тип значения; `null` и `[]` без объявленного типа — ошибка.
 - Параметры стрелочной функции берут типы из контекста: `xs.map(x => x * 2)`,
   `apply(n => n > 0)`. Результат стрелочной функции выводится из тела.
-- Тип элементов массива — общий тип всех элементов: `[1, null]` — это `[]?number`.
+- Тип элементов массива — общий тип всех элементов: `[1, null]` — это `(?number)[]`.
 
 ### Встроенные типы JS
 

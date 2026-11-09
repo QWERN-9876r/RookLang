@@ -24,19 +24,19 @@ export comp CaseView(name string, preview HTMLElement) {
     const t = text()
     const code = exampleCode(name)
     const byHand = handwrittenFiles(name)
-    const tabs []TabItem = [
+    const tabs TabItem[] = [
         { id: "code", label: "Rook" },
         { id: "js", label: "JavaScript" },
         ...(byHand.length > 0 ? [{ id: "hand", label: t.withoutRook }] : []),
     ]
-    const switches []PaneSwitch = [
+    const switches PaneSwitch[] = [
         { id: "code", label: t.code },
         { id: "result", label: t.result },
         { id: "both", label: t.both },
     ]
     state tab = "code"
     state panes = "both"
-    state lines []string = []
+    state lines string[] = []
 
     func run() {
         lines = []

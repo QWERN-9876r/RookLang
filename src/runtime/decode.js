@@ -169,12 +169,18 @@ function mismatch(value, type, path) {
   return { path, message: `expected ${describe(type)}, got ${shown(value)}` };
 }
 
-/** The type as Rook writes it: `[]string`, `?User`, `"admin" | "user"`. */
+/** The type as Rook writes it: `string[]`, `?User`, `"admin" | "user"`. */
 function describe(type) {
   if (typeof type === 'string') return type;
   if ('literal' in type) return type.literal.map((value) => JSON.stringify(value)).join(' | ');
   if ('nullable' in type) return `?${grouped(type.nullable)}`;
-  if ('array' in type) return `[]${grouped(type.array)}`;
+  // `?` goes before what follows it, so a nullable element is in parentheses: `(?string)[]`.
+  if ('array' in type) {
+    const nullable = typeof type.array === 'object' && 'nullable' in type.array;
+
+    return nullable ? `(${describe(type.array)})[]` : `${grouped(type.array)}[]`;
+  }
+
   if ('record' in type) return `{ [key string]: ${describe(type.record)} }`;
   if ('union' in type) return type.union.map(describe).join(' | ');
 

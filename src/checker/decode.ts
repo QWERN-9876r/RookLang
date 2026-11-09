@@ -1,6 +1,6 @@
 import type * as ast from '../ast.ts';
 import { isUntyped } from './helpers.ts';
-import { TopicChecker } from './topics.ts';
+import { MakeChecker } from './make.ts';
 import { isText, notDecoded } from './json.ts';
 import { ERROR, typedArrayOf, typeToString, type Type } from './types.ts';
 
@@ -9,10 +9,10 @@ import { ERROR, typedArrayOf, typeToString, type Type } from './types.ts';
 // from JS, against it when the program runs (runtime/decode.js). So the type must be one that JSON
 // can hold (json.ts). The argument is JSON text if it is a string, and a value from JS if it is any.
 
-export abstract class DecodeChecker extends TopicChecker {
+export abstract class DecodeChecker extends MakeChecker {
   protected override checkDecode(node: ast.DecodeExpression): Type {
     const type = this.resolveType(node.type);
-    const reason = notDecoded(type);
+    const reason = notDecoded(this.decodedType(type));
 
     if (reason !== null) this.error(`cannot decode ${typeToString(type)}: ${reason}`, node.type);
 

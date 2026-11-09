@@ -102,7 +102,7 @@ describe('functions', () => {
   it.each([
     ['func f() {}', ''],
     ['func f() ?User {}', ' ?User'],
-    ['func f() []string {}', ' []string'],
+    ['func f() string[] {}', ' string[]'],
     ['func f() ({ x number }) {}', ' { x number }'],
     ['func f(cb func(number) bool) {}', ''],
   ])('parses results of %j', (source, expected) => {
@@ -153,7 +153,7 @@ describe('variables', () => {
     ['const q, err = divide(10, 2)', 'const | q, err | - | (call divide 10 2)'],
     ['const _, rest = f()', 'const | _, rest | - | (call f)'],
     ['const p Point = { x: 1 }', 'const | p | Point | {x: 1}'],
-    ['let xs []?number', 'let | xs | []?number | -'],
+    ['let xs (?number)[]', 'let | xs | (?number)[] | -'],
   ])('%s', (source, expected) => {
     expect(summary(first(source, 'VariableDeclaration'))).toBe(expected);
   });
@@ -175,7 +175,7 @@ describe('types', () => {
     ['type Handler func(string, number) (bool, error)', 'func(string, number) (bool, error)'],
     ['type Pair { a, b number; label ?string }', '{ a number; b number; label ?string }'],
     ['type Point { x number, y number }', '{ x number; y number }'],
-    ['type Matrix [][]number', '[][]number'],
+    ['type Matrix number[][]', 'number[][]'],
     ['type Callback ?func()', '?func()'],
   ])('%s', (source, expected) => {
     expect(ty(first(source, 'TypeAliasDeclaration').type)).toBe(expected);

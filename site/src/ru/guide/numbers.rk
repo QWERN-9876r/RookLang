@@ -14,18 +14,18 @@ export comp Numbers() {
         </p>
         <Example name="bigint" />
         <p>
-            <code>[]byte</code> — это <code>Uint8Array</code>, как срез байтов в Go, а
+            <code>byte[]</code> — это <code>Uint8Array</code>, как срез байтов в Go, а
             {" "}<code>byte</code> — число от 0 до 255. Список чисел там, где ждут
-            {" "}<code>[]byte</code>, становится им, <code>[]byte("текст")</code> даёт байты строки в
+            {" "}<code>byte[]</code>, становится им, <code>byte[]("текст")</code> даёт байты строки в
             UTF-8, а <code>string(bytes)</code> читает их обратно.
         </p>
         <Example name="bytes" />
         <p>
-            Остальные типизированные массивы тоже пишутся как срезы Go: <code>[]float64</code> — это
-            {" "}<code>Float64Array</code>, <code>[]int32</code> — <code>Int32Array</code>, а
-            {" "}<code>[]int64</code> — <code>BigInt64Array</code> из bigint.
-            {" "}<code>make([]float64, n)</code> создаёт такой из <code>n</code> нулей, а
-            {" "}<code>make([]float64, n, shared)</code> кладёт его на
+            Остальные типизированные массивы пишутся так же, с числовыми типами Go:
+            {" "}<code>float64[]</code> — это <code>Float64Array</code>, <code>int32[]</code> — <code>Int32Array</code>, а
+            {" "}<code>int64[]</code> — <code>BigInt64Array</code> из bigint.
+            {" "}<code>make(float64[], n)</code> создаёт такой из <code>n</code> нулей, а
+            {" "}<code>make(float64[], n, shared)</code> кладёт его на
             {" "}<code>SharedArrayBuffer</code>, в который горутины <code>go for</code> пишут без
             копий.
         </p>

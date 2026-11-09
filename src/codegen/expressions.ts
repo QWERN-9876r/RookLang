@@ -23,7 +23,7 @@ export abstract class ExpressionEmitter extends Emitter {
   /** Go-style zero value of a type, or `null`; implemented by SimpleStatementEmitter. */
   protected abstract zeroValue(type: ast.TypeNode): string | null;
 
-  /** `f(x)`, `new C(x)`, `[a, b]` and `[]byte(s)`; implemented by CallEmitter. */
+  /** `f(x)`, `new C(x)`, `[a, b]` and `byte[](s)`; implemented by CallEmitter. */
   protected abstract call(node: ast.CallExpression): string;
 
   protected abstract newExpression(node: ast.NewExpression): string;
@@ -33,6 +33,8 @@ export abstract class ExpressionEmitter extends Emitter {
   protected abstract conversion(node: ast.ConversionExpression): string;
 
   protected abstract make(node: ast.MakeExpression): string;
+  /** The arguments of a call, after the values of type parameters it passes (type-values.ts). */
+  protected abstract withTypeValues(node: ast.CallExpression, args: string): string;
 
   protected abstract chan(node: ast.ChanExpression): string;
 
@@ -170,6 +172,13 @@ export abstract class ExpressionEmitter extends Emitter {
 
       case 'TaggedTemplateExpression':
         return [this.taggedTemplate(node), POSTFIX];
+
+      // A loop over a range is a loop of JS (forInStatement); `{for}` of markup takes an array.
+      case 'RangeExpression':
+        return [
+          `$$numbers(${this.expression(node.from, ARROW)}, ${this.expression(node.to, ARROW)})`,
+          POSTFIX,
+        ];
 
       case 'SuperExpression':
         return ['super', PRIMARY];

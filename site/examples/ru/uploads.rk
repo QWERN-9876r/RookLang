@@ -8,7 +8,7 @@ interface File {
     size number                     // КБ
 }
 
-const FILES []File = [
+const FILES File[] = [
     { name: "beach.jpg", size: 1200 },
     { name: "notes.pdf", size: 300 },
     { name: "cat.png", size: 800 },

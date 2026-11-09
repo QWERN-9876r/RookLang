@@ -171,7 +171,7 @@ document.body.append(<App />)
 
   it('works with components that become functions', async () => {
     const { body, output } =
-      mountWithDom(`${counter}${logged('watched')}type Item { name string; children []Item }
+      mountWithDom(`${counter}${logged('watched')}type Item { name string; children Item[] }
 @counter
 @watched
 comp Tree(item Item) {

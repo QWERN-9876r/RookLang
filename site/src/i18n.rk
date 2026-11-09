@@ -59,7 +59,7 @@ export interface Strings {
     footerWritten string
     footerLicense string
     /** Sections of the guide that the footer links to. */
-    footerSections []NavLink
+    footerSections NavLink[]
     /** The name of the playground's text area. */
     editor string
     run string
@@ -188,12 +188,12 @@ export interface HandwrittenFile {
 }
 
 /** The files of the example written in JS by hand, in site/examples/js/<name>; none for most. */
-export func handwrittenFiles(name string) []HandwrittenFile {
+export func handwrittenFiles(name string) HandwrittenFile[] {
     return handwritten[name] ?? []
 }
 
 /** The names of the examples, as files in site/examples. */
-export func exampleNames() []string {
+export func exampleNames() string[] {
     return Object.keys(examples)
 }
 

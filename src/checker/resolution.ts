@@ -36,7 +36,7 @@ export abstract class TypeResolver extends ClassChecker {
   protected override resolveType(node: ast.TypeNode): Type {
     switch (node.kind) {
       case 'TypeReference':
-        // On the server the children are a function of what they give: `Content<[]User>`.
+        // On the server the children are a function of what they give: `Content<User[]>`.
         if (
           this.options.server === true &&
           node.name.name === 'Content' &&
@@ -69,7 +69,7 @@ export abstract class TypeResolver extends ClassChecker {
         return nullable(this.resolveType(node.type));
 
       case 'FuncType': {
-        // `func(string, ...[]any)`: the rest is an array of what each argument is.
+        // `func(string, ...any[])`: the rest is an array of what each argument is.
         const rest = node.rest ? this.resolveType(node.rest) : null;
 
         return func(
@@ -131,7 +131,7 @@ export abstract class TypeResolver extends ClassChecker {
   }
 
   /**
-   * The typed array of `[]T` when `T` is `byte`, `float64` or another element of one, unless the
+   * The typed array of `T[]` when `T` is `byte`, `float64` or another element of one, unless the
    * program declares a type of that name: `Float64Array`.
    */
   private typedArrayClass(node: ast.TypeNode): string | null {
@@ -160,7 +160,7 @@ export abstract class TypeResolver extends ClassChecker {
     return library ?? builtInTypedArray(name);
   }
 
-  /** `[]byte`, a Uint8Array. */
+  /** `byte[]`, a Uint8Array. */
   protected bytes(): Type {
     return this.typedArray('Uint8Array');
   }
@@ -199,7 +199,10 @@ export abstract class TypeResolver extends ClassChecker {
         : type.kind === 'object'
           ? (type.typeParams ?? [])
           : type.kind === 'class'
-            ? type.info.typeParams
+            ? // `type NumberBox Box<number>` of another module comes as Box with its arguments.
+              type.args
+              ? []
+              : type.info.typeParams
             : [];
 
     if (params.length === 0) {
@@ -285,8 +288,17 @@ export abstract class TypeResolver extends ClassChecker {
 
     const resolved = this.resolveType(node.type);
 
-    // A union keeps the alias name for messages: `cannot use "activ" as Filter`.
-    entry.resolved = resolved.kind === 'union' ? { ...resolved, name: node.name.name } : resolved;
+    const name = node.name.name;
+
+    // A union keeps the alias name for messages: `cannot use "activ" as Filter`; an instance of a
+    // generic type, for a `.d.ts`.
+    entry.resolved =
+      resolved.kind === 'union'
+        ? { ...resolved, name }
+        : (resolved.kind === 'class' && resolved.args) ||
+            (resolved.kind === 'object' && resolved.instanceOf)
+          ? { ...resolved, alias: name }
+          : resolved;
 
     return entry.resolved;
   }
@@ -301,7 +313,7 @@ export abstract class TypeResolver extends ClassChecker {
 
     if (type.kind === 'array' && type.element.kind === 'never') {
       this.error(
-        'cannot infer the type of an empty array: declare it, e.g. "let xs []number"',
+        'cannot infer the type of an empty array: declare it, e.g. "let xs number[]"',
         node,
       );
 

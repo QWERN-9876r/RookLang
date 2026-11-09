@@ -119,7 +119,7 @@ const list = <ul>
 describe('type checking', () => {
   it('narrows types in the blocks like ordinary if', () => {
     expect(
-      errors(`${item}const items []?Item = []
+      errors(`${item}const items (?Item)[] = []
 const list = <ul>{for item in items {
     if item != null {
         <li>{item.title}</li>
@@ -133,7 +133,7 @@ const list = <ul>{for item in items {
       errors(`${item}comp Product(title string, price number, sale bool = false) {
     return <li>{title} {price} {sale ? "%" : ""}</li>
 }
-const items []Item = []
+const items Item[] = []
 const a = <ul>{for item in items { <Product {...item} /> }}</ul>
 const b = <Product {...items[0]} price={1} />
 const c = <Product title="x" {...{ price: 1, extra: true }} />`),
@@ -142,11 +142,11 @@ const c = <Product title="x" {...{ price: 1, extra: true }} />`),
 
   it.each([
     [
-      `${item}const items []?Item = []\nconst list = <ul>{for item in items {\n    if item {\n        <li />\n    }\n}}</ul>`,
+      `${item}const items (?Item)[] = []\nconst list = <ul>{for item in items {\n    if item {\n        <li />\n    }\n}}</ul>`,
       'condition must be bool, not ?Item: compare it with null, e.g. "x != null"',
     ],
     [
-      `${item}const items []?Item = []\nconst list = <ul>{for item in items {\n    <li>{item.title}</li>\n}}</ul>`,
+      `${item}const items (?Item)[] = []\nconst list = <ul>{for item in items {\n    <li>{item.title}</li>\n}}</ul>`,
       '"item" may be null: check it with "if item != null" or use "?."',
     ],
     [
@@ -172,7 +172,7 @@ describe('code generation', () => {
       js(`${item}comp Product(title string, price number) {
     return <li>{title}: {price} ₽</li>
 }
-const products []?Item = []
+const products (?Item)[] = []
 document.body.append(<ul>{for i, product in products {
     if product != null {
         <Product {...product} />

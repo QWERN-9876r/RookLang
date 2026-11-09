@@ -9,12 +9,12 @@ export abstract class ParamParser extends JumpParser {
   /**
    * `(a, b number, c string)`. Names without a type take the type of the next typed name, as in
    * Go; only arrow functions may leave types out entirely. The parameters of a constructor can be
-   * properties: `(private name string)`. Functions take `...parts []any` last, and components
+   * properties: `(private name string)`. Functions take `...parts any[]` last, and components
    * `...attrs`, the attributes of an element; both may have default values, `times = 1`.
    */
   protected parseParams(
     typesOptional: boolean,
-    options: { defaults?: boolean; rest?: 'typed' | 'attrs'; properties?: boolean } = {},
+    options: { defaults?: boolean; rest?: 'typed' | 'attrs'; properties?: boolean | 'public' } = {},
   ): ast.Parameter[] {
     const { defaults: allowDefaults = false, properties: allowProperties = false } = options;
     const allowRest = options.rest === 'attrs';
@@ -81,8 +81,11 @@ export abstract class ParamParser extends JumpParser {
     return params;
   }
 
-  /** `private`, `readonly` or both before a parameter that is a property of its class. */
-  private parsePropertyModifiers(allowed: boolean): ast.Parameter['property'] | null {
+  /**
+   * `private`, `readonly` or both before a parameter that is a property of its class; only
+   * `public` before one of a decorator, `dec http(public request Request)`, a public member.
+   */
+  private parsePropertyModifiers(allowed: boolean | 'public'): ast.Parameter['property'] | null {
     let visibility: ast.Visibility | null = null;
     let readonly = false;
     const start = this.peek().start;
@@ -106,7 +109,13 @@ export abstract class ParamParser extends JumpParser {
     }
 
     if (visibility === null && !readonly) return null;
-    if (!allowed) {
+    if (allowed === 'public' && (visibility !== 'public' || readonly)) {
+      this.error(
+        'a parameter of a decorator is a public member with "public" alone, e.g. dec http(public request Request)',
+        start,
+        this.span(start).end,
+      );
+    } else if (!allowed) {
       this.error(
         'only the parameters of a constructor can be properties, e.g. constructor(private name string)',
         start,
@@ -146,7 +155,7 @@ export abstract class ParamParser extends JumpParser {
     return true;
   }
 
-  /** `...parts []any`: the arguments after the others, in an array, as in JS. */
+  /** `...parts any[]`: the arguments after the others, in an array, as in JS. */
   private parseTypedRest(typesOptional: boolean): ast.Parameter {
     const start = this.next().start;
     const name = this.parseIdentifier('parameter name');
@@ -154,7 +163,7 @@ export abstract class ParamParser extends JumpParser {
 
     if (type === null && !typesOptional) {
       this.error(
-        `...${name.name} needs the type of its array, e.g. ...${name.name} []any`,
+        `...${name.name} needs the type of its array, e.g. ...${name.name} any[]`,
         start,
         name.end,
       );
@@ -183,7 +192,7 @@ export abstract class ParamParser extends JumpParser {
 
     if (!allowed) {
       this.error(
-        `...${name.name} needs the type of its array, e.g. ...${name.name} []any`,
+        `...${name.name} needs the type of its array, e.g. ...${name.name} any[]`,
         start,
         name.end,
       );
@@ -263,14 +272,14 @@ export abstract class ParamParser extends JumpParser {
     return this.parseType();
   }
 
-  /** `func(string, ...[]any)`: the last parameter, taken out of `params`, if it is the rest. */
+  /** `func(string, ...any[])`: the last parameter, taken out of `params`, if it is the rest. */
   protected restOf(params: ast.TypeNode[], names: string[]): ast.TypeNode | null {
     const at = names.findIndex((name) => name.startsWith('...'));
 
     if (at === -1) return null;
     if (at !== params.length - 1) {
       this.error(
-        'the rest parameter is the last one, e.g. func(string, ...[]any)',
+        'the rest parameter is the last one, e.g. func(string, ...any[])',
         params[at]!.start,
         params[at]!.end,
       );
@@ -314,7 +323,7 @@ export abstract class ParamParser extends JumpParser {
     });
   }
 
-  /** `paths []string` in `(paths []string) => Shape`: a name before the type of a parameter. */
+  /** `paths string[]` in `(paths string[]) => Shape`: a name before the type of a parameter. */
   private startsNamedParam(): boolean {
     const next = this.peek(1);
 
@@ -330,18 +339,15 @@ export abstract class ParamParser extends JumpParser {
       case 'Number':
         return true;
 
-      // `x []number` is named.
-      case '[':
-        return this.peek(2).kind === ']';
-
+      // `number[]` is not: `[]` comes after a type.
       default:
         return false;
     }
   }
 
   /**
-   * `load<number>(1)` would be two comparisons, `(load < number) > (1)`: a call takes no type
-   * arguments, which are inferred, so the likely mistake is reported as one.
+   * `new Promise<void>(...)` would be two comparisons: `new` takes no type arguments, which are
+   * inferred, so the likely mistake is reported as one. A call takes them (postfix.ts).
    */
   protected rejectTypeArguments(): void {
     const TYPE_TOKENS = new Set(['Identifier', ',', '[', ']', '?', '.', '|', 'chan']);
@@ -360,7 +366,7 @@ export abstract class ParamParser extends JumpParser {
     }
 
     this.fail(
-      'a call takes no type arguments: they are inferred from the arguments and the expected type; give the variable a type instead, e.g. const done Promise<void> = new Promise(...)',
+      'new takes no type arguments: they are inferred from the arguments and the expected type; give the variable a type instead, e.g. const done Promise<void> = new Promise(...)',
     );
   }
 }

@@ -7,12 +7,12 @@ export type IconName "copy" | "check" | "play" | "menu" | "close" | "arrow-right
     "book" | "package"
 
 interface Shape {
-    paths []string
+    paths string[]
     /** Octicons are filled on a 16 × 16 grid; the others are lines on 24 × 24. */
     filled bool
 }
 
-func line(paths []string) Shape {
+func line(paths string[]) Shape {
     return { paths: paths, filled: false }
 }
 

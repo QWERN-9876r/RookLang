@@ -3,6 +3,7 @@ import type { Wrapper } from '../decorators.ts';
 import type { Diagnostic } from '../diagnostics.ts';
 import type { InlinePackage } from '../inline-packages.ts';
 import type { Root } from '../refs.ts';
+import type { TypeValues } from './type-values.ts';
 import { GLOBAL_TYPES, GLOBAL_VALUES, LIBRARY_TYPES } from './builtins.ts';
 import { type ClassInfo, type Type, type TypeParam } from './types.ts';
 
@@ -73,6 +74,8 @@ export interface CheckResult {
   declarations: ModuleExports;
   /** Types of checked expressions, for code generation (e.g. how to insert element children). */
   types: WeakMap<ast.Expression, Type>;
+  /** What make(T) and decode<T> of generic functions are in the code (type-values.ts). */
+  typeValues: TypeValues;
   /** The data classes that the module declares or imports, by their names here. */
   dataClasses: Set<string>;
   /** With the `completion` option: what can be written at the cursor, if the check reached it. */

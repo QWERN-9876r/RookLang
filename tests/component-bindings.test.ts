@@ -15,7 +15,7 @@ function errors(source: string): string[] {
   return check(program).diagnostics.map((d) => d.message);
 }
 
-const tabs = `comp Tabs(items []string, bind active string = "") {
+const tabs = `comp Tabs(items string[], bind active string = "") {
     return <nav>
         {for item in items {
             <button aria-selected={item == active} onClick={active = item}>{item}</button>
@@ -61,7 +61,7 @@ describe('syntax and types', () => {
       'duplicate property "active"',
     ],
     [
-      `${tabs}comp A() {\n    state tab = ""\n    const Shown comp(items []string, active ?string) = Tabs\n    return <Shown items={[]} bind:active={tab} />\n}`,
+      `${tabs}comp A() {\n    state tab = ""\n    const Shown comp(items string[], active ?string) = Tabs\n    return <Shown items={[]} bind:active={tab} />\n}`,
       '<Shown> takes its component from a value, so it cannot bind its properties; pass a function, e.g. onChange={...}',
     ],
     [
@@ -73,7 +73,7 @@ describe('syntax and types', () => {
       '"row" is a property: changing it in place would not update the parent; declare it bound, e.g. comp A(bind row ...), and pass bind:row={...}',
     ],
     [
-      'comp A(items []string) {\n    return <button onClick={items.push("x")}>+</button>\n}',
+      'comp A(items string[]) {\n    return <button onClick={items.push("x")}>+</button>\n}',
       '"items" is a property: changing it in place would not update the parent; declare it bound, e.g. comp A(bind items ...), and pass bind:items={...}',
     ],
     [
@@ -117,11 +117,11 @@ document.body.append(<App />)
   });
 
   it('passes changes in place to the parent', () => {
-    const { body } = mountWithDom(`comp Adder(bind items []string) {
+    const { body } = mountWithDom(`comp Adder(bind items string[]) {
     return <button onClick={items.push("x")}>add {items.length}</button>
 }
 comp App() {
-    state items []string = []
+    state items string[] = []
     return <main>
         <Adder bind:items={items} />
         <p>{items.length}</p>
@@ -144,7 +144,7 @@ comp Check(bind on bool, label string) {
     return <label><input type="checkbox" bind:checked={on} />{label}</label>
 }
 comp App() {
-    state todos []Todo = [{ title: "a", done: false }, { title: "b", done: true }]
+    state todos Todo[] = [{ title: "a", done: false }, { title: "b", done: true }]
     derived left = todos.filter(todo => !todo.done).length
     return <main>
         {for todo in todos {
@@ -171,7 +171,7 @@ comp Editor(bind row Row) {
     return <li><input bind:value={row.name} /><button onClick={row = { id: row.id, name: "new" }}>r</button></li>
 }
 comp Rows() {
-    state rows []Row = [{ id: 1, name: "a" }, { id: 2, name: "b" }]
+    state rows Row[] = [{ id: 1, name: "a" }, { id: 2, name: "b" }]
     return <ul>
         {for row in rows with key row.id { <Editor bind:row={row} /> }}
         <p>{rows.map(r => r.name).join(",")}</p>

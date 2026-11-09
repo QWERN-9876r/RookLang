@@ -16,7 +16,7 @@ comp Farewell(name string) {
 }
 
 // Components in data: a tag takes one from a value
-const TABS []Tab = [
+const TABS Tab[] = [
     { title: "Hello", content: Greeting },
     { title: "Goodbye", content: Farewell },
 ]

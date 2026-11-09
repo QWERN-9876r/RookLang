@@ -3,7 +3,7 @@ import type { Type } from '../checker/types.ts';
 import { forEachChild } from '../walk.ts';
 import { rootName, writeTargets } from './mutations.ts';
 
-// State of a module, `state items []Item = []` at its top level, which its components share. It
+// State of a module, `state items Item[] = []` at its top level, which its components share. It
 // is a variable with the set of the updates of the components that read it, `$$listeners$items`:
 // a component adds its update while it is on the page, and a change of the state anywhere in the
 // module runs them, `$$changed($$listeners$items)`. Other modules import both, and only read.

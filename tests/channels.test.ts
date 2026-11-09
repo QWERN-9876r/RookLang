@@ -53,10 +53,10 @@ function runBuilt(source: string): { stdout: string; stderr: string } {
 
 describe('parsing', () => {
   it('reads channel types, making channels, receiving and sending', () => {
-    const declaration = first('let c chan []number = chan<[]number>(3)', 'VariableDeclaration');
+    const declaration = first('let c chan number[] = chan<number[]>(3)', 'VariableDeclaration');
 
-    expect(ty(declaration.type!)).toBe('chan []number');
-    expect(sx(declaration.values[0]!)).toBe('(chan []number 3)');
+    expect(ty(declaration.type!)).toBe('chan number[]');
+    expect(sx(declaration.values[0]!)).toBe('(chan number[] 3)');
     expect(sx(expr('chan<string>()'))).toBe('(chan string)');
     expect(sx(expr('<-ch + 1'))).toBe('(+ (<- ch) 1)');
     expect(first('ch <- x * 2', 'SendStatement')).toMatchObject({ kind: 'SendStatement' });
@@ -243,14 +243,14 @@ for x in ch {
 }
 close(ch)`);
 
-    expect(code).toContain('const ch = $$Channel.make(2, 0);');
-    expect(code).toContain('await $$Channel.send(ch, 1);');
+    expect(code).toContain('const ch = $$channels.make(2, 0);');
+    expect(code).toContain('await $$channels.send(ch, 1);');
     // The zero value is for Channel.EMPTY, which has none of its own.
-    expect(code).toContain('const v = await $$Channel.receive(ch, false, 0);');
-    expect(code).toContain('const [w, ok] = await $$Channel.receive(ch, true, 0);');
-    expect(code).toContain('for await (const x of $$Channel.range(ch)) {');
-    expect(code).toContain('$$Channel.close(ch);');
-    expect(code.split('\n')[0]).toBe('import { $$Channel } from "rooklang/runtime";');
+    expect(code).toContain('const v = await $$channels.receive(ch, false, 0);');
+    expect(code).toContain('const [w, ok] = await $$channels.receive(ch, true, 0);');
+    expect(code).toContain('for await (const x of $$channels.range(ch)) {');
+    expect(code).toContain('$$channels.close(ch);');
+    expect(code.split('\n')[0]).toBe('import { $$channels } from "rooklang/runtime";');
   });
 
   it('gives the worker module the same runtime, which asks the thread that made a channel', () => {
@@ -260,8 +260,8 @@ close(ch)`);
 }
 go fill(chan<string>())`);
 
-    expect(worker).toContain('import { $$Channel, $$serve } from "rooklang/runtime";');
-    expect(worker).toContain('await $$Channel.send(c, "x");');
+    expect(worker).toContain('import { $$channels, $$serve } from "rooklang/runtime";');
+    expect(worker).toContain('await $$channels.send(c, "x");');
   });
 });
 
@@ -277,7 +277,7 @@ describe('runtime', { timeout: 30_000 }, () => {
 }
 const ch = chan<number>()
 produce(ch)
-let got []number
+let got number[]
 for v in ch {
     got.push(v)
 }
@@ -296,7 +296,7 @@ console.log(a, ok1, b, ok2, c == "", ok3)`),
   it('keeps the order of a buffer whose values go round its places', async () => {
     expect(
       await run(`const ch = chan<number>(3)
-let got []number
+let got number[]
 for let i = 0; i < 10; i++ {
     ch <- i
     if i >= 2 {
@@ -364,7 +364,7 @@ for let n = 1; n <= 4; n++ {
     jobs <- n
 }
 close(jobs)
-let squares []number
+let squares number[]
 for let i = 0; i < 4; i++ {
     squares.push(<-results)
 }
