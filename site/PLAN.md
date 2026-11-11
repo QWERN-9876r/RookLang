@@ -209,7 +209,16 @@ The goal: the whole site in one style, and the scene is the first impression.
 3. New pictures for links: `npm run site:images`.
 
 Done when all five pages in both languages are in one style, and Lighthouse is no worse than
-before the start (to be measured before stage 1 and written here).
+before the start.
+
+The site before the start, measured on 11 November 2026 (Lighthouse 12, its default phone
+emulation, the built site served locally by `vite preview`, one run per page):
+
+| Page              | Performance | Accessibility | Best practices | SEO | LCP   | TBT  | CLS   |
+| ----------------- | ----------- | ------------- | -------------- | --- | ----- | ---- | ----- |
+| `/`               | 99          | 96            | 100            | 100 | 1.7 s | 0 ms | 0.001 |
+| `/docs/channels/` | 97          | 91            | 100            | 100 | 2.1 s | 0 ms | 0     |
+| `/playground/`    | 95          | 96            | 100            | 100 | 2.6 s | 0 ms | 0     |
 
 ### Stage 4. The scenes of threads and the "Board" of the playground (L)
 
