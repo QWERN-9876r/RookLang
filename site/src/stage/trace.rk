@@ -1,0 +1,45 @@
+// A trace: what a program did with its goroutines and channels, move by move. The scene plays a
+// trace and knows nothing else about the program, so a trace may be written by hand, recorded at
+// build time or come from a run in the browser.
+
+/** A goroutine; the first one of a trace is the program itself, `main`. */
+export interface Actor {
+    id string
+    label string
+}
+
+/** A channel and the room in its buffer; 0 is a channel without a buffer. */
+export interface Channel {
+    id string
+    label string
+    size number
+}
+
+/** `go f(x)`: `actor` starts the goroutine `task`. */
+export interface Go { kind "go"; actor string; task string; line number }
+
+/** An operation that cannot go on yet: a send with no room and no receiver, a receive with nothing to take. */
+export interface Wait { kind "wait"; actor string; op "send" | "receive"; channel string; line number }
+
+/**
+ * A value goes through a channel, and `actor` is who made the move. With `from` and `to` it goes
+ * from hand to hand; without `to` it goes into the buffer, without `from` out of it.
+ */
+export interface Pass { kind "pass"; actor string; channel string; from ?string; to ?string; value string; line number }
+
+/** `close(ch)`: the receivers that wait on the channel go on. */
+export interface Close { kind "close"; actor string; channel string; line number }
+
+/** The goroutine has finished. */
+export interface End { kind "end"; actor string }
+
+/** Every goroutine waits and no move is left: the program hangs. */
+export interface Stalemate { kind "stalemate" }
+
+export type Event Go | Wait | Pass | Close | End | Stalemate
+
+export interface Trace {
+    actors Actor[]
+    channels Channel[]
+    events Event[]
+}

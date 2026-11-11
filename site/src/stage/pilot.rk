@@ -1,0 +1,129 @@
+// The traces of the pilot scene, "Channels": the program of the prototype with a buffer of 0 to 4
+// in `jobs`, as its scheduler played it. Stage 2 of site/PLAN.md replaces them with traces that
+// the runtime records, and this file goes away.
+
+import { Event, Trace } from "./trace.rk"
+
+const BUFFER_0 Event[] = [
+    { kind: "go", actor: "main", task: "square-1", line: 14 },
+    { kind: "wait", actor: "square-1", op: "receive", channel: "jobs", line: 6 },
+    { kind: "go", actor: "main", task: "square-2", line: 15 },
+    { kind: "wait", actor: "square-2", op: "receive", channel: "jobs", line: 6 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-1", value: "1", line: 18 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-2", value: "2", line: 18 },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "wait", actor: "main", op: "send", channel: "jobs", line: 18 },
+    { kind: "stalemate" },
+]
+
+const BUFFER_1 Event[] = [
+    { kind: "go", actor: "main", task: "square-1", line: 14 },
+    { kind: "wait", actor: "square-1", op: "receive", channel: "jobs", line: 6 },
+    { kind: "go", actor: "main", task: "square-2", line: 15 },
+    { kind: "wait", actor: "square-2", op: "receive", channel: "jobs", line: 6 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-1", value: "1", line: 18 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-2", value: "2", line: 18 },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "3", line: 18 },
+    { kind: "wait", actor: "main", op: "send", channel: "jobs", line: 18 },
+    { kind: "stalemate" },
+]
+
+const BUFFER_2 Event[] = [
+    { kind: "go", actor: "main", task: "square-1", line: 14 },
+    { kind: "wait", actor: "square-1", op: "receive", channel: "jobs", line: 6 },
+    { kind: "go", actor: "main", task: "square-2", line: 15 },
+    { kind: "wait", actor: "square-2", op: "receive", channel: "jobs", line: 6 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-1", value: "1", line: 18 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-2", value: "2", line: 18 },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "3", line: 18 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "4", line: 18 },
+    { kind: "close", actor: "main", channel: "jobs", line: 20 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-1", to: "main", value: "1", line: 23 },
+    { kind: "pass", actor: "square-1", channel: "jobs", from: null, to: "square-1", value: "3", line: 6 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-2", to: "main", value: "4", line: 23 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "square-2", channel: "jobs", from: null, to: "square-2", value: "4", line: 6 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-1", to: "main", value: "9", line: 23 },
+    { kind: "end", actor: "square-1" },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-2", to: "main", value: "16", line: 23 },
+    { kind: "end", actor: "square-2" },
+    { kind: "end", actor: "main" },
+]
+
+const BUFFER_3 Event[] = [
+    { kind: "go", actor: "main", task: "square-1", line: 14 },
+    { kind: "wait", actor: "square-1", op: "receive", channel: "jobs", line: 6 },
+    { kind: "go", actor: "main", task: "square-2", line: 15 },
+    { kind: "wait", actor: "square-2", op: "receive", channel: "jobs", line: 6 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-1", value: "1", line: 18 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-2", value: "2", line: 18 },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "3", line: 18 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "4", line: 18 },
+    { kind: "close", actor: "main", channel: "jobs", line: 20 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-1", to: "main", value: "1", line: 23 },
+    { kind: "pass", actor: "square-1", channel: "jobs", from: null, to: "square-1", value: "3", line: 6 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-2", to: "main", value: "4", line: 23 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "square-2", channel: "jobs", from: null, to: "square-2", value: "4", line: 6 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-1", to: "main", value: "9", line: 23 },
+    { kind: "end", actor: "square-1" },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-2", to: "main", value: "16", line: 23 },
+    { kind: "end", actor: "square-2" },
+    { kind: "end", actor: "main" },
+]
+
+const BUFFER_4 Event[] = [
+    { kind: "go", actor: "main", task: "square-1", line: 14 },
+    { kind: "wait", actor: "square-1", op: "receive", channel: "jobs", line: 6 },
+    { kind: "go", actor: "main", task: "square-2", line: 15 },
+    { kind: "wait", actor: "square-2", op: "receive", channel: "jobs", line: 6 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-1", value: "1", line: 18 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: "square-2", value: "2", line: 18 },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "3", line: 18 },
+    { kind: "pass", actor: "main", channel: "jobs", from: "main", to: null, value: "4", line: 18 },
+    { kind: "close", actor: "main", channel: "jobs", line: 20 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-1", to: "main", value: "1", line: 23 },
+    { kind: "pass", actor: "square-1", channel: "jobs", from: null, to: "square-1", value: "3", line: 6 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-2", to: "main", value: "4", line: 23 },
+    { kind: "wait", actor: "square-1", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "square-2", channel: "jobs", from: null, to: "square-2", value: "4", line: 6 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-1", to: "main", value: "9", line: 23 },
+    { kind: "end", actor: "square-1" },
+    { kind: "wait", actor: "square-2", op: "send", channel: "results", line: 7 },
+    { kind: "pass", actor: "main", channel: "results", from: "square-2", to: "main", value: "16", line: 23 },
+    { kind: "end", actor: "square-2" },
+    { kind: "end", actor: "main" },
+]
+
+const EVENTS Event[][] = [BUFFER_0, BUFFER_1, BUFFER_2, BUFFER_3, BUFFER_4]
+
+/** The largest buffer of `jobs` that has a trace. */
+export const MAX_BUFFER = EVENTS.length - 1
+
+/** The game of the pilot program with `buffer` places in `jobs`. */
+export func pilotTrace(buffer number) Trace {
+    const size = Math.max(0, Math.min(MAX_BUFFER, buffer))
+    return {
+        actors: [
+            { id: "main", label: "main" },
+            { id: "square-1", label: "square 1" },
+            { id: "square-2", label: "square 2" },
+        ],
+        channels: [
+            { id: "jobs", label: "jobs", size: size },
+            { id: "results", label: "results", size: 0 },
+        ],
+        events: EVENTS[size],
+    }
+}
