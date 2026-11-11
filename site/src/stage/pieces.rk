@@ -1,0 +1,153 @@
+// The small things of the board: the buffer of a channel as tiles in front of its file, a ring
+// where a channel has no buffer, the value on its way, and the names under the files.
+
+import { ARRIVAL, FRONT, Shot, actorAt, fileX, moving, pieceX, project, statusNow } from "./camera.rk"
+import { IVORY, clamp, colourOf, mix, rgba, roundedRect } from "./paint.rk"
+import { drawCall } from "./rook-shape.rk"
+
+const MONO = "'Geist Mono Variable', ui-monospace, monospace"
+
+/** The state that the channels are drawn in: the move being played changes it on its way. */
+func channelsNow(shot Shot) { buffers string[][]; closed bool[] } {
+    const frame = shot.frame
+    const event = frame.current
+    if event == null {
+        return frame.before
+    }
+    // A value leaves the buffer when its move starts and comes into it when the move arrives.
+    const taking = event.kind == "pass" && event.from == null
+    const changed = frame.progress >= (taking ? 0.06 : ARRIVAL)
+    return changed ? frame.after : frame.before
+}
+
+/** The channels at the front of the board. */
+export func drawChannels(shot Shot) {
+    const ctx = shot.ctx
+    const view = shot.view
+    const now = channelsNow(shot)
+    const current = moving(shot)
+    for index, channel in shot.trace.channels {
+        const file = index + 1
+        const foot = project(view, fileX(view, file), FRONT)
+        if channel.size == 0 {
+            // No buffer: a ring on the board that lights up when a value goes through it.
+            const through = current != null && current.via == file
+            const near = current != null && through ? clamp(1 - Math.abs(pieceX(shot, current) - fileX(view, file)) / 0.6) : 0
+            const flat = (project(view, fileX(view, file), FRONT - 0.26).y - project(view, fileX(view, file), FRONT + 0.26).y) / 2
+            ctx.strokeStyle = rgba(mix(IVORY, colourOf(0), near), 0.32 + 0.68 * near)
+            ctx.lineWidth = 1.5 + 2 * near
+            ctx.shadowColor = rgba(colourOf(0), 1)
+            ctx.shadowBlur = 24 * near
+            ctx.beginPath()
+            ctx.ellipse(foot.x, foot.y, 0.26 * foot.scale, flat, 0, 0, Math.PI * 2)
+            ctx.stroke()
+            ctx.shadowBlur = 0
+            continue
+        }
+        const values = now.buffers[index]
+        const side = Math.min(0.24, 0.9 / channel.size - 0.05) * foot.scale
+        const gap = 0.05 * foot.scale
+        const left = foot.x - (channel.size * side + (channel.size - 1) * gap) / 2
+        for let place = 0; place < channel.size; place++ {
+            const x = left + place * (side + gap)
+            const y = foot.y - side
+            roundedRect(ctx, x, y, side, side, side * 0.2)
+            if place < values.length {
+                ctx.shadowColor = rgba(IVORY, 0.9)
+                ctx.shadowBlur = 18
+                ctx.fillStyle = "#fff3df"
+                ctx.fill()
+                ctx.shadowBlur = 0
+                ctx.fillStyle = "#1a1104"
+                ctx.font = `600 ${Math.round(side * 0.58)}px ${MONO}`
+                ctx.textAlign = "center"
+                ctx.textBaseline = "middle"
+                ctx.fillText(values[place], x + side / 2, y + side / 2 + 1)
+            } else {
+                ctx.strokeStyle = rgba(IVORY, now.closed[index] ? 0.16 : 0.38)
+                ctx.lineWidth = 1.2
+                ctx.stroke()
+            }
+        }
+    }
+}
+
+/** The value of the move being played, on its way over the rank. */
+export func drawPiece(shot Shot) {
+    const move = moving(shot)
+    if move == null {
+        return
+    }
+    const ctx = shot.ctx
+    const unit = shot.view.unit
+    const progress = shot.frame.progress
+    const call = move.value == ""
+    const gone = call ? clamp((progress - 0.5) / 0.12) : clamp((progress - 0.7) / 0.2)
+    if gone >= 1 {
+        return
+    }
+    const point = project(shot.view, pieceX(shot, move), 0, 0.2)
+    const colour = colourOf(move.colour)
+    if call {
+        drawCall(ctx, point.x, point.y, unit * 0.3, colour, 1 - gone)
+        return
+    }
+    const height = Math.max(24, unit * 0.36) * (1 - 0.45 * gone)
+    const width = height + (move.value.length > 1 ? height * 0.3 : 0)
+    ctx.save()
+    ctx.globalAlpha = 1 - gone
+    ctx.shadowColor = rgba(colour, 1)
+    ctx.shadowBlur = 26
+    ctx.fillStyle = "#17120d"
+    roundedRect(ctx, point.x - width / 2, point.y - height / 2, width, height, height * 0.24)
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.lineWidth = 2
+    ctx.strokeStyle = rgba(colour, 1)
+    ctx.stroke()
+    ctx.fillStyle = "#fff3df"
+    ctx.font = `600 ${Math.round(height * 0.5)}px ${MONO}`
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(move.value, point.x, point.y + 1)
+    ctx.restore()
+}
+
+/** The names of the files under the board, and what each one is doing. */
+export func drawNames(shot Shot) {
+    const ctx = shot.ctx
+    const view = shot.view
+    const trace = shot.trace
+    const size = clamp(view.unit * 0.1, 10, 13)
+    const closed = channelsNow(shot).closed
+    for let file = 0; file < view.files; file++ {
+        const point = project(view, fileX(view, file), -1.34)
+        const actor = actorAt(trace, file)
+        let name = ""
+        let note = ""
+        let paint = rgba(IVORY, 0.85)
+        if actor >= 0 {
+            const status = statusNow(shot, actor)
+            if status == "none" {
+                continue
+            }
+            name = trace.actors[actor].label
+            note = status == "wait" ? shot.labels.waits : status == "done" ? shot.labels.finished : ""
+            paint = rgba(colourOf(actor), status == "done" ? 0.45 : 1)
+        } else {
+            const channel = trace.channels[file - 1]
+            name = channel.label
+            note = closed[file - 1] ? shot.labels.closed : channel.size > 0 ? shot.labels.buffer(channel.size) : shot.labels.noBuffer
+        }
+        ctx.textAlign = "center"
+        ctx.textBaseline = "alphabetic"
+        ctx.fillStyle = paint
+        ctx.font = `600 ${size}px ${MONO}`
+        ctx.fillText(name, point.x, point.y)
+        if note != "" {
+            ctx.fillStyle = rgba(IVORY, 0.45)
+            ctx.font = `400 ${size - 1.5}px ${MONO}`
+            ctx.fillText(note, point.x, point.y + size * 1.35)
+        }
+    }
+}

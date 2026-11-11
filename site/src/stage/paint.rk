@@ -1,0 +1,56 @@
+// What the drawing modules of the scene share: the colours of the goroutines, and small maths.
+
+/** A colour as red, green and blue, so that its opacity can change from mark to mark. */
+export type Colour number[]
+
+/** The colours of the goroutines, `main` first: the orange of the rook, then teal, violet, rose. */
+const COLOURS Colour[] = [[245, 158, 42], [88, 201, 185], [154, 167, 255], [240, 141, 176]]
+
+export const IVORY Colour = [255, 236, 205]
+export const RED Colour = [255, 106, 85]
+export const WHITE Colour = [255, 255, 255]
+export const BLACK Colour = [0, 0, 0]
+
+/** The colour of the goroutine with this index among the actors of a trace. */
+export func colourOf(actor number) Colour {
+    return COLOURS[Math.max(0, actor) % COLOURS.length]
+}
+
+export func rgba(colour Colour, alpha number) string {
+    return `rgba(${colour[0]},${colour[1]},${colour[2]},${alpha})`
+}
+
+/** The colour as the value of the CSS variable that the styles of the stage read: `245 158 42`. */
+export func cssColour(colour Colour) string {
+    return colour.join(" ")
+}
+
+/** `colour` moved towards `other` by `amount`, from 0 to 1. */
+export func mix(colour Colour, other Colour, amount number) Colour {
+    return colour.map((value, i) => Math.round(value + (other[i] - value) * amount))
+}
+
+export func clamp(value number, low number = 0, high number = 1) number {
+    return Math.max(low, Math.min(high, value))
+}
+
+export func lerp(from number, to number, amount number) number {
+    return from + (to - from) * amount
+}
+
+/** Slow at both ends, for a piece that starts and stops. */
+export func ease(amount number) number {
+    return amount < 0.5 ? 4 * amount * amount * amount : 1 - Math.pow(-2 * amount + 2, 3) / 2
+}
+
+/**
+ * The layers of a line of light, from the wide faint glow to the thin bright core: the half width
+ * in squares of the board and the opacity of each.
+ */
+export const GLOW number[][] = [[0.17, 0.05], [0.07, 0.15], [0.022, 0.95]]
+
+/** A rounded rectangle as the current path. */
+export func roundedRect(ctx CanvasRenderingContext2D, x number, y number, width number, height number, radius number) {
+    ctx.beginPath()
+    ctx.roundRect(x, y, width, height, radius)
+}

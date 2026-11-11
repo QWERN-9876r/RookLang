@@ -1,6 +1,8 @@
 // Раздел «Каналы» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { CHANNELS } from "../../stage/channels.rk"
+import { Stage } from "../../stage/stage.rk"
 
 export comp Channels() {
     return <>
@@ -22,4 +24,9 @@ export comp Channels() {
         </p>
         <Example name="channels" />
     </>
+}
+
+/** Сцена над разделом: его программа сыграна на доске по ходам. */
+export comp ChannelsStage() {
+    return <Stage title="Каналы" program={CHANNELS} />
 }

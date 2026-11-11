@@ -95,7 +95,7 @@ const SECTION_IDS = `(() => {
  * first paragraph of a section of the guide, by the line of an example in the list.
  */
 const ONE_SECTION = `(() => {
-  for (const hidden of document.querySelectorAll('article[hidden]')) hidden.remove();
+  for (const hidden of document.querySelectorAll('article[hidden], [data-stage][hidden]')) hidden.remove();
   const source = document.querySelector('article p') ?? document.querySelector('[aria-current="page"] span');
   const text = (source?.textContent ?? '').replace(/\\s+/g, ' ').trim();
   if (text === '') return;

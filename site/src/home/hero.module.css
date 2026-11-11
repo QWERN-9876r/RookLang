@@ -1,64 +1,11 @@
-/* The first screen: the board, goroutines falling down its lines like light, a glow in the color
-   of the rook, and the title over them. */
-
-.hero {
-  position: relative;
-  overflow: hidden;
-  padding: 120px 0 112px;
-}
-
-/* A goroutine: a short trail of light running down a line of the board, again and again. */
-.lane {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(50% - 40px + var(--x) * 80px);
-  width: 1px;
-}
-
-.lane::after {
-  content: '';
-  position: absolute;
-  top: -200px;
-  left: -0.5px;
-  width: 2px;
-  height: 200px;
-  border-radius: 2px;
-  background: linear-gradient(to bottom, transparent, rgb(245 158 42 / 70%) 75%, #ffd9a0);
-  filter: drop-shadow(0 0 6px rgb(245 158 42 / 90%));
-  animation: run var(--seconds) linear var(--delay) infinite;
-}
-
-@keyframes run {
-  from {
-    top: -200px;
-  }
-
-  to {
-    top: 100%;
-  }
-}
-
-.glow {
-  position: absolute;
-  top: -260px;
-  left: 50%;
-  width: min(1000px, 120vw);
-  height: 620px;
-  background: radial-gradient(closest-side, rgb(245 158 42 / 16%), transparent);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
+/* The words of the first screen, at the left of the board (stage/stage.module.css lays the two
+   out): the news, the title, what Rook is, the ways in and the install. */
 
 .content {
-  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  max-width: 920px;
-  margin: 0 auto;
-  padding: 0 var(--rui-gutter);
-  text-align: center;
+  align-items: flex-start;
+  min-width: 0;
 }
 
 .news {
@@ -95,7 +42,7 @@
 
 .title {
   margin: 28px 0 0;
-  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-size: clamp(2.6rem, 5.2vw, 4.4rem);
   font-weight: 700;
   line-height: 1.02;
   letter-spacing: -0.055em;
@@ -118,7 +65,7 @@
 }
 
 .lead {
-  max-width: 640px;
+  max-width: 520px;
   margin: 24px 0 0;
   color: var(--rui-muted);
   font-size: clamp(1.05rem, 2vw, 1.2rem);
@@ -128,7 +75,6 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 12px;
   margin-top: 36px;
 }
@@ -147,15 +93,27 @@
   font-size: 0.85rem;
 }
 
+/* The way to the same game in the guide, with its code and its line of moves. */
+.more {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 22px;
+  color: var(--rui-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.more:hover {
+  color: var(--rui-accent-strong);
+}
+
 .prompt {
   color: var(--rui-subtle);
 }
 
 @media (max-width: 640px) {
-  .hero {
-    padding: 72px 0 80px;
-  }
-
   .news {
     font-size: 0.8rem;
   }

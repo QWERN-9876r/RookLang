@@ -44,6 +44,8 @@
 
   --rui-font: 'Geist Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --rui-mono: 'Geist Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* The display font: the title of a scene and the word of a stalemate. */
+  --rui-display: 'Unbounded Variable', var(--rui-font);
 
   font-family: var(--rui-font);
   color: var(--rui-text);

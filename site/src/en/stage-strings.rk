@@ -1,0 +1,39 @@
+// Texts of the scene of a section, in English. In a caption, text between backticks is code.
+
+import { StageStrings } from "../stage/strings.rk"
+
+export const STAGE StageStrings = {
+    lead: "The files of the board are goroutines and channels. Every message is a move along a rank.",
+    javascript: "JavaScript",
+    startLabel: "the game begins",
+    start: "One rook is on the board, `main`. The channels are empty.",
+    moveLabel: (move, count, who) => `move ${move} of ${count} · ${who}`,
+    won: "1–0",
+    stalemateLabel: "stalemate · ½–½",
+    stalemateWord: "STALEMATE",
+    stalemate: "Everyone waits for someone else and no move is left. The program hangs.",
+    hint: "Click the number in the code. With a buffer of 1 the game ends in a stalemate.",
+    hintStalemate: "A stalemate. Click the number again to change the buffer.",
+    liveNumber: value => `The buffer of the channel: ${value}. Click to change it`,
+    play: "Play the game",
+    pause: "Pause",
+    timeline: "The move of the game",
+    labels: {
+        waits: "waits",
+        finished: "finished",
+        closed: "closed",
+        noBuffer: "no buffer",
+        buffer: size => `buffer ${size}`,
+    },
+    go: task => `\`go\` puts a new rook on the board: ${task} runs in a thread of its own.`,
+    waitReceive: (who, channel) => `${who} waits to receive from \`${channel}\`: the channel is empty.`,
+    waitNoBuffer: (who, channel) => `${who} sends to \`${channel}\`. It has no buffer, so ${who} waits for a receiver.`,
+    waitFull: (who, channel) => `${who} sends to \`${channel}\`, but its buffer is full. ${who} waits for room.`,
+    handSend: (channel, value, to) => `\`${channel} <- ${value}\`: ${to} was already waiting and gets the value at once.`,
+    handReceive: (channel, to, value, from) => `\`<-${channel}\`: ${to} meets ${from}, who was waiting, and takes ${value}.`,
+    intoBuffer: (channel, value, used, size) => `\`${channel} <- ${value}\`: nobody waits, so the value goes into the buffer. ${used} of ${size} taken.`,
+    outOfBuffer: (who, value, channel) => `${who} takes ${value} from the buffer of \`${channel}\`.`,
+    close: channel => `\`close(${channel})\`: no more values will come. What is in the buffer can still be received.`,
+    end: who => `The channel is closed and empty: the loop of ${who} is over.`,
+    endMain: "Every result is received. The game is played.",
+}

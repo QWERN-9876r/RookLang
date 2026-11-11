@@ -2,7 +2,7 @@
 // component in a file of its own in guide/, which the page shows with <section.content />; the
 // examples are files in site/examples.
 
-import { Section } from "../i18n.rk"
+import { Section, SectionStage } from "../i18n.rk"
 import { Intro } from "./guide/intro.rk"
 import { Variables } from "./guide/variables.rk"
 import { Numbers } from "./guide/numbers.rk"
@@ -18,7 +18,7 @@ import { Make } from "./guide/make.rk"
 import { Modules } from "./guide/modules.rk"
 import { Async } from "./guide/async.rk"
 import { Goroutines } from "./guide/goroutines.rk"
-import { Channels } from "./guide/channels.rk"
+import { Channels, ChannelsStage } from "./guide/channels.rk"
 import { Select } from "./guide/select.rk"
 import { Streams } from "./guide/streams.rk"
 import { Topics } from "./guide/topics.rk"
@@ -75,4 +75,9 @@ export const SECTIONS Section[] = [
     { id: "server-components", title: "Components on the server", group: "Markup and components", content: ServerComponents },
     { id: "tools", title: "Tools", group: "More", content: Tools },
     { id: "adoption", title: "Rook in an existing project", group: "More", content: Adoption },
+]
+
+/** The sections that open with a scene, above their text. */
+export const STAGES SectionStage[] = [
+    { id: "channels", content: ChannelsStage },
 ]

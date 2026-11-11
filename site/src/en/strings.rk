@@ -2,6 +2,7 @@
 
 import { Strings } from "../i18n.rk"
 import { HOME } from "./home-strings.rk"
+import { STAGE } from "./stage-strings.rk"
 
 export const STRINGS Strings = {
     tagline: "JavaScript on every core.",
@@ -62,6 +63,7 @@ export const STRINGS Strings = {
     copied: "Copied",
     terminal: "Terminal",
     home: HOME,
+    stage: STAGE,
     playgroundStart: `// The code compiles on every change. "Run" (Ctrl+Enter) runs it:
 // document.body is the result area, and console.log prints below it.
 

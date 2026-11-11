@@ -1,0 +1,121 @@
+/* The card with the code of a scene: the tabs, the lines with the place of each goroutine and the
+   line of the move, the number the reader can change, and the hint under the card. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--rui-line);
+  border-radius: 16px;
+  background: rgb(20 16 12 / 68%);
+  box-shadow: 0 40px 90px rgb(0 0 0 / 55%);
+  backdrop-filter: blur(14px);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px 0;
+}
+
+.tab {
+  padding: 5px 11px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--rui-subtle);
+  font: 600 12px var(--rui-mono);
+  cursor: pointer;
+}
+
+.active {
+  background: rgb(255 236 205 / 8%);
+  color: var(--rui-text);
+}
+
+.code,
+.output {
+  overflow: auto;
+  font-family: var(--rui-mono);
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+}
+
+.code {
+  padding: 10px 0 14px;
+  font-size: 13px;
+  line-height: 1.78;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 34px auto;
+  min-width: max-content;
+  min-height: 1.78em;
+  padding-right: 18px;
+}
+
+.now {
+  background: linear-gradient(90deg, rgb(var(--c) / 26%), rgb(var(--c) / 0%) 85%);
+  box-shadow: inset 2px 0 0 rgb(var(--c));
+}
+
+.dots {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 9px;
+}
+
+/* Where a goroutine is in the code: filled while it runs, a ring while it waits. */
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgb(var(--c));
+  box-shadow: 0 0 8px rgb(var(--c));
+}
+
+.waiting {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px rgb(var(--c));
+}
+
+.source {
+  color: var(--rui-code-text);
+  white-space: pre;
+}
+
+/* The number the reader can change. */
+.live {
+  padding: 0 7px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--rui-accent);
+  color: var(--rui-on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  animation: ping 2.2s ease-out infinite;
+}
+
+@keyframes ping {
+  from {
+    box-shadow: 0 0 0 0 rgb(245 158 42 / 60%);
+  }
+
+  70%,
+  to {
+    box-shadow: 0 0 0 10px rgb(245 158 42 / 0%);
+  }
+}
+
+.hint {
+  margin: 0;
+  padding: 0 4px;
+  color: var(--rui-muted);
+  font-size: 13px;
+}

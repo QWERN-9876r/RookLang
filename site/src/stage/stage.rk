@@ -1,0 +1,332 @@
+// The scene of a section of the guide: a board in perspective where the program is played move by
+// move, the code beside it with the line of the move and the place of each goroutine, one caption
+// for the move, and the line of moves to play, stop and drag. The canvas draws the game; all the
+// text is in the page, where the search of the guide and screen readers find it.
+
+import { CompiledView } from "../compiled-view.rk"
+import { highlight } from "../highlight.rk"
+import { text } from "../i18n.rk"
+import { makeDust } from "./board.rk"
+import { Shot, View, viewOf } from "./camera.rk"
+import { captionOf, markOf, partsOf } from "./captions.rk"
+import { RED, clamp, colourOf, cssColour } from "./paint.rk"
+import { drawScene } from "./scene.rk"
+import { files, frameAt, isStalemate, moveOf, snapshots } from "./state.rk"
+import { Trace } from "./trace.rk"
+import code from "./code-card.module.css"
+import styles from "./stage.module.css"
+
+/** How long a move takes, in milliseconds. */
+const PACE = 1250
+
+/** How long the end of a game stays before it is played again; a stalemate stays longer. */
+const REST = 2800
+const STALEMATE_REST = 4200
+
+/** Where the live number is in a line of the code. */
+const LIVE = "§"
+
+const PLAY = "M8.5 5v14l11-7z"
+const PAUSE = "M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"
+
+/** A program the scene plays: its code with one number the reader can change, and its games. */
+export interface Program {
+    /** The lines of the code; `§` in one of them is the place of the live number. */
+    lines string[]
+    /** The number the scene starts with, and the one that comes after another on a click. */
+    initial number
+    next func(number) number
+    /** The game of the program with this number. */
+    trace func(number) Trace
+}
+
+/**
+ * `hero` turns the scene into the first screen of the home page: what is given stands in the place
+ * of the card with the code, and the game plays by itself, without its title and its line of moves.
+ */
+export comp Stage(title string, program Program, hero ?Content = null) {
+    const strings = text().stage
+    // The reader asked the system for less motion: a still frame, moved only by the line of moves.
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches
+    const dust = makeDust()
+    state value = program.initial
+    state tab = "rook"
+    /** The move that the caption and the code show; -1 before the first one. */
+    state shown = -1
+    state playing = !still
+    derived trace = program.trace(value)
+    derived states = snapshots(trace)
+    derived moves = trace.events.map(event => moveOf(trace, event))
+    derived caption = captionOf(strings, trace, states, shown)
+    derived mark = markOf(trace, shown)
+    derived snapshot = states[Math.min(shown + 1, states.length - 1)]
+    derived source = program.lines.join("\n").replace(LIVE, `${value}`)
+    ref inner
+    ref scene
+    ref canvas
+    ref column
+    ref word
+    ref label
+    ref words
+    ref track
+    ref head
+
+    // The moment of the game: the number of moves played, with a fraction for the one in play.
+    let time = 0
+    // Whether the game starts again by itself after its end: until the reader takes the controls.
+    let loop = true
+    let endedAt = 0
+    let onScreen = true
+    let view ?View = null
+    let context ?CanvasRenderingContext2D = null
+
+    func layout() {
+        const box = scene.getBoundingClientRect()
+        if box.width == 0 || context == null {
+            return
+        }
+        const ratio = Math.min(devicePixelRatio, 2)
+        canvas.width = Math.round(box.width * ratio)
+        canvas.height = Math.round(box.height * ratio)
+        context.setTransform(ratio, 0, 0, ratio, 0, 0)
+        // Beside the scene, the card with the code covers the left of the canvas.
+        const card = column.getBoundingClientRect()
+        const left = card.top < box.bottom && card.bottom > box.top ? card.right - box.left + 16 : 0
+        const bounds = inner.getBoundingClientRect()
+        view = viewOf(box.width, box.height, left, bounds.right - box.left, files(trace).length)
+        scene.style.setProperty("--centre", `${view.centre}px`)
+    }
+
+    func paint(now number) {
+        if view == null || context == null {
+            return
+        }
+        const count = trace.events.length
+        const frame = frameAt(trace, states, time)
+        const shot Shot = {
+            ctx: context, view: view, trace: trace, states: states, moves: moves, frame: frame,
+            t: time, now: now, moving: !still, labels: strings.labels,
+        }
+        const stalemate = drawScene(shot, dust)
+        word.classList.toggle(styles.wordOn, stalemate > 0.15)
+        head.style.left = `${time / count * 100}%`
+        // The caption is about the move in play, or the last one played.
+        const index = frame.index >= count ? count - 1 : frame.progress > 0.001 ? frame.index : frame.index - 1
+        if index != shown {
+            shown = index
+        }
+    }
+
+    func seek(to number) {
+        playing = false
+        loop = false
+        time = clamp(to, 0, trace.events.length)
+        paint(performance.now())
+    }
+
+    func toggle() {
+        if !playing && time >= trace.events.length {
+            time = 0
+        }
+        playing = !playing
+        loop = false
+    }
+
+    func change() {
+        value = program.next(value)
+        time = 0
+        loop = true
+        playing = !still
+        paint(performance.now())
+    }
+
+    func scrub(event PointerEvent) {
+        const box = track.getBoundingClientRect()
+        seek((event.clientX - box.left) / box.width * trace.events.length)
+    }
+
+    func press(event PointerEvent) {
+        track.setPointerCapture(event.pointerId)
+        scrub(event)
+    }
+
+    func drag(event PointerEvent) {
+        if track.hasPointerCapture(event.pointerId) {
+            scrub(event)
+        }
+    }
+
+    func step(event KeyboardEvent) {
+        if event.key == "ArrowRight" {
+            event.preventDefault()
+            seek(Math.floor(time) + 1)
+        } else if event.key == "ArrowLeft" {
+            event.preventDefault()
+            seek(Math.ceil(time) - 1)
+        }
+    }
+
+    // A new caption comes in with its animation, which starts again for each move.
+    effect {
+        if shown >= -1 {
+            for element in [label, words] {
+                element.style.animation = "none"
+                element.getBoundingClientRect()
+                element.style.animation = ""
+            }
+        }
+    }
+
+    mount {
+        context = canvas.getContext("2d")
+        // The first frame is in the middle of the game, with its history behind the rooks.
+        time = Math.min(still ? 14 : 11, trace.events.length)
+        layout()
+        const redraw = () => {
+            layout()
+            paint(performance.now())
+        }
+        const sizes = new ResizeObserver(redraw)
+        sizes.observe(scene)
+        const watcher = new IntersectionObserver(entries => {
+            onScreen = entries[0].isIntersecting
+        })
+        watcher.observe(scene)
+        document.fonts.ready.then(redraw)
+
+        let request = 0
+        let last = performance.now()
+        func tick(now number) {
+            const passed = Math.min(now - last, 60)
+            const count = trace.events.length
+            last = now
+            if playing {
+                if time < count {
+                    time = Math.min(count, time + passed / PACE)
+                    endedAt = now
+                } else if !loop {
+                    playing = false
+                } else if now - endedAt > (isStalemate(trace) ? STALEMATE_REST : REST) {
+                    time = 0
+                }
+            }
+            // A scene that is off the screen, or in a tab that is not shown, draws nothing.
+            if onScreen && !document.hidden {
+                paint(now)
+            }
+            request = requestAnimationFrame(tick)
+        }
+        if still {
+            paint(0)
+        } else {
+            request = requestAnimationFrame(tick)
+        }
+        defer {
+            cancelAnimationFrame(request)
+            sizes.disconnect()
+            watcher.disconnect()
+        }
+    }
+
+    return <section class={[styles.stage, hero != null ? styles.home : null]} aria-label={title}>
+        <div class={styles.frame} ref={inner}>
+            <div class={styles.scene} ref={scene}>
+                <canvas class={styles.canvas} ref={canvas} aria-hidden="true" />
+                <div class={styles.headline} aria-hidden="true">
+                    <div class={styles.title}>{title}</div>
+                    <p class={styles.lead}>{strings.lead}</p>
+                </div>
+                <div class={styles.word} ref={word} aria-hidden="true">{strings.stalemateWord}</div>
+            </div>
+
+            <div class={styles.column} ref={column}>
+                {if hero != null {
+                    <div class={styles.intro}>{hero}</div>
+                } else {
+                    <>
+                        <div class={code.card}>
+                            <div class={code.tabs} role="tablist">
+                                <button class={[code.tab, tab == "rook" ? code.active : null]} type="button" role="tab" aria-selected={tab == "rook"} onClick={tab = "rook"}>
+                                    Rook
+                                </button>
+                                <button class={[code.tab, tab == "js" ? code.active : null]} type="button" role="tab" aria-selected={tab == "js"} onClick={tab = "js"}>
+                                    {strings.javascript}
+                                </button>
+                            </div>
+                            {if tab == "rook" {
+                                <div class={code.code}>
+                                    {for i, line in program.lines {
+                                        <div class={[code.line, mark.line == i + 1 ? code.now : null]} style={`--c: ${cssColour(colourOf(mark.actor))}`}>
+                                            <span class={code.dots}>
+                                                {for actor, at in snapshot.lines {
+                                                    if at == i + 1 && snapshot.statuses[actor] != "done" {
+                                                        <i class={[code.dot, snapshot.statuses[actor] == "wait" ? code.waiting : null]} style={`--c: ${cssColour(colourOf(actor))}`} />
+                                                    }
+                                                }}
+                                            </span>
+                                            <span class={code.source}>
+                                                {if line.includes(LIVE) {
+                                                    <>
+                                                        {highlight(line.split(LIVE)[0], "rook")}
+                                                        <button class={code.live} type="button" aria-label={strings.liveNumber(value)} onClick={change()}>{value}</button>
+                                                        {highlight(line.split(LIVE)[1], "rook")}
+                                                    </>
+                                                } else {
+                                                    <>{highlight(line, "rook")}</>
+                                                }}
+                                            </span>
+                                        </div>
+                                    }}
+                                </div>
+                            } else {
+                                <div class={code.output}><CompiledView source={source} /></div>
+                            }}
+                        </div>
+                        <p class={code.hint}>{isStalemate(trace) ? strings.hintStalemate : strings.hint}</p>
+                    </>
+                }}
+            </div>
+
+            <div class={styles.hud}>
+                <div class={styles.label} ref={label}>{caption.label}</div>
+                <p class={styles.caption} ref={words} aria-live="polite">
+                    {for part in partsOf(caption.text) {
+                        if part.code {
+                            <code>{part.text}</code>
+                        } else {
+                            <span>{part.text}</span>
+                        }
+                    }}
+                </p>
+                <div class={styles.timeline}>
+                    <button class={styles.play} type="button" aria-label={playing ? strings.pause : strings.play} onClick={toggle()}>
+                        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                            <path d={playing ? PAUSE : PLAY} fill="currentColor" />
+                        </svg>
+                    </button>
+                    <div
+                        class={styles.track}
+                        ref={track}
+                        role="slider"
+                        tabindex={0}
+                        aria-label={strings.timeline}
+                        aria-valuemin="0"
+                        aria-valuemax={trace.events.length}
+                        aria-valuenow={shown + 1}
+                        onPointerDown={press(event)}
+                        onPointerMove={drag(event)}
+                        onKeyDown={step(event)}
+                    >
+                        {for i, event in trace.events {
+                            <i
+                                class={[styles.tick, i <= shown ? styles.on : null]}
+                                style={`left: ${(i + 1) / trace.events.length * 100}%; --c: ${cssColour(event.kind == "stalemate" ? RED : colourOf(markOf(trace, i).actor))}`}
+                            />
+                        }}
+                        <i class={styles.head} ref={head} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}

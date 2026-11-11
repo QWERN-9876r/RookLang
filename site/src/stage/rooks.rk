@@ -1,0 +1,171 @@
+// What each rook does. It comes from the move being played and how far it is, never from what was
+// drawn before, so the line of moves can be dragged: a new rook falls from the sky and lands, the
+// sender throws the value, the receiver catches it, a waiting rook stands in a turning ring, a
+// finished one sinks into the board, and in a stalemate all of them go red.
+
+import { ARRIVAL, FRONT, Shot, actorAt, actorFile, fileX, project } from "./camera.rk"
+import { Colour, RED, clamp, colourOf, ease, lerp, mix } from "./paint.rk"
+import { isStalemate } from "./state.rk"
+
+/** How a rook stands in a frame. Lengths are in widths of the rook. */
+export interface Pose {
+    /** Where its foot is on the canvas, and its width in pixels. */
+    x number
+    y number
+    size number
+    colour Colour
+    /** False for a rook that is not on the board. */
+    shown bool
+    alpha number
+    /** Its width and height against the usual, for a squash on landing and a stretch on a throw. */
+    wide number
+    tall number
+    tilt number
+    /** How high it is above the board, and how deep it has sunk into it, from 0 to 1. */
+    lift number
+    sink number
+    /** A shake to the side, in pixels. */
+    shift number
+    /** The flash of a rook that got something, from 0 to 1. */
+    glow number
+    /** How much it waits, from 0 to 1: the ring around it. */
+    wait number
+    /** How red it is, from 0 to 1: a stalemate. */
+    red number
+    /** The ring that runs from a landing or a catch, and the sparks: from 0 to 1, -1 without. */
+    wave number
+    sparks number
+    /** How far the ring and the sparks go against the usual. */
+    reach number
+    /** The beam a new rook falls in, from 0 to 1. */
+    beam number
+    /** What a finished rook leaves on its square, from 0 to 1. */
+    ember number
+}
+
+func squash(pose Pose, amount number) {
+    pose.tall = 1 - amount
+    pose.wide = 1 + amount * 0.65
+}
+
+/** The pose of the rook of an actor in this frame. */
+func poseOf(shot Shot, actor number) Pose {
+    const frame = shot.frame
+    const event = frame.current
+    const progress = frame.progress
+    const foot = project(shot.view, fileX(shot.view, actorFile(shot.trace, actor)), FRONT)
+    const before = frame.before.statuses[actor]
+    const after = frame.after.statuses[actor]
+    // A shake of its own for each rook, so that they do not move as one.
+    const shake = shot.moving ? Math.sin(shot.now * 0.07 + actor * 2) * foot.scale * 0.6 : 0
+    const pose Pose = {
+        x: foot.x, y: foot.y, size: foot.scale * 0.6, colour: colourOf(actor), shown: true, alpha: 1,
+        wide: 1, tall: 1, tilt: 0, lift: 0, sink: 0, shift: 0, glow: 0, wait: 0, red: 0,
+        wave: -1, sparks: -1, reach: 1, beam: 0, ember: 0,
+    }
+
+    if before == "none" {
+        if after == "none" {
+            pose.shown = false
+            return pose
+        }
+        // `go`: a beam comes down on the file, and the new rook falls in it and lands.
+        pose.beam = Math.sin(clamp((progress - 0.4) / 0.5) * Math.PI)
+        if progress < 0.5 {
+            pose.shown = false
+            return pose
+        }
+        const fall = clamp((progress - 0.5) / 0.3)
+        pose.lift = 3.2 * (1 - fall * fall)
+        if progress >= 0.8 {
+            const landed = clamp((progress - 0.8) / 0.2)
+            squash(pose, 0.3 * Math.sin(landed * Math.PI * 2.2) * Math.exp(-3 * landed))
+            pose.wave = landed
+            pose.sparks = landed
+            pose.glow = (1 - landed) * 0.8
+        }
+        return pose
+    }
+    if before == "done" && actor != 0 {
+        pose.shown = false
+        pose.ember = 1
+        return pose
+    }
+
+    const changing = event == null ? 0 : clamp((progress - 0.6) / 0.4)
+    pose.wait = lerp(before == "wait" ? 1 : 0, after == "wait" ? 1 : 0, changing)
+    pose.alpha = 1 - 0.5 * pose.wait
+    if event == null {
+        if isStalemate(shot.trace) {
+            pose.red = 1
+            pose.alpha = 0.9
+            pose.shift = shake * 0.01
+        } else if actor == 0 && shot.moving {
+            // The game is won: the rook of `main` keeps a slow light.
+            pose.glow = 0.14 + 0.1 * Math.sin(shot.now * 0.003)
+        }
+        return pose
+    }
+    if event.kind == "stalemate" {
+        pose.red = progress
+        pose.alpha = lerp(pose.alpha, 0.9, progress)
+        pose.shift = shake * 0.02 * progress
+        return pose
+    }
+    if event.kind == "end" && shot.trace.actors[actor].id == event.actor {
+        if actor != 0 {
+            pose.sink = ease(progress)
+            pose.ember = progress
+            return pose
+        }
+        // `main` has finished: it jumps, and a wide ring runs over the board.
+        pose.lift = 0.5 * Math.abs(Math.sin(progress * Math.PI * 2)) * (1 - progress)
+        pose.glow = 0.9 * (1 - progress) + 0.2
+        pose.wave = progress
+        pose.sparks = progress
+        pose.reach = 3.2
+        return pose
+    }
+
+    const move = shot.moves[frame.index]
+    if move == null {
+        return pose
+    }
+    const direction = Math.sign(move.to - move.from)
+    if actorAt(shot.trace, move.from) == actor {
+        // The sender crouches, then leans after the value and hops.
+        if progress < 0.08 {
+            const ready = progress / 0.08
+            squash(pose, 0.1 * ready)
+            pose.tilt = -direction * 0.05 * ready
+        } else {
+            const thrown = clamp((progress - 0.08) / 0.3)
+            const swing = Math.sin(thrown * Math.PI)
+            pose.tilt = direction * 0.15 * swing * (1 - thrown * 0.3)
+            squash(pose, -0.08 * swing)
+            pose.lift = 0.08 * swing
+            pose.glow = 0.5 * (1 - thrown)
+        }
+    }
+    if actorAt(shot.trace, move.to) == actor && progress >= ARRIVAL - 0.02 {
+        // The receiver rocks back from what it caught, flashes, and a ring runs from it.
+        const caught = clamp((progress - ARRIVAL + 0.02) / 0.34)
+        const swing = Math.sin(caught * Math.PI * 2.4) * Math.exp(-3.2 * caught)
+        pose.tilt = direction * 0.13 * swing
+        squash(pose, 0.12 * swing)
+        pose.glow = (1 - caught) * (1 - caught)
+        pose.wave = caught
+        pose.sparks = caught
+    }
+    return pose
+}
+
+/** The colour a pose is drawn in: red comes over it in a stalemate. */
+export func tint(pose Pose) Colour {
+    return pose.red > 0 ? mix(pose.colour, RED, pose.red) : pose.colour
+}
+
+/** The poses of the rooks of all the goroutines of the trace, in their order. */
+export func posesOf(shot Shot) Pose[] {
+    return shot.trace.actors.map((actor, i) => poseOf(shot, i))
+}

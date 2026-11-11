@@ -2,6 +2,7 @@
 
 import { Strings } from "../i18n.rk"
 import { HOME } from "./home-strings.rk"
+import { STAGE } from "./stage-strings.rk"
 
 export const STRINGS Strings = {
     tagline: "JavaScript на всех ядрах.",
@@ -62,6 +63,7 @@ export const STRINGS Strings = {
     copied: "Скопировано",
     terminal: "Терминал",
     home: HOME,
+    stage: STAGE,
     playgroundStart: `// Код компилируется при каждом изменении. «Запустить» (Ctrl+Enter) выполнит его:
 // document.body — это область результата, а console.log выводит текст под ней.
 

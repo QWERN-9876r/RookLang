@@ -1,0 +1,157 @@
+// The board in perspective. A point of the board is (x, z): x across the files, in squares from
+// the middle of the board, and z into the distance, in moves: the move being played is at z = 0,
+// and each played move goes one square back. `y` is the height above the board, in squares.
+
+import { clamp, ease, lerp } from "./paint.rk"
+import { Frame, Move, Snapshot, Status } from "./state.rk"
+import { Trace } from "./trace.rk"
+
+/** The nearest and the farthest rank that is drawn, and the rank where the rooks stand. */
+export const NEAR = -1.1
+export const FAR = 26
+export const FRONT = -0.5
+
+/** How the board lies in the canvas. */
+export interface View {
+    width number
+    height number
+    /** The number of files. */
+    files number
+    /** Where the middle of the board is across the canvas, and the height of the horizon. */
+    centre number
+    horizon number
+    /** The width of a square at z = 0, in pixels. */
+    unit number
+    /** The distance of the eye from z = 0, in squares, and what projection multiplies by. */
+    depth number
+    focal number
+    rise number
+}
+
+/** A point of the canvas, and how many pixels a square takes at its depth. */
+export interface Point {
+    x number
+    y number
+    scale number
+}
+
+/**
+ * The view for a canvas where the board has the room from `left` to `right`: the card with the code
+ * is before it, and on a wide screen the canvas goes on after the content of the page.
+ */
+export func viewOf(width number, height number, left number, right number, files number) View {
+    const room = right - left
+    const horizon = height * 0.27
+    // The front edge of the board is 1.28 times wider than its rank at z = 0.
+    const unit = Math.min(room * 0.68 / files, height * 0.18)
+    const depth = 5
+    return {
+        width: width,
+        height: height,
+        files: files,
+        centre: left + room / 2,
+        horizon: horizon,
+        unit: unit,
+        depth: depth,
+        focal: unit * depth,
+        rise: (height * 0.6 - horizon) * depth,
+    }
+}
+
+export func project(view View, x number, z number, y number = 0) Point {
+    const distance = z + view.depth
+    const scale = view.focal / distance
+    return { x: view.centre + x * scale, y: view.horizon + view.rise / distance - y * scale, scale: scale }
+}
+
+/** The x of the middle of a file. */
+export func fileX(view View, file number) number {
+    return file - (view.files - 1) / 2
+}
+
+/** How much of a mark is left at depth `z`: the far ranks fade into the dark. */
+export func fog(z number) number {
+    return Math.pow(clamp(1 - (z - NEAR) / (FAR - NEAR + 1)), 1.7)
+}
+
+/** Fills the part of the board between two files' x and two depths. */
+export func quad(ctx CanvasRenderingContext2D, view View, x1 number, z1 number, x2 number, z2 number) {
+    const a = project(view, x1, z1)
+    const b = project(view, x2, z1)
+    const c = project(view, x2, z2)
+    const d = project(view, x1, z2)
+    ctx.beginPath()
+    ctx.moveTo(a.x, a.y)
+    ctx.lineTo(b.x, b.y)
+    ctx.lineTo(c.x, c.y)
+    ctx.lineTo(d.x, d.y)
+    ctx.closePath()
+    ctx.fill()
+}
+
+/** The words the canvas writes under the files. */
+export interface Labels {
+    waits string
+    finished string
+    closed string
+    noBuffer string
+    buffer func(number) string
+}
+
+/** Everything one frame is drawn from. */
+export interface Shot {
+    ctx CanvasRenderingContext2D
+    view View
+    trace Trace
+    states Snapshot[]
+    /** The move of each event of the trace on the board, or null. */
+    moves (?Move)[]
+    frame Frame
+    /** The moment: the number of moves played, with a fraction for the one being played. */
+    t number
+    /** The time of the frame in milliseconds, for what moves by itself. */
+    now number
+    /** False when the reader asked for less motion: nothing moves by itself. */
+    moving bool
+    labels Labels
+}
+
+/** A move reaches its goal at this part of its time; the rest is the answer of who got it. */
+export const ARRIVAL = 0.68
+
+/** The file of an actor of the trace: `main` is the first, the others come after the channels. */
+export func actorFile(trace Trace, actor number) number {
+    return actor == 0 ? 0 : trace.channels.length + actor
+}
+
+/** The actor whose file this is, or -1 for the file of a channel. */
+export func actorAt(trace Trace, file number) number {
+    if file == 0 {
+        return 0
+    }
+    return file > trace.channels.length ? file - trace.channels.length : -1
+}
+
+/** What each goroutine is doing now: the move being played changes it when it arrives. */
+export func statusNow(shot Shot, actor number) Status {
+    const frame = shot.frame
+    const late = frame.current != null && frame.progress >= ARRIVAL
+    return (late ? frame.after : frame.before).statuses[actor]
+}
+
+/** The move being played, once it has left its file; null before that and without one. */
+export func moving(shot Shot) ?Move {
+    const frame = shot.frame
+    if frame.current == null || frame.progress <= 0.03 {
+        return null
+    }
+    return shot.moves[frame.index]
+}
+
+/** Where the piece of the move being played is across the board, as an x. */
+export func pieceX(shot Shot, move Move) number {
+    // The call of a goroutine runs faster: the new rook needs time to land.
+    const time = move.value == "" ? 0.44 : 0.62
+    const way = ease(clamp((shot.frame.progress - 0.06) / time))
+    return lerp(fileX(shot.view, move.from), fileX(shot.view, move.to), way)
+}

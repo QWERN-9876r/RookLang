@@ -1,0 +1,131 @@
+// The history of the game as light: the lane of each goroutine runs from where it was started to
+// its rook, solid while it runs and dashed while it waits, and each played move is a bridge
+// between two files that goes back with the board.
+
+import { FAR, FRONT, Shot, View, actorFile, fileX, fog, moving, pieceX, project, quad, statusNow } from "./camera.rk"
+import { Colour, GLOW, WHITE, colourOf, mix, rgba } from "./paint.rk"
+import { Status } from "./state.rk"
+
+/** A part of a lane between two depths, the far one first, with one status all along. */
+interface Stretch {
+    far number
+    near number
+    status Status
+}
+
+func runLane(ctx CanvasRenderingContext2D, view View, x number, far number, near number, colour Colour) {
+    const top = project(view, 0, far).y
+    const bottom = project(view, 0, near).y
+    if bottom - top < 0.5 {
+        return
+    }
+    for layer in GLOW {
+        const paint = ctx.createLinearGradient(0, top, 0, bottom)
+        paint.addColorStop(0, rgba(colour, layer[1] * fog(far)))
+        paint.addColorStop(1, rgba(colour, layer[1] * fog(near)))
+        ctx.fillStyle = paint
+        quad(ctx, view, x - layer[0], far, x + layer[0], near)
+    }
+}
+
+func waitLane(ctx CanvasRenderingContext2D, view View, x number, far number, near number, colour Colour) {
+    for let z = far; z > near; z -= 0.34 {
+        ctx.fillStyle = rgba(colour, 0.6 * fog(z))
+        quad(ctx, view, x - 0.02, Math.max(z - 0.17, near), x + 0.02, z)
+    }
+}
+
+/** A line of light along a rank, between two x. */
+func bridge(ctx CanvasRenderingContext2D, view View, from number, to number, z number, colour Colour, left number) {
+    for layer in GLOW {
+        ctx.fillStyle = rgba(colour, layer[1] * left)
+        quad(ctx, view, Math.min(from, to), z - layer[0], Math.max(from, to), z + layer[0])
+    }
+}
+
+func dot(ctx CanvasRenderingContext2D, view View, x number, z number, radius number, colour Colour, alpha number) {
+    const point = project(view, x, z)
+    ctx.fillStyle = rgba(colour, alpha)
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, Math.max(1.2, radius * point.scale), 0, Math.PI * 2)
+    ctx.fill()
+}
+
+export func drawLanes(shot Shot) {
+    const ctx = shot.ctx
+    const view = shot.view
+    const trace = shot.trace
+    const played = shot.frame.index
+    // The depth of a played move: the last one is the nearest.
+    const depthOf = (move number) => shot.t - (move + 1)
+
+    ctx.globalCompositeOperation = "lighter"
+    for actor, each in trace.actors {
+        const x = fileX(view, actorFile(trace, actor))
+        const colour = colourOf(actor)
+        const stretches Stretch[] = []
+        func add(far number, near number, status Status) {
+            const last = stretches.at(-1)
+            if last != null && last.status == status && last.near == far {
+                last.near = near
+            } else {
+                stretches.push({ far: far, near: near, status: status })
+            }
+        }
+        // `main` was running before the first move of the trace.
+        if actor == 0 {
+            add(FAR, played > 0 ? depthOf(0) : FRONT, "run")
+        }
+        for let move = 0; move < played; move++ {
+            const status = shot.states[move + 1].statuses[actor]
+            if status == "run" || status == "wait" {
+                add(Math.min(depthOf(move), FAR), move + 1 < played ? depthOf(move + 1) : FRONT, status)
+            }
+        }
+        for stretch in stretches {
+            if stretch.far <= stretch.near {
+                continue
+            }
+            if stretch.status == "run" {
+                runLane(ctx, view, x, stretch.far, stretch.near, colour)
+            } else {
+                waitLane(ctx, view, x, stretch.far, stretch.near, colour)
+            }
+        }
+        // Light runs down the lane of a goroutine that runs, towards its rook.
+        if shot.moving && stretches.length > 0 && statusNow(shot, actor) == "run" {
+            const far = Math.min(stretches[0].far, 12)
+            for let n = 0; n < 2; n++ {
+                const z = far - (shot.now * 0.0022 + actor * 2.3 + n * far / 2) % (far + 0.5)
+                if z > FRONT && z + 0.4 < far {
+                    ctx.fillStyle = rgba(mix(colour, WHITE, 0.6), 0.55 * fog(z))
+                    quad(ctx, view, x - 0.03, z, x + 0.03, z + 0.4)
+                }
+            }
+        }
+    }
+
+    for let index = 0; index < played; index++ {
+        const move = shot.moves[index]
+        const z = depthOf(index)
+        if move == null || z > FAR {
+            continue
+        }
+        const left = fog(z)
+        const colour = colourOf(move.colour)
+        bridge(ctx, view, fileX(view, move.from), fileX(view, move.to), z, colour, left)
+        dot(ctx, view, fileX(view, move.from), z, 0.045, colour, left)
+        dot(ctx, view, fileX(view, move.to), z, 0.07, colour, left)
+        if move.via >= 0 {
+            dot(ctx, view, fileX(view, move.via), z, 0.055, mix(colour, WHITE, 0.5), left)
+        }
+    }
+
+    const current = moving(shot)
+    if current != null {
+        const colour = colourOf(current.colour)
+        bridge(ctx, view, fileX(view, current.from), pieceX(shot, current), 0, colour, 1)
+        dot(ctx, view, fileX(view, current.from), 0, 0.045, colour, 1)
+    }
+    ctx.globalCompositeOperation = "source-over"
+}

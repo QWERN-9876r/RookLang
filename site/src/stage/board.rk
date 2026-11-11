@@ -1,0 +1,107 @@
+// The board itself: the light at the horizon, the squares that go back with the moves, the edges,
+// the grooves of the channels and the dust in the air.
+
+import { FAR, NEAR, Shot, fileX, fog, project, quad } from "./camera.rk"
+import { IVORY, colourOf, rgba } from "./paint.rk"
+
+/** A speck of dust: where it is over the board and how fast it drifts to the eye. */
+export interface Speck {
+    x number
+    y number
+    z number
+    speed number
+}
+
+/** The dust of a scene: the same every time, so that the first frame is the same too. */
+export func makeDust() Speck[] {
+    const dust Speck[] = []
+    for let i = 0; i < 44; i++ {
+        dust.push({
+            x: (i * 0.731) % 1 * 9 - 4.5,
+            y: 0.15 + (i * 0.618) % 1 * 2.6,
+            z: (i * 7.31) % (FAR + 1),
+            speed: 0.5 + (i * 0.37) % 1,
+        })
+    }
+    return dust
+}
+
+export func drawBoard(shot Shot, dust Speck[]) {
+    const ctx = shot.ctx
+    const view = shot.view
+    const files = view.files
+    const amber = colourOf(0)
+
+    // The light at the horizon ends before the sides and the top of the canvas, flattened for the
+    // top: cut by an edge, it would show where the canvas ends.
+    const reach = Math.min(view.unit * 4.4, view.centre * 0.96, (view.width - view.centre) * 0.96)
+    const flat = Math.min(1, view.horizon * 0.92 / reach)
+    const light = ctx.createRadialGradient(0, 0, 0, 0, 0, reach)
+    light.addColorStop(0, "rgba(255,176,74,.42)")
+    light.addColorStop(0.3, "rgba(245,128,42,.14)")
+    light.addColorStop(1, "rgba(245,158,42,0)")
+    ctx.save()
+    ctx.translate(view.centre, view.horizon)
+    ctx.scale(1, flat)
+    ctx.fillStyle = light
+    ctx.beginPath()
+    ctx.arc(0, 0, reach, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+
+    // A rank is half a square behind the move that was played on it, so its squares are whole
+    // when a move ends. `first` is which rank of the board is the nearest one.
+    const offset = (shot.t + 0.5) % 1
+    const first = Math.floor(shot.t + 0.5)
+    for let n = -3; n <= FAR; n++ {
+        const near = Math.max(n + offset, NEAR)
+        const far = Math.min(n + offset + 1, FAR)
+        if near >= far {
+            continue
+        }
+        const left = fog((near + far) / 2)
+        for let file = 0; file < files; file++ {
+            const dark = ((n - first + file) % 2 + 2) % 2 == 1
+            ctx.fillStyle = rgba(IVORY, (dark ? 0.034 : 0.082) * left)
+            quad(ctx, view, fileX(view, file) - 0.5, near, fileX(view, file) + 0.5, far)
+        }
+        ctx.fillStyle = rgba(amber, 0.5 * left)
+        quad(ctx, view, -files / 2 - 0.02, near, -files / 2, far)
+        quad(ctx, view, files / 2, near, files / 2 + 0.02, far)
+        // The groove of a channel: a dotted line down the middle of its file.
+        ctx.fillStyle = rgba(IVORY, 0.2 * left)
+        for let channel = 0; channel < shot.trace.channels.length; channel++ {
+            const x = fileX(view, channel + 1)
+            for let z = near; z < far; z += 0.5 {
+                quad(ctx, view, x - 0.012, z, x + 0.012, Math.min(z + 0.2, far))
+            }
+        }
+    }
+
+    const from = project(view, -files / 2, NEAR)
+    const to = project(view, files / 2, NEAR)
+    ctx.strokeStyle = rgba(amber, 0.75)
+    ctx.lineWidth = 1.5
+    ctx.shadowColor = rgba(amber, 1)
+    ctx.shadowBlur = 14
+    ctx.beginPath()
+    ctx.moveTo(from.x, from.y)
+    ctx.lineTo(to.x, to.y)
+    ctx.stroke()
+    ctx.shadowBlur = 0
+
+    ctx.globalCompositeOperation = "lighter"
+    for speck in dust {
+        if shot.moving {
+            speck.z -= 0.012 * speck.speed
+            if speck.z < -1 {
+                speck.z = FAR
+            }
+        }
+        const point = project(view, speck.x, speck.z, speck.y)
+        const size = Math.max(1, point.scale * 0.012)
+        ctx.fillStyle = rgba([255, 200, 140], 0.5 * fog(speck.z))
+        ctx.fillRect(point.x, point.y, size, size)
+    }
+    ctx.globalCompositeOperation = "source-over"
+}

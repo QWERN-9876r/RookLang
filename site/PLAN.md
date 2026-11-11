@@ -306,8 +306,9 @@ the choice is not made again.
    from the start, but is not called a public API before 1.0.
 6. **Editing the code in the scene:** live numbers and a button "Open in the playground". A full
    editor in the card comes later, if it is needed.
-7. **The order:** the home page and the common style (stage 3) come before the other scenes
-   (stage 4).
+7. **The order:** the home page comes first. Its first screen gets the scene right after the pilot,
+   inside stage 1, because the home page is what a visitor sees first; the common style of the
+   other pages (the rest of stage 3) still comes before the other scenes (stage 4).
 8. **The branch:** the work goes in a branch `site-redesign` and is merged into `main` stage by
    stage.
 

@@ -1,13 +1,14 @@
 // The guide: the sections in a tree on the left and one section at a time on the right. Each
 // section has an address of its own, `docs/goroutines/`, which search engines index as a page; the
 // links between sections change the address without loading the page again. All the sections are
-// in the page, the others hidden, so that the search of the guide finds their text.
+// in the page, the others hidden, so that the search of the guide finds their text. A section may
+// open with a scene (stage/), which is as wide as the page and stands above the text.
 
 import "../../ui/theme.rk"
 import { Icon } from "../../ui/icon.rk"
 import { NavGroup, NavList } from "../../ui/nav-list.rk"
 import { Prose } from "../../ui/prose.rk"
-import { REPOSITORY, Section, text } from "../i18n.rk"
+import { REPOSITORY, Section, SectionStage, text } from "../i18n.rk"
 import { sectionIn, sectionLinks, withSections } from "../sections.rk"
 import { SiteHeader } from "../layout/header.rk"
 import styles from "./page.module.css"
@@ -29,7 +30,7 @@ func navGroups(sections Section[]) NavGroup[] {
     return groups
 }
 
-comp DocsPage(sections Section[]) {
+comp DocsPage(sections Section[], stages SectionStage[]) {
     const t = text()
     const groups = navGroups(sections)
     const ids = sections.map(each => each.id)
@@ -77,6 +78,11 @@ comp DocsPage(sections Section[]) {
                 <NavList groups={groups} active={section.id} label={t.sections} hrefOf={id => `../${id}/`} />
             </aside>
             <main class={styles.main}>
+                {for stage in stages {
+                    <div data-stage={stage.id} hidden={stage.id != section.id}>
+                        <stage.content />
+                    </div>
+                }}
                 <div class={styles.content}>
                     {for each in sections {
                         <article class={styles.article} data-section={each.id} hidden={each.id != section.id}>
@@ -124,7 +130,7 @@ comp DocsPage(sections Section[]) {
  * Draws the page; the entry module of the language calls it after setLanguage(). The page may be
  * there already, drawn when the site was built for search engines: it is drawn again, alive.
  */
-export func renderDocs(sections Section[]) {
+export func renderDocs(sections Section[], stages SectionStage[]) {
     withSections(sections.map(each => each.id))
-    document.body.replaceChildren(<DocsPage sections={sections} />)
+    document.body.replaceChildren(<DocsPage sections={sections} stages={stages} />)
 }

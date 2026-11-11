@@ -3,6 +3,7 @@
 // language before the page is drawn, and the shared code reads them here.
 
 import { NavLink } from "../ui/nav-list.rk"
+import { StageStrings } from "./stage/strings.rk"
 
 export const REPOSITORY = "https://github.com/QWERN-9876r/RookLang"
 export const MARKETPLACE = "https://marketplace.visualstudio.com/items?itemName=Qwern9876r.rooklang"
@@ -16,6 +17,12 @@ export interface Section {
     id string
     title string
     group string
+    content comp()
+}
+
+/** The scene of a section of the guide, shown above its text: the id of the section and the scene. */
+export interface SectionStage {
+    id string
     content comp()
 }
 
@@ -93,6 +100,8 @@ export interface Strings {
     /** The label of the commands in "Tools". */
     terminal string
     home HomeStrings
+    /** Texts of the scene of a section (stage/). */
+    stage StageStrings
 }
 
 /** Texts of the home page. */
@@ -104,6 +113,8 @@ export interface HomeStrings {
     titleAccent string
     lead string
     openPlayground string
+    /** The link under the first screen to the section whose scene it plays. */
+    watchGame string
     lanesTitle string
     lanesLead string
     oneThread string

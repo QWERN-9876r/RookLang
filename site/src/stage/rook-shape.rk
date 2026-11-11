@@ -1,0 +1,197 @@
+// Drawing the rooks from their poses (rooks.rk): the body as a turned piece, and around it the
+// light on the board, the rings and the sparks.
+
+import { Shot } from "./camera.rk"
+import { BLACK, Colour, WHITE, mix, rgba } from "./paint.rk"
+import { Pose, tint } from "./rooks.rk"
+
+/** How flat a circle that lies on the board looks. */
+const FLAT = 0.2
+
+/** The right half of the outline, from the foot up to the merlons, in widths of the rook. */
+const OUTLINE number[][] = [
+    [0.5, 0.1], [0.4, 0.1], [0.4, 0.18], [0.29, 0.25], [0.23, 0.78], [0.36, 0.85], [0.36, 1.14],
+    [0.215, 1.14], [0.215, 1.02], [0.075, 1.02], [0.075, 1.14],
+]
+
+/** The rings a lathe leaves: the height of each and its half width. */
+const RINGS number[][] = [[0.1, 0.5], [0.18, 0.4], [0.78, 0.23], [0.85, 0.36]]
+
+/** The outline of a rook that stands at the origin, `size` wide: a round foot, a body, a crown. */
+func outline(ctx CanvasRenderingContext2D, size number) {
+    ctx.beginPath()
+    ctx.moveTo(-0.5 * size, -0.1 * size)
+    ctx.lineTo(-0.5 * size, 0)
+    ctx.ellipse(0, 0, 0.5 * size, 0.5 * size * FLAT, 0, Math.PI, 0, true)
+    for point in OUTLINE {
+        ctx.lineTo(point[0] * size, -point[1] * size)
+    }
+    for let i = OUTLINE.length - 1; i >= 0; i-- {
+        ctx.lineTo(-OUTLINE[i][0] * size, -OUTLINE[i][1] * size)
+    }
+    ctx.closePath()
+}
+
+/** A rook as a turned piece: lit from the left, darker to the foot, with the rings of the lathe. */
+func drawBody(ctx CanvasRenderingContext2D, pose Pose) {
+    const size = pose.size
+    const colour = tint(pose)
+    if !pose.shown || pose.alpha <= 0.01 || size < 2 {
+        return
+    }
+    // Its reflection in the board.
+    ctx.save()
+    ctx.globalAlpha = pose.alpha * 0.13 / (1 + pose.lift * 2)
+    ctx.translate(pose.x + pose.shift, pose.y + 2)
+    ctx.scale(pose.wide, -0.55 * pose.tall)
+    ctx.fillStyle = rgba(colour, 1)
+    outline(ctx, size)
+    ctx.fill()
+    ctx.restore()
+
+    ctx.save()
+    if pose.sink > 0 {
+        // A rook that sinks is cut at the board.
+        ctx.beginPath()
+        ctx.rect(pose.x - size, pose.y - 3 * size, 2 * size, 3 * size + size * 0.1)
+        ctx.clip()
+    }
+    ctx.translate(pose.x + pose.shift, pose.y - pose.lift * size + pose.sink * 1.4 * size)
+    ctx.rotate(pose.tilt)
+    ctx.scale(pose.wide, pose.tall)
+    ctx.globalAlpha = pose.alpha
+    // The far wall of the crown, seen between the merlons.
+    ctx.fillStyle = rgba(mix(colour, BLACK, 0.66), 1)
+    ctx.beginPath()
+    ctx.ellipse(0, -1.13 * size, 0.36 * size, 0.36 * size * FLAT, 0, Math.PI, 0, false)
+    ctx.lineTo(0.36 * size, -size)
+    ctx.lineTo(-0.36 * size, -size)
+    ctx.closePath()
+    ctx.fill()
+
+    outline(ctx, size)
+    const side = ctx.createLinearGradient(-0.5 * size, 0, 0.5 * size, 0)
+    side.addColorStop(0, rgba(mix(colour, BLACK, 0.5), 1))
+    side.addColorStop(0.3, rgba(mix(colour, WHITE, 0.5), 1))
+    side.addColorStop(0.58, rgba(colour, 1))
+    side.addColorStop(1, rgba(mix(colour, BLACK, 0.62), 1))
+    ctx.shadowColor = rgba(colour, 0.9)
+    ctx.shadowBlur = size * (0.32 + 0.7 * pose.glow)
+    ctx.fillStyle = side
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.clip()
+
+    const down = ctx.createLinearGradient(0, -1.14 * size, 0, 0.1 * size)
+    down.addColorStop(0, "rgba(255,255,255,.2)")
+    down.addColorStop(0.35, "rgba(0,0,0,0)")
+    down.addColorStop(1, "rgba(0,0,0,.5)")
+    ctx.fillStyle = down
+    ctx.fillRect(-size, -1.3 * size, 2 * size, 1.6 * size)
+    ctx.lineWidth = Math.max(1, size * 0.014)
+    for ring in RINGS {
+        ctx.strokeStyle = "rgba(0,0,0,.4)"
+        ctx.beginPath()
+        ctx.ellipse(0, -ring[0] * size, ring[1] * size, ring[1] * size * FLAT, 0, 0, Math.PI)
+        ctx.stroke()
+        ctx.strokeStyle = "rgba(255,255,255,.25)"
+        ctx.beginPath()
+        ctx.ellipse(0, -ring[0] * size + ctx.lineWidth, ring[1] * size, ring[1] * size * FLAT, 0, 0, Math.PI)
+        ctx.stroke()
+    }
+    if pose.glow > 0 {
+        ctx.fillStyle = `rgba(255,255,255,${0.45 * pose.glow})`
+        ctx.fillRect(-size, -1.3 * size, 2 * size, 1.6 * size)
+    }
+    ctx.restore()
+}
+
+/** A circle that lies on the board around a rook. */
+func groundRing(ctx CanvasRenderingContext2D, pose Pose, radius number, paint string, width number) {
+    ctx.strokeStyle = paint
+    ctx.lineWidth = width
+    ctx.beginPath()
+    ctx.ellipse(pose.x + pose.shift, pose.y, radius, radius * 0.27, 0, 0, Math.PI * 2)
+    ctx.stroke()
+}
+
+/** Under the rooks: the beam of a new one, the mark of a finished one, the rings. */
+func drawGround(shot Shot, pose Pose) {
+    const ctx = shot.ctx
+    const size = pose.size
+    const colour = tint(pose)
+    if pose.beam > 0 {
+        // The beam fades out upwards, well before the top of the canvas, and is soft at its sides.
+        const top = pose.y - 4.5 * size
+        const beam = ctx.createLinearGradient(0, top, 0, pose.y)
+        beam.addColorStop(0, rgba(colour, 0))
+        beam.addColorStop(1, rgba(colour, 0.16 * pose.beam))
+        ctx.fillStyle = beam
+        for width in [1.2, 0.8, 0.4] {
+            ctx.fillRect(pose.x - width * size / 2, top, width * size, pose.y - top)
+        }
+    }
+    if pose.ember > 0 {
+        groundRing(ctx, pose, 0.5 * size, rgba(colour, 0.32 * pose.ember), 1.2)
+    }
+    if pose.wait > 0.02 {
+        ctx.setLineDash([size * 0.14, size * 0.1])
+        ctx.lineDashOffset = shot.moving ? -shot.now * 0.035 : 0
+        groundRing(ctx, pose, 0.78 * size, rgba(colour, 0.8 * pose.wait), 1.6)
+        ctx.setLineDash([])
+    }
+    if pose.wave >= 0 && pose.wave < 1 {
+        const radius = size * (0.5 + 1.7 * pose.wave * pose.reach)
+        groundRing(ctx, pose, radius, rgba(mix(colour, WHITE, 0.4), Math.pow(1 - pose.wave, 1.5)), 1 + 3 * (1 - pose.wave))
+    }
+}
+
+func drawSparks(ctx CanvasRenderingContext2D, pose Pose) {
+    if pose.sparks < 0 || pose.sparks >= 1 {
+        return
+    }
+    const time = pose.sparks
+    const dot = Math.max(1.5, pose.size * 0.03)
+    ctx.fillStyle = rgba(mix(pose.colour, WHITE, 0.5), 1 - time)
+    for let i = 0; i < 14; i++ {
+        const angle = i * 2.399
+        const speed = (0.6 + (i * 0.37) % 1 * 0.9) * pose.reach
+        const x = pose.x + Math.cos(angle) * speed * time * pose.size * 0.9
+        const y = pose.y - (Math.abs(Math.sin(angle)) * 1.7 * speed * time - 2.2 * time * time) * pose.size * 0.6
+        ctx.fillRect(x, y, dot, dot)
+    }
+}
+
+/** A small light instead of a rook: the call that runs to the file of a new goroutine. */
+export func drawCall(ctx CanvasRenderingContext2D, x number, y number, radius number, colour Colour, alpha number) {
+    const light = ctx.createRadialGradient(x, y, 0, x, y, radius)
+    light.addColorStop(0, `rgba(255,255,255,${alpha})`)
+    light.addColorStop(0.25, rgba(colour, 0.9 * alpha))
+    light.addColorStop(1, rgba(colour, 0))
+    ctx.save()
+    ctx.globalCompositeOperation = "lighter"
+    ctx.fillStyle = light
+    ctx.beginPath()
+    ctx.arc(x, y, radius, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.restore()
+}
+
+export func drawRooks(shot Shot, poses Pose[]) {
+    const ctx = shot.ctx
+    ctx.save()
+    ctx.globalCompositeOperation = "lighter"
+    for pose in poses {
+        drawGround(shot, pose)
+    }
+    ctx.restore()
+    for pose in poses {
+        drawBody(ctx, pose)
+    }
+    ctx.save()
+    ctx.globalCompositeOperation = "lighter"
+    for pose in poses {
+        drawSparks(ctx, pose)
+    }
+    ctx.restore()
+}
