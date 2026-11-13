@@ -27,7 +27,28 @@ interface Trace {
   events: { kind: string }[];
 }
 
+interface Script {
+  forStart: number;
+  forEnd: number;
+  goStart: number;
+  goEnd: number;
+  total: number;
+}
+
+interface Moment {
+  mainX: number;
+  half: number;
+  waits: number;
+  parts: { colour: number; done: number; x: number; to: number }[];
+}
+
 interface Stage {
+  scriptOf(oneThread: number, goFor: number): Script;
+  stepAt(script: Script, s: number): number;
+  momentAt(script: Script, s: number, rooks: number): Moment;
+  filesOf(rooks: number): number;
+  tilesOf(moment: Moment): number;
+  writerOf(moment: Moment, tile: number): number;
   pilotTrace(buffer: number): Trace;
   MAX_BUFFER: number;
   snapshots(trace: Trace): Snapshot[];
@@ -58,7 +79,11 @@ beforeAll(async () => {
       Partial<Stage>
     >;
 
-  stage = { ...(await load('pilot.js')), ...(await load('state.js')) } as Stage;
+  stage = {
+    ...(await load('pilot.js')),
+    ...(await load('state.js')),
+    ...(await load('array.js')),
+  } as Stage;
 });
 
 describe('the scene of the site', () => {
@@ -151,5 +176,55 @@ describe('the scene of the site', () => {
     });
     // Waiting moves nothing.
     expect(stage.moveOf(trace, trace.events[1]!)).toBeNull();
+  });
+
+  it('walks the array with one rook, then with a rook on each part at once', () => {
+    const script = stage.scriptOf(1000, 125);
+    const writers = (s: number, rooks: number) => {
+      const moment = stage.momentAt(script, s, rooks);
+
+      return Array.from({ length: stage.tilesOf(moment) }, (_, tile) =>
+        stage.writerOf(moment, tile),
+      );
+    };
+
+    // go for takes as much less time on the screen as it was measured to.
+    expect((script.goEnd - script.goStart) / (script.forEnd - script.forStart)).toBeCloseTo(0.125);
+    expect(stage.filesOf(4)).toBe(10);
+    expect(stage.filesOf(14)).toBe(16);
+
+    expect(new Set(writers(0, 4))).toEqual(new Set([-1]));
+    // Half of the loop in one thread: `main` has written the first half of the tiles.
+    expect(writers((script.forStart + script.forEnd) / 2, 4)).toEqual([
+      ...Array.from({ length: 8 }, () => 0),
+      ...Array.from({ length: 8 }, () => -1),
+    ]);
+    expect(new Set(writers(script.forEnd, 14))).toEqual(new Set([0]));
+
+    // In the middle of go for every part is under way, and `main` waits at the far side.
+    const middle = stage.momentAt(script, (script.goStart + script.goEnd) / 2, 8);
+
+    expect(middle.mainX).toBe(middle.half + 0.5);
+    expect(middle.waits).toBe(1);
+    expect(middle.parts).toHaveLength(8);
+
+    for (const part of middle.parts) {
+      expect(part.done).toBeGreaterThan(0.4);
+      expect(part.done).toBeLessThan(0.6);
+    }
+
+    // At the end each tile was written by the goroutine of its part.
+    expect(writers(script.total, 4)).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1]);
+    expect(stage.momentAt(script, script.total, 4).waits).toBe(0);
+  });
+
+  it('names the step of the scene of go for at a moment', () => {
+    const script = stage.scriptOf(1000, 125);
+
+    expect(stage.stepAt(script, 0)).toBe(0);
+    expect(stage.stepAt(script, script.forStart)).toBe(1);
+    expect(stage.stepAt(script, script.forEnd)).toBe(2);
+    expect(stage.stepAt(script, script.goStart)).toBe(4);
+    expect(stage.stepAt(script, script.total)).toBe(5);
   });
 });

@@ -1,0 +1,72 @@
+// The board at the end of the home page: empty, with the one rook of `main`. It stands in the
+// ring of one who waits, because the next move is the reader's, and hops when the reader comes
+// to the button that starts the guide.
+
+import { Speck, drawBoardAt } from "./board.rk"
+import { View, project } from "./camera.rk"
+import { IVORY, clamp, colourOf, rgba } from "./paint.rk"
+import { standing } from "./poses.rk"
+import { drawPoses } from "./rook-shape.rk"
+
+const MONO = "'Geist Mono Variable', ui-monospace, monospace"
+
+/** The files of the board; an odd number, so that the rook stands in the middle one. */
+const FILES = 7
+
+/** The view of the board, which takes the whole width of the canvas. */
+export func endgameView(width number, height number) View {
+    const horizon = height * 0.3
+    // The front edge of the board is 1.28 times wider than its rank at z = 0.
+    const unit = Math.min(width * 0.8 / FILES / 1.28, height * 0.26)
+    const depth = 5
+    return {
+        width: width,
+        height: height,
+        files: FILES,
+        centre: width / 2,
+        horizon: horizon,
+        unit: unit,
+        depth: depth,
+        focal: unit * depth,
+        rise: (height * 0.66 - horizon) * depth,
+    }
+}
+
+/**
+ * Draws the frame. `hop` is how far the hop of the rook has gone, from 0 to 1, and 1 without one;
+ * `name` and `note` stand under the rook; `moving` is false when nothing may move by itself.
+ */
+export func drawEndgame(
+    ctx CanvasRenderingContext2D,
+    view View,
+    dust Speck[],
+    hop number,
+    name string,
+    note string,
+    moving bool,
+    now number,
+) {
+    ctx.clearRect(0, 0, view.width, view.height)
+    drawBoardAt(ctx, view, 0, moving, 0, dust)
+    const rook = standing(view, 0, 0)
+    rook.wait = 1
+    rook.glow = moving ? 0.14 + 0.1 * Math.sin(now * 0.003) : 0.2
+    if hop < 1 {
+        rook.lift = 0.5 * Math.abs(Math.sin(hop * Math.PI * 2)) * (1 - hop)
+        rook.glow += 0.7 * (1 - hop)
+        rook.wave = hop
+        rook.reach = 3.2
+    }
+    drawPoses(ctx, [rook], moving, now)
+
+    const point = project(view, 0, -1.34)
+    const size = clamp(view.unit * 0.2, 10, 13)
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.fillStyle = rgba(colourOf(0), 1)
+    ctx.font = `600 ${size}px ${MONO}`
+    ctx.fillText(name, point.x, point.y + 2)
+    ctx.fillStyle = rgba(IVORY, 0.5)
+    ctx.font = `400 ${size - 1.5}px ${MONO}`
+    ctx.fillText(note, point.x, point.y + 2 + size * 1.35)
+}

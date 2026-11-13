@@ -26,19 +26,26 @@ go for i, _ in primes {
 }
 console.log(\`go for:     \${Date.now() - started} ms\`)`
 
-/** What GO_FOR printed in the browser on a machine with CORES processors. */
+/** The two loops of GO_FOR, as the scene of the home page shows them. */
+export const FOR_LOOP = `for i, _ in primes {
+    primes[i] = isPrime(i) ? 1 : 0
+}`
+
+export const GO_FOR_LOOP = `go ${FOR_LOOP}`
+
+/** What GO_FOR printed in Node on a machine with 14 processors. */
 export const ONE_THREAD_MS = 1325
 export const GO_FOR_MS = 164
-export const CORES = 14
 
 export const GOROUTINE = "const n = await go countPrimes(0, N)"
 
-export const SELECT = `select {
-case msg = <-messages:
-    console.log(msg)
-case <-after(500):
-    console.log("timeout")
-}`
+/** The two cases of the select that the card of channels shows inside `select { }`. */
+export const SELECT_CASES = [
+    `case msg = <-messages:
+    console.log(msg)`,
+    `case <-after(500):
+    console.log("timeout")`,
+]
 
 export const TYPE_ERROR_CODE = `func render(title HTMLElement) {
     go func() {
@@ -48,14 +55,17 @@ export const TYPE_ERROR_CODE = `func render(title HTMLElement) {
 
 export const TYPE_ERROR = `main.rk:3:9: error: the goroutine runs in a worker, which gets a copy of "title", but a copy of HTMLElement would lose its methods`
 
-/** Lines of Rook and the JavaScript they become. */
-export const MAPPINGS string[][] = [
-    ["for x in items {", "for (const x of items) {"],
-    ["const n, err = parse(s)", "const [n, err] = parse(s);"],
-    ["if a == b {", "if (a === b) {"],
-]
+/** What the card of components in the browser shows above its live counter. */
+export const COUNTER = `state count = 0
+<button onClick={count++}>`
 
-export const COUNTER = "<button onClick={count++}>"
+/** A component of a server, for the card about them. */
+export const SERVER = `comp Page(request Request) {
+    const user = await currentUser(request)
+    return <h1>Hello, {user.name}</h1>
+}
+
+serve(Page, { port: 3000 })`
 
 export type Topic "goroutines" | "components" | "errors"
 

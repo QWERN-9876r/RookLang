@@ -1,7 +1,7 @@
 // The board itself: the light at the horizon, the squares that go back with the moves, the edges,
 // the grooves of the channels and the dust in the air.
 
-import { FAR, NEAR, Shot, fileX, fog, project, quad } from "./camera.rk"
+import { FAR, NEAR, Shot, View, fileX, fog, project, quad } from "./camera.rk"
 import { IVORY, colourOf, rgba } from "./paint.rk"
 
 /** A speck of dust: where it is over the board and how fast it drifts to the eye. */
@@ -27,14 +27,29 @@ export func makeDust() Speck[] {
 }
 
 export func drawBoard(shot Shot, dust Speck[]) {
-    const ctx = shot.ctx
-    const view = shot.view
+    drawBoardAt(shot.ctx, shot.view, shot.t, shot.moving, shot.trace.channels.length, dust)
+}
+
+/**
+ * The board of any scene at the moment `t`, in moves: `grooves` files after the first one are
+ * channels, `moving` is false when nothing may move by itself, and `glow` is how far the light
+ * at the horizon reaches, in squares.
+ */
+export func drawBoardAt(
+    ctx CanvasRenderingContext2D,
+    view View,
+    t number,
+    moving bool,
+    grooves number,
+    dust Speck[],
+    glow number = 4.4,
+) {
     const files = view.files
     const amber = colourOf(0)
 
     // The light at the horizon ends before the sides and the top of the canvas, flattened for the
     // top: cut by an edge, it would show where the canvas ends.
-    const reach = Math.min(view.unit * 4.4, view.centre * 0.96, (view.width - view.centre) * 0.96)
+    const reach = Math.min(view.unit * glow, view.centre * 0.96, (view.width - view.centre) * 0.96)
     const flat = Math.min(1, view.horizon * 0.92 / reach)
     const light = ctx.createRadialGradient(0, 0, 0, 0, 0, reach)
     light.addColorStop(0, "rgba(255,176,74,.42)")
@@ -51,8 +66,8 @@ export func drawBoard(shot Shot, dust Speck[]) {
 
     // A rank is half a square behind the move that was played on it, so its squares are whole
     // when a move ends. `first` is which rank of the board is the nearest one.
-    const offset = (shot.t + 0.5) % 1
-    const first = Math.floor(shot.t + 0.5)
+    const offset = (t + 0.5) % 1
+    const first = Math.floor(t + 0.5)
     for let n = -3; n <= FAR; n++ {
         const near = Math.max(n + offset, NEAR)
         const far = Math.min(n + offset + 1, FAR)
@@ -70,7 +85,7 @@ export func drawBoard(shot Shot, dust Speck[]) {
         quad(ctx, view, files / 2, near, files / 2 + 0.02, far)
         // The groove of a channel: a dotted line down the middle of its file.
         ctx.fillStyle = rgba(IVORY, 0.2 * left)
-        for let channel = 0; channel < shot.trace.channels.length; channel++ {
+        for let channel = 0; channel < grooves; channel++ {
             const x = fileX(view, channel + 1)
             for let z = near; z < far; z += 0.5 {
                 quad(ctx, view, x - 0.012, z, x + 0.012, Math.min(z + 0.2, far))
@@ -92,7 +107,7 @@ export func drawBoard(shot Shot, dust Speck[]) {
 
     ctx.globalCompositeOperation = "lighter"
     for speck in dust {
-        if shot.moving {
+        if moving {
             speck.z -= 0.012 * speck.speed
             if speck.z < -1 {
                 speck.z = FAR

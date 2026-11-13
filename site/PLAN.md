@@ -6,7 +6,9 @@ A working document, written on 11 November 2026 after the discussion and the pro
 
 - **The approved prototype:** <https://claude.ai/artifact/MPCWCiMj1Wynka615Jq8pK>, version 3, the
   page "Channels". It is the reference for the look and the motion.
-- **Status:** stage 0 is done, the decisions are in section 9. Stage 1 is next.
+- **Status:** stage 0 is done. The engine of the scene, the pilot "Channels" and the first screen
+  of the home page are on the site (stage 1). Now: the home page as one game (in stage 3); its
+  blocks are all done. Next: stage 2, real moves.
 
 ## 1. What we build
 
@@ -219,6 +221,59 @@ emulation, the built site served locally by `vite preview`, one run per page):
 | `/`               | 99          | 96            | 100            | 100 | 1.7 s | 0 ms | 0.001 |
 | `/docs/channels/` | 97          | 91            | 100            | 100 | 2.1 s | 0 ms | 0     |
 | `/playground/`    | 95          | 96            | 100            | 100 | 2.6 s | 0 ms | 0     |
+
+#### The home page as one game
+
+Decided on 13 November 2026. The board is one for the whole page: the first screen is the opening,
+each block below shows its part of the language on the same board, and the end of the page is the
+endgame.
+
+| Block                                  | What becomes a scene                                                                                                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The first screen                       | Done: the game with channels.                                                                                                                                                               |
+| "One thread, or every core" (`go for`) | Done: the array lies as tiles across the board, the rook of `main` walks it alone, then the array splits, a rook falls on each part and they all walk at once. The timers stay.             |
+| Card "Goroutines on real threads"      | Done: a small board. The call runs to a free file, a rook falls there, `main` waits, the result comes back as a move.                                                                       |
+| Card "Channels and select"             | Done: `main` stands between `messages` and `after(500)` with a dashed line to each; a message or the end of the time is played, in turn. A link "move by move" to the section of the guide. |
+| Card "Types that know about threads"   | Done: a string flies through the border between two threads, and the DOM element `title` bounces off it in red. The compiler's error under the board flashes.                               |
+| Card "Readable JavaScript"             | Done: the card left the grid and merged with "Write Rook. Ship JavaScript" below.                                                                                                           |
+| Card "Markup and components"           | Done, as two cards. "Components in the browser": the live counter, and on a click a pulse runs from the code to the button. "Components on the server": a component of a server.            |
+| Card "Tools included"                  | Stays as it is: a list needs no scene.                                                                                                                                                      |
+| "Write Rook. Ship JavaScript"          | Done: one card where Rook turns into JavaScript word by word, with three examples; the words both languages have stay on the screen and move.                                               |
+| "Start in a minute"                    | Stays as it is: three steps with commands.                                                                                                                                                  |
+| The final call                         | Done: the board in perspective, empty, with the one rook of `main` in the ring of one who waits and "your move" under it; it hops when the reader comes to the button "Start".              |
+
+The order: `go for` in the full width _(done)_; then the three small boards of the cards _(done)_;
+then the change of code and the final call _(done)_. The small boards are the same engine, smaller, and each plays
+only while it is on the screen.
+
+The scene of `go for` (prototype: <https://claude.ai/artifact/Y7rWkseAEot9HMrCd8x1iQ>, version 2):
+
+- It is not a trace: its model is `site/src/stage/array.rk` (the scene at a moment, in seconds),
+  drawn by `array-scene.rk`; the block of the page is `site/src/home/go-for.rk`.
+- A rook for each part: 4 on a phone, 8 up to 1100 px, 14 on a wide screen, as many as the cores of
+  the measurement.
+- go for takes as much less time on the screen as it was measured to (1325 ms against 164 ms); the
+  split of the array and the fall of the rooks are outside the timers.
+- No lines of time on the board: the maintainer took them out of the prototype.
+
+The small boards (prototype: <https://claude.ai/artifact/JvpTmG6GUmy96ygNuCwNJ5>):
+
+- A scene is a round that repeats: `site/src/stage/small-go.rk`, `small-select.rk` and
+  `small-types.rk`, with what they share in `small.rk` and `poses.rk`. The component is
+  `site/src/home/small-board.rk`; it plays only while it is on the screen.
+- A scene returns the mark of its frame, the component puts it into `data-mark`, and the styles of
+  the card light up the text the frame is about: the case of the select, the compiler's error.
+- The only lines are those of a move (a call, a value, the dashes of what a select may play); they
+  go out after the move.
+
+The change of code and the final call (prototype:
+<https://claude.ai/artifact/JEsNmSGXWUzM6ykM3NKmox>):
+
+- `site/src/home/words.rk` splits both pieces of code into words and pairs the equal ones in the
+  same order, a name before a bracket; `compare.rk` gives each word its place in the language
+  shown, and CSS moves it. The example turns into JavaScript by itself once, then the switch
+  "Rook / JavaScript" is the reader's. No buttons to copy the code.
+- The last board is `site/src/stage/endgame.rk`, drawn by `site/src/home/call-to-action.rk`.
 
 ### Stage 4. The scenes of threads and the "Board" of the playground (L)
 

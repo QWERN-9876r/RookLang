@@ -1,29 +1,99 @@
-// The end of the home page: the way on, to the guide and the playground, over the board of the
-// rook again.
+// The end of the home page: the way on, to the guide and the playground, over an empty board
+// with the one rook of `main` (stage/endgame.rk). The game of the page is over, and the next move
+// is the reader's: the rook waits, and hops when the reader comes to the button of the guide.
 
 import { LinkButton } from "../../ui/link-button.rk"
 import { Icon } from "../../ui/icon.rk"
 import { pageHref, text } from "../i18n.rk"
 import { Reveal } from "../layout/reveal.rk"
-import logo from "../rook.webp"
-import board from "./board.module.css"
+import { makeDust } from "../stage/board.rk"
+import { View } from "../stage/camera.rk"
+import { drawEndgame, endgameView } from "../stage/endgame.rk"
 import common from "./section.module.css"
 import styles from "./call-to-action.module.css"
+
+/** How long the hop of the rook takes, in milliseconds. */
+const HOP = 700
 
 export comp CallToAction() {
     const t = text()
     const h = t.home
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches
+    const dust = makeDust()
+    ref canvas
+
+    // When the rook hopped last, as a time of a frame; long ago, so that it stands at first.
+    let hopped = -HOP
+    let view ?View = null
+    let context ?CanvasRenderingContext2D = null
+
+    func layout() {
+        const box = canvas.getBoundingClientRect()
+        if box.width == 0 || context == null {
+            return
+        }
+        const ratio = Math.min(devicePixelRatio, 2)
+        canvas.width = Math.round(box.width * ratio)
+        canvas.height = Math.round(box.height * ratio)
+        context.setTransform(ratio, 0, 0, ratio, 0, 0)
+        view = endgameView(box.width, box.height)
+    }
+
+    func paint(now number) {
+        if view != null && context != null {
+            const hop = still ? 1 : Math.min(1, (now - hopped) / HOP)
+            drawEndgame(context, view, dust, hop, "main", h.ctaMove, !still, now)
+        }
+    }
+
+    func hop() {
+        hopped = performance.now()
+    }
+
+    mount {
+        context = canvas.getContext("2d")
+        const redraw = () => {
+            layout()
+            paint(performance.now())
+        }
+        const sizes = new ResizeObserver(redraw)
+        sizes.observe(canvas)
+        document.fonts.ready.then(redraw)
+        redraw()
+
+        let request = 0
+        let running = false
+        func tick(now number) {
+            paint(now)
+            request = requestAnimationFrame(tick)
+        }
+        // A board that is off the screen does not play.
+        const watcher = new IntersectionObserver(entries => {
+            const seen = entries[0].isIntersecting && !still
+            if seen && !running {
+                request = requestAnimationFrame(tick)
+            } else if !seen && running {
+                cancelAnimationFrame(request)
+            }
+            running = seen
+        })
+        watcher.observe(canvas)
+        defer {
+            cancelAnimationFrame(request)
+            sizes.disconnect()
+            watcher.disconnect()
+        }
+    }
+
     return <section class={[common.section, styles.cta]}>
-        <div class={board.board} aria-hidden="true" />
         <Reveal>
             <div class={[common.container, styles.ctaContent]}>
-                <img class={styles.logo} src={logo} alt="" width={64} height={64} />
                 <div class={common.heading}>
                     <h2>{h.ctaTitle}</h2>
                     <p>{h.ctaLead}</p>
                 </div>
                 <div class={styles.actions}>
-                    <LinkButton kind="primary" size="lg" href={pageHref("docs")}>
+                    <LinkButton kind="primary" size="lg" href={pageHref("docs")} onPointerEnter={hop()} onFocus={hop()}>
                         {t.getStarted}
                         <Icon name="arrow-right" size={16} />
                     </LinkButton>
@@ -31,5 +101,6 @@ export comp CallToAction() {
                 </div>
             </div>
         </Reveal>
+        <canvas class={styles.board} ref={canvas} aria-hidden="true" />
     </section>
 }

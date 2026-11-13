@@ -1,0 +1,175 @@
+// One frame of the scene of go for (array.rk): the board, the array as tiles at its front, the
+// rooks and the names under them.
+
+import { Moment, fitted, tilesOf, writerOf } from "./array.rk"
+import { Speck, drawBoardAt } from "./board.rk"
+import { FRONT, View, project, quad } from "./camera.rk"
+import { GLOW, IVORY, WHITE, clamp, colourOf, mix, rgba } from "./paint.rk"
+import { fall, squash, standing } from "./poses.rk"
+import { drawPoses } from "./rook-shape.rk"
+import { Pose } from "./rooks.rk"
+
+const MONO = "'Geist Mono Variable', ui-monospace, monospace"
+
+/** How far a tile goes to each side of the rank where the rooks stand. */
+const DEPTH = 0.3
+
+/** The words the canvas writes under the board. */
+export interface ArrayLabels {
+    /** The name of the program's own goroutine, and what it is doing while go for runs. */
+    main string
+    waits string
+    /** The name of the array and how much it holds. */
+    array string
+    size string
+}
+
+/** The view of a board of `files` files that takes the whole width of the canvas. */
+export func arrayView(width number, height number, files number) View {
+    const horizon = height * 0.27
+    // The front edge of the board is 1.28 times wider than its rank at z = 0.
+    const unit = Math.min(width * 0.74 / files, height * 0.18)
+    const depth = 5
+    return {
+        width: width,
+        height: height,
+        files: files,
+        centre: width / 2,
+        horizon: horizon,
+        unit: unit,
+        depth: depth,
+        focal: unit * depth,
+        rise: (height * 0.6 - horizon) * depth,
+    }
+}
+
+func isPrime(n number) bool {
+    for let d = 2; d * d <= n; d++ {
+        if n % d == 0 {
+            return false
+        }
+    }
+    return n > 1
+}
+
+/** The tiles, lit in the colour of the rook that wrote them last; a prime index is brighter. */
+func drawTiles(ctx CanvasRenderingContext2D, view View, moment Moment) {
+    const count = tilesOf(moment)
+    const each = moment.squares * 2
+    for let tile = 0; tile < count; tile++ {
+        // The tiles come onto the board as a wave from the left.
+        const shown = clamp(moment.shown * 1.6 - tile / count * 0.6)
+        if shown <= 0 {
+            continue
+        }
+        const centre = moment.parts[Math.floor(tile / each)].centre
+        const left = fitted(centre, -moment.half + tile / 2 + 0.04, moment.split)
+        const right = fitted(centre, -moment.half + (tile + 1) / 2 - 0.04, moment.split)
+        const writer = writerOf(moment, tile)
+        if writer < 0 {
+            ctx.fillStyle = rgba(IVORY, 0.1 * shown)
+            quad(ctx, view, left, FRONT - DEPTH, right, FRONT + DEPTH)
+            ctx.fillStyle = rgba(IVORY, 0.42 * shown)
+            quad(ctx, view, left, FRONT + DEPTH - 0.03, right, FRONT + DEPTH)
+            quad(ctx, view, left, FRONT - DEPTH, right, FRONT - DEPTH + 0.03)
+            continue
+        }
+        const colour = colourOf(writer)
+        const prime = isPrime(tile)
+        ctx.shadowColor = rgba(colour, 1)
+        ctx.shadowBlur = prime ? 18 : 8
+        ctx.fillStyle = rgba(prime ? mix(colour, WHITE, 0.55) : colour, prime ? 0.95 : 0.5)
+        quad(ctx, view, left, FRONT - DEPTH, right, FRONT + DEPTH)
+        ctx.shadowBlur = 0
+    }
+    if moment.flash > 0.01 {
+        // The cracks between the parts flash as the array splits.
+        ctx.globalCompositeOperation = "lighter"
+        for let part = 1; part < moment.rooks; part++ {
+            const x = -moment.half + part * moment.squares
+            for layer in GLOW {
+                ctx.fillStyle = rgba(WHITE, layer[1] * moment.flash)
+                quad(ctx, view, x - layer[0], FRONT - 0.5, x + layer[0], FRONT + 0.5)
+            }
+        }
+        ctx.globalCompositeOperation = "source-over"
+    }
+}
+
+/** The rook of `main`, then the rook of each part. */
+func posesOf(view View, moment Moment) Pose[] {
+    const main = standing(view, moment.mainX, 0)
+    if moment.forDone > 0 && moment.forDone < 1 {
+        // It walks: a lean forward and a hop on every square.
+        main.tilt = 0.07
+        main.lift = 0.09 * Math.abs(Math.sin(moment.forDone * (view.files - 1) * Math.PI))
+    }
+    main.wait = moment.waits
+    main.alpha = 1 - 0.4 * moment.waits
+    const finish = moment.finish
+    if finish > 0 {
+        // All the parts are done: it jumps, and a wide ring runs over the board.
+        main.lift = 0.5 * Math.abs(Math.sin(finish * Math.PI * 2)) * (1 - finish)
+        main.glow = 0.9 * (1 - finish) + 0.2
+        if finish < 1 {
+            main.wave = finish
+            main.sparks = finish
+            main.reach = 3.2
+        }
+    }
+    const poses = [main]
+    for part in moment.parts {
+        const pose = standing(view, part.x, part.colour)
+        if part.fall < 1 {
+            // A beam comes down on the part, and its rook falls in it and lands.
+            fall(pose, part.fall)
+        } else if moment.goDone > 0 && part.done < 1 {
+            pose.tilt = 0.1
+            pose.lift = 0.09 * Math.abs(Math.sin(part.done * moment.squares * 2 * Math.PI))
+        } else if part.sink > 0 {
+            pose.sink = part.sink
+            pose.ember = part.sink
+            pose.shown = part.sink < 1
+        }
+        poses.push(pose)
+    }
+    return poses
+}
+
+func drawNames(ctx CanvasRenderingContext2D, view View, moment Moment, labels ArrayLabels) {
+    const size = clamp(view.unit * 0.22, 10, 13)
+    func write(x number, name string, note string, paint string) {
+        const point = project(view, x, -1.34)
+        ctx.fillStyle = paint
+        ctx.font = `600 ${size}px ${MONO}`
+        ctx.fillText(name, point.x, point.y)
+        ctx.fillStyle = rgba(IVORY, 0.45)
+        ctx.font = `400 ${size - 1.5}px ${MONO}`
+        ctx.fillText(note, point.x, point.y + size * 1.35)
+    }
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    // The name of `main` goes with its rook; over the middle of the array it gives way to the
+    // name of the array.
+    if Math.abs(moment.mainX) >= 2.2 {
+        write(moment.mainX, labels.main, moment.waits > 0.5 ? labels.waits : "", rgba(colourOf(0), 1))
+    }
+    write(0, labels.array, labels.size, rgba(IVORY, 0.85))
+}
+
+/** Draws the frame; `moving` is false when nothing may move by itself. */
+export func drawArrayScene(
+    ctx CanvasRenderingContext2D,
+    view View,
+    moment Moment,
+    dust Speck[],
+    labels ArrayLabels,
+    moving bool,
+    now number,
+) {
+    ctx.clearRect(0, 0, view.width, view.height)
+    drawBoardAt(ctx, view, moment.ranks, moving, 0, dust)
+    drawTiles(ctx, view, moment)
+    drawPoses(ctx, posesOf(view, moment), moving, now)
+    drawNames(ctx, view, moment, labels)
+}

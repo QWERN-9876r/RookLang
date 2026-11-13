@@ -1,0 +1,167 @@
+// The scene of go for: an array lies as tiles across the board. First the rook of `main` walks it
+// alone, then the array splits into parts, a rook falls on each one, and they all walk at once.
+// Everything the scene shows comes from the moment, in seconds from its start, so the scene can be
+// dragged both ways and checked without a canvas.
+
+import { clamp, ease, lerp } from "./paint.rk"
+
+/** How long the loop in one thread walks, in seconds, and how many ranks the board goes back meanwhile. */
+const WALK = 4.2
+const RANKS = 7
+
+/** When each step of the scene starts, in seconds. */
+export interface Script {
+    /** The loop in one thread, from the first tile to the last. */
+    forStart number
+    forEnd number
+    /** The array splits into parts, and then the rooks fall on them. */
+    split number
+    fall number
+    /** go for; it takes as much less time than the loop as it was measured to. */
+    goStart number
+    goEnd number
+    total number
+    /** How many ranks the board goes back during go for. */
+    goRanks number
+}
+
+/** The script for a loop measured at `oneThread` milliseconds and its go for at `goFor`. */
+export func scriptOf(oneThread number, goFor number) Script {
+    const forStart = 0.9
+    const forEnd = forStart + WALK
+    const split = forEnd + 0.7
+    const fall = split + 0.6
+    const goStart = fall + 1.2
+    const goEnd = goStart + WALK * goFor / oneThread
+    return {
+        forStart: forStart,
+        forEnd: forEnd,
+        split: split,
+        fall: fall,
+        goStart: goStart,
+        goEnd: goEnd,
+        total: goEnd + 1.7,
+        goRanks: RANKS * goFor / oneThread,
+    }
+}
+
+/** Which step the scene is in, for its caption: from 0, the array appears, to 5, all is done. */
+export func stepAt(script Script, s number) number {
+    const starts = [script.forStart, script.forEnd, script.split, script.goStart, script.goEnd]
+    return starts.filter(start => s >= start).length
+}
+
+/** A part of the array under go for, and its rook. */
+export interface Part {
+    /** The x of its middle, and of its rook at the start and at the end of the part. */
+    centre number
+    from number
+    to number
+    /** How much of the part is done, from 0 to 1, and where its rook is. */
+    done number
+    x number
+    /** The colour of its goroutine, as the index of an actor. */
+    colour number
+    /** How far its rook has come down, and how deep it has sunk when all is done: from 0 to 1. */
+    fall number
+    sink number
+}
+
+/** The scene at a moment. Every share is from 0 to 1. */
+export interface Moment {
+    rooks number
+    /** How many squares a part takes, and half the width of the array in squares. */
+    squares number
+    half number
+    /** How much of the array has come onto the board. */
+    shown number
+    /** How much of each loop is done. */
+    forDone number
+    goDone number
+    /** How far the parts have moved apart, and the flash of the cracks between them. */
+    split number
+    flash number
+    /** Where the rook of `main` is, how much it waits, and how far its jump at the end has gone. */
+    mainX number
+    waits number
+    finish number
+    /** How many ranks the board has gone back. */
+    ranks number
+    parts Part[]
+}
+
+/** A part of one square when there are many rooks, of two otherwise. */
+export func squaresOf(rooks number) number {
+    return rooks > 8 ? 1 : 2
+}
+
+/** The files of the board: the array and a square for `main` at each side of it. */
+export func filesOf(rooks number) number {
+    return rooks * squaresOf(rooks) + 2
+}
+
+/** An x of a part once the parts have moved apart: each one shrinks towards its middle. */
+export func fitted(centre number, x number, split number) number {
+    return centre + (x - centre) * (1 - 0.1 * split)
+}
+
+export func momentAt(script Script, s number, rooks number) Moment {
+    const squares = squaresOf(rooks)
+    const half = rooks * squares / 2
+    const forDone = clamp((s - script.forStart) / WALK)
+    const goDone = clamp((s - script.goStart) / (script.goEnd - script.goStart))
+    const split = ease(clamp((s - script.split) / 0.5)) * (1 - ease(clamp((s - script.goEnd - 0.5) / 0.5)))
+    const parts Part[] = []
+    for let index = 0; index < rooks; index++ {
+        // Equal parts end at about the same time, not at once, and not as a staircase.
+        const share = 0.86 + 0.14 * ((index * 3 + 1) % rooks) / (rooks - 1)
+        const centre = -half + index * squares + squares / 2
+        const from = fitted(centre, centre - squares / 2 + 0.36, split)
+        const to = fitted(centre, centre + squares / 2 - 0.36, split)
+        const done = clamp(goDone / share)
+        parts.push({
+            centre: centre,
+            from: from,
+            to: to,
+            done: done,
+            x: lerp(from, to, done),
+            colour: 1 + index % 3,
+            // The rooks come down one after another, from the left.
+            fall: clamp((s - script.fall - index * 0.55 / (rooks - 1)) / 0.6),
+            sink: ease(clamp((s - script.goEnd - 0.1) / 0.5)),
+        })
+    }
+    const waiting = s < script.goEnd ? clamp((s - script.fall) / 0.4) : 1 - clamp((s - script.goEnd) / 0.3)
+    return {
+        rooks: rooks,
+        squares: squares,
+        half: half,
+        shown: clamp(s / script.forStart),
+        forDone: forDone,
+        goDone: goDone,
+        split: split,
+        flash: Math.sin(clamp((s - script.split) / 0.6) * Math.PI),
+        mainX: lerp(-half - 0.5, half + 0.5, forDone),
+        waits: waiting,
+        finish: clamp(s - script.goEnd - 0.4),
+        ranks: RANKS * forDone + script.goRanks * goDone,
+        parts: parts,
+    }
+}
+
+/** How many tiles the array has: two to a square. */
+export func tilesOf(moment Moment) number {
+    return moment.rooks * moment.squares * 2
+}
+
+/**
+ * Who wrote a tile last: -1 for nobody, 0 for `main`, or the colour of the goroutine of its part.
+ */
+export func writerOf(moment Moment, tile number) number {
+    const each = moment.squares * 2
+    const part = moment.parts[Math.floor(tile / each)]
+    if moment.goDone > 0 && part.done > (tile % each + 0.5) / each {
+        return part.colour
+    }
+    return moment.mainX > -moment.half + (tile + 0.5) / 2 ? 0 : -1
+}

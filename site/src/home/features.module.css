@@ -27,54 +27,6 @@
   white-space: pre-wrap;
 }
 
-/* The cores: they light up in the color of the rook one after another, as goroutines take them. */
-.cores {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.cores span {
-  height: 22px;
-  border: 1px solid var(--rui-line);
-  border-radius: 4px;
-  background: var(--rui-bg);
-  animation: work 3.2s ease-in-out calc(var(--i) * 0.12s) infinite;
-}
-
-.mappings {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--rui-line);
-  border-radius: var(--rui-radius);
-  background: var(--rui-bg);
-  overflow: hidden;
-}
-
-.mapping {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 9px 14px;
-  font-family: var(--rui-mono);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow-x: auto;
-}
-
-.mapping + .mapping {
-  border-top: 1px solid var(--rui-line);
-}
-
-.mapping code:last-child {
-  opacity: 0.7;
-}
-
-.mapping code:last-child::before {
-  content: '→ ';
-  color: var(--rui-subtle);
-}
-
 .tools {
   display: flex;
   flex-wrap: wrap;
@@ -99,6 +51,49 @@
   color: var(--rui-subtle);
 }
 
+/* Under a small board (small-board.rk), whose `data-mark` says what it plays now. The first and
+   the second case of a select: the one being played is lit. */
+.first,
+.second {
+  display: block;
+  margin: 0 -8px;
+  padding: 0 8px;
+  border-radius: 5px;
+  transition: background 0.25s;
+}
+
+[data-mark='1'] .first,
+[data-mark='2'] .second {
+  background: rgb(245 158 42 / 14%);
+}
+
+/* The error of the compiler: it flashes when the board shows what it is about. */
+.alarm {
+  transition:
+    border-color 0.3s,
+    background 0.3s;
+}
+
+[data-mark='1'] .alarm {
+  border-color: rgb(255 97 102 / 80%);
+  background: rgb(255 97 102 / 14%);
+}
+
+/* The way to the scene of the guide that plays the same thing move by move. */
+.more {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  align-self: flex-start;
+  color: var(--rui-muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.more:hover {
+  color: var(--rui-accent);
+}
+
 @media (max-width: 960px) {
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -108,24 +103,5 @@
 @media (max-width: 640px) {
   .grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@keyframes work {
-  0%,
-  15% {
-    border-color: var(--rui-line);
-    background: var(--rui-bg);
-  }
-
-  35%,
-  70% {
-    border-color: rgb(245 158 42 / 55%);
-    background: rgb(245 158 42 / 22%);
-  }
-
-  100% {
-    border-color: var(--rui-line);
-    background: var(--rui-bg);
   }
 }

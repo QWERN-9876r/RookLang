@@ -1,0 +1,86 @@
+// The small board of the types that know about threads: a border stands between `main` and a
+// goroutine. A string goes through it, and the goroutine gets its copy; a DOM element hits the
+// border and falls back, red: the compiler did not let it through. The mark of a frame is 1
+// while the border is red.
+
+import { NEAR, fog, project, quad } from "./camera.rk"
+import { IVORY, RED, clamp, colourOf, ease, lerp, mix, rgba } from "./paint.rk"
+import { grab, standing, toss } from "./poses.rk"
+import { drawPoses } from "./rook-shape.rk"
+import { Brush, SmallScene, drawLine, drawName, drawTile } from "./small.rk"
+
+/** Where `main` and the goroutine stand; the border is at x = 0. */
+const MAIN = -1
+const WORKER = 1
+
+/** The moment the element hits the border, in seconds, and where it stops before it. */
+const HIT = 3.05
+const STOP = -0.3
+
+/** How far the border goes into the distance, and how high its light stands, in squares. */
+const LENGTH = 9
+const HEIGHT = 0.55
+
+func drawTypes(brush Brush, t number, cycle number) number {
+    const ctx = brush.ctx
+    const view = brush.view
+    const amber = colourOf(0)
+    const red = clamp((t - HIT) / 0.12) * (1 - clamp((t - HIT - 1.3) / 0.6))
+    // The border lights up in the colour of the goroutine as the string goes through it.
+    const passing = Math.sin(clamp((t - 0.75) / 0.5) * Math.PI)
+    const wall = mix(mix(IVORY, colourOf(1), passing), RED, red)
+    const strength = 0.3 + 0.5 * Math.max(passing, red)
+
+    ctx.globalCompositeOperation = "lighter"
+    for let z = NEAR; z < LENGTH; z += 0.5 {
+        const low = project(view, 0, z)
+        const high = project(view, 0, z, HEIGHT)
+        const next = project(view, 0, z + 0.5)
+        const nextHigh = project(view, 0, z + 0.5, HEIGHT)
+        const paint = ctx.createLinearGradient(0, low.y, 0, high.y)
+        paint.addColorStop(0, rgba(wall, strength * fog(z)))
+        paint.addColorStop(1, rgba(wall, 0))
+        ctx.fillStyle = paint
+        ctx.beginPath()
+        ctx.moveTo(low.x - 1, low.y)
+        ctx.lineTo(next.x - 1, next.y)
+        ctx.lineTo(nextHigh.x + 1, nextHigh.y)
+        ctx.lineTo(high.x + 1, high.y)
+        ctx.closePath()
+        ctx.fill()
+    }
+    ctx.fillStyle = rgba(wall, 0.9)
+    quad(ctx, view, -0.015, NEAR, 0.015, LENGTH)
+    ctx.globalCompositeOperation = "source-over"
+
+    const main = standing(view, MAIN, 0)
+    const worker = standing(view, WORKER, 1)
+    // A string: it goes through.
+    toss(main, clamp((t - 0.4) / 0.4), 1)
+    if t > 0.45 && t < 1.35 {
+        const at = lerp(MAIN, WORKER, ease(clamp((t - 0.45) / 0.7)))
+        const gone = clamp((t - 1.15) / 0.2)
+        drawLine(brush, MAIN, at, amber, 1 - gone)
+        drawTile(brush, at, "\"done\"", amber, 1 - gone, gone)
+    }
+    grab(worker, clamp((t - 1.12) / 0.5), 1)
+    // A DOM element: it flies to the border, hits it and falls back.
+    toss(main, clamp((t - 2.5) / 0.4), 1)
+    if t > 2.55 && t < 4.3 {
+        const out = clamp((t - 2.55) / (HIT - 2.55))
+        const back = clamp((t - HIT) / 0.9)
+        const x = t < HIT ? lerp(MAIN, STOP, out * out) : lerp(STOP, -0.62, 1 - Math.pow(1 - back, 3))
+        const shake = t >= HIT && brush.moving ? Math.sin((t - HIT) * 60) * 0.03 * Math.exp(-6 * (t - HIT)) : 0
+        if t < HIT {
+            drawLine(brush, MAIN, x, amber, 1)
+        }
+        drawTile(brush, x + shake, "title", mix(amber, RED, clamp((t - HIT) / 0.1)), 1 - clamp((t - 3.8) / 0.5))
+    }
+
+    drawPoses(ctx, [main, worker], brush.moving, brush.now)
+    drawName(brush, MAIN, "main", amber)
+    drawName(brush, WORKER, "go func()", colourOf(1))
+    return red > 0.3 ? 1 : 0
+}
+
+export const TYPES_SCENE SmallScene = { files: 4, period: 6.4, rest: 3.3, draw: drawTypes }

@@ -122,23 +122,38 @@ export interface HomeStrings {
     faster string
     lanesNote string
     replay string
+    /** Under the array of the scene of go for: how much it holds. */
+    goForArray string
+    /** The name of the line of time of the scene. */
+    goForMoment string
+    /**
+     * The captions of the six steps of the scene, from the array on the board to the end: the
+     * milliseconds of the loop in one thread and of go for, and how many times faster go for is.
+     */
+    goForSteps func(number, number, number) string[]
+    /** A time in milliseconds, and "8.1×". */
+    ms func(number) string
+    ratio func(number) string
     featuresTitle string
     featuresLead string
     goroutinesTitle string
     goroutinesText string
     channelsTitle string
     channelsText string
+    /** The link of the card to the scene of select in the guide. */
+    channelsMore string
     typesTitle string
     typesText string
-    jsTitle string
+    /** Under the title of the block where Rook turns into JavaScript. */
     jsText string
     componentsTitle string
     componentsText string
+    serverTitle string
+    serverText string
     clicks func(number) string
     toolsTitle string
     toolsText string
     compareTitle string
-    compareLead string
     compareGoroutines string
     compareComponents string
     compareErrors string
@@ -151,6 +166,8 @@ export interface HomeStrings {
     startCode string
     startOutput string
     ctaTitle string
+    /** Under the rook of the last board: the next move is the reader's. */
+    ctaMove string
     ctaLead string
 }
 

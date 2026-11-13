@@ -1,0 +1,121 @@
+// The small boards in the cards of the home page: each plays one idea of the language in a round
+// that repeats (small-go.rk, small-select.rk, small-types.rk). This is what they share: the view
+// of a small board and the marks of a move on it.
+
+import { View, project, quad } from "./camera.rk"
+import { Colour, GLOW, clamp, rgba, roundedRect } from "./paint.rk"
+import { drawCall } from "./rook-shape.rk"
+
+const MONO = "'Geist Mono Variable', ui-monospace, monospace"
+
+/** What a scene draws with. */
+export interface Brush {
+    ctx CanvasRenderingContext2D
+    view View
+    /** The time of the frame in milliseconds, for what moves by itself. */
+    now number
+    /** False when the reader asked for less motion: nothing moves by itself. */
+    moving bool
+}
+
+/** A scene of a small board. */
+export interface SmallScene {
+    /** The files of its board. */
+    files number
+    /** How long its round takes, in seconds, and the moment of the round that shows it best. */
+    period number
+    rest number
+    /**
+     * Draws the round `cycle` at the moment `t` of it, over the board, and returns the mark of
+     * the frame: a number that the card shows in its text (small-board.rk), 0 for nothing.
+     */
+    draw func(Brush, number, number) number
+}
+
+/** The view of a small board: the eye is higher than over a big one, so its squares are not flat. */
+export func smallView(width number, height number, files number) View {
+    const horizon = height * 0.2
+    // The front edge of the board is 1.28 times wider than its rank at z = 0.
+    const unit = Math.min(height * 0.32, width * 0.8 / files / 1.28)
+    const depth = 5
+    return {
+        width: width,
+        height: height,
+        files: files,
+        centre: width / 2,
+        horizon: horizon,
+        unit: unit,
+        depth: depth,
+        focal: unit * depth,
+        rise: (height * 0.68 - horizon) * depth,
+    }
+}
+
+/** A line of light along the rank of the move, between two x. */
+export func drawLine(brush Brush, from number, to number, colour Colour, alpha number) {
+    const ctx = brush.ctx
+    ctx.globalCompositeOperation = "lighter"
+    for layer in GLOW {
+        ctx.fillStyle = rgba(colour, layer[1] * alpha)
+        quad(ctx, brush.view, Math.min(from, to), -layer[0], Math.max(from, to), layer[0])
+    }
+    ctx.globalCompositeOperation = "source-over"
+}
+
+/** A line that only may be played: dashes that run along the rank. */
+export func drawDashes(brush Brush, from number, to number, colour Colour, alpha number) {
+    const ctx = brush.ctx
+    const left = Math.min(from, to)
+    const right = Math.max(from, to)
+    const shift = brush.moving ? brush.now * 0.0006 % 0.24 : 0
+    ctx.globalCompositeOperation = "lighter"
+    ctx.fillStyle = rgba(colour, 0.75 * alpha)
+    for let x = left - 0.24 + shift; x < right; x += 0.24 {
+        if x + 0.12 > left {
+            quad(ctx, brush.view, Math.max(x, left), -0.02, Math.min(x + 0.12, right), 0.02)
+        }
+    }
+    ctx.globalCompositeOperation = "source-over"
+}
+
+/** A light on its way over the rank: a call, or a signal that carries no value. */
+export func drawSpark(brush Brush, x number, colour Colour, alpha number) {
+    const point = project(brush.view, x, 0, 0.2)
+    drawCall(brush.ctx, point.x, point.y, brush.view.unit * 0.3, colour, alpha)
+}
+
+/** A value on its way: a dark tile with a rim in the colour of who sent it. */
+export func drawTile(brush Brush, x number, text string, colour Colour, alpha number = 1, shrink number = 0) {
+    const ctx = brush.ctx
+    const point = project(brush.view, x, 0, 0.2)
+    const height = Math.max(20, brush.view.unit * 0.42) * (1 - 0.45 * shrink)
+    ctx.save()
+    ctx.font = `600 ${Math.round(height * 0.5)}px ${MONO}`
+    const width = Math.max(height, ctx.measureText(text).width + height * 0.6)
+    ctx.globalAlpha = alpha
+    ctx.shadowColor = rgba(colour, 1)
+    ctx.shadowBlur = 22
+    ctx.fillStyle = "#17120d"
+    roundedRect(ctx, point.x - width / 2, point.y - height / 2, width, height, height * 0.24)
+    ctx.fill()
+    ctx.shadowBlur = 0
+    ctx.lineWidth = 2
+    ctx.strokeStyle = rgba(colour, 1)
+    ctx.stroke()
+    ctx.fillStyle = "#fff3df"
+    ctx.textAlign = "center"
+    ctx.textBaseline = "middle"
+    ctx.fillText(text, point.x, point.y + 1)
+    ctx.restore()
+}
+
+/** The name of a file, under the board. */
+export func drawName(brush Brush, x number, text string, colour Colour, alpha number = 1) {
+    const ctx = brush.ctx
+    const point = project(brush.view, x, -1.34)
+    ctx.textAlign = "center"
+    ctx.textBaseline = "alphabetic"
+    ctx.fillStyle = rgba(colour, alpha)
+    ctx.font = `600 ${clamp(brush.view.unit * 0.2, 9.5, 12)}px ${MONO}`
+    ctx.fillText(text, point.x, point.y + 2)
+}

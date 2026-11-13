@@ -1,0 +1,63 @@
+// The small board of `go`: the call runs from `main` to a free file, a rook falls there and
+// works while `main` waits, its result comes back as a move, and it leaves the board. The next
+// round takes another free file.
+
+import { fileX } from "./camera.rk"
+import { clamp, colourOf, ease, lerp } from "./paint.rk"
+import { fall, grab, standing, toss } from "./poses.rk"
+import { drawPoses } from "./rook-shape.rk"
+import { Brush, SmallScene, drawLine, drawName, drawSpark, drawTile } from "./small.rk"
+
+func drawGo(brush Brush, t number, cycle number) number {
+    const view = brush.view
+    const actor = 1 + cycle % 3
+    const colour = colourOf(actor)
+    const mainX = fileX(view, 0)
+    const x = fileX(view, 1 + cycle * 2 % (view.files - 1))
+    const main = standing(view, mainX, 0)
+    const worker = standing(view, x, actor)
+
+    // The call: a light from `main` to the file of the new goroutine.
+    toss(main, clamp((t - 0.5) / 0.4), 1)
+    if t > 0.55 && t < 1.2 {
+        const at = lerp(mainX, x, ease(clamp((t - 0.55) / 0.5)))
+        const left = 1 - clamp((t - 1.05) / 0.15)
+        drawLine(brush, mainX, at, colour, left)
+        drawSpark(brush, at, colour, left)
+    }
+    // `await`: `main` waits for the result.
+    main.wait = clamp((t - 0.9) / 0.3) * (1 - clamp((t - 3.55) / 0.2))
+    main.alpha = 1 - 0.4 * main.wait
+
+    if t < 0.9 {
+        worker.shown = false
+    } else if t < 1.7 {
+        fall(worker, (t - 0.9) / 0.8)
+    } else if t < 3 {
+        // It works.
+        worker.glow = brush.moving ? 0.22 + 0.2 * Math.sin((t - 1.7) * 9) : 0.2
+    }
+    // The result: a value thrown back along the rank.
+    toss(worker, clamp((t - 3) / 0.4), -1)
+    if t > 3.05 && t < 3.75 {
+        const at = lerp(x, mainX, ease(clamp((t - 3.05) / 0.5)))
+        const gone = clamp((t - 3.55) / 0.2)
+        drawLine(brush, x, at, colour, 1 - clamp((t - 3.6) / 0.15))
+        drawTile(brush, at, "n", colour, 1 - gone, gone)
+    }
+    grab(main, clamp((t - 3.55) / 0.5), -1)
+    if t >= 3.6 {
+        worker.sink = ease(clamp((t - 3.6) / 0.5))
+        worker.ember = worker.sink * (1 - clamp((t - 4.6) / 0.6))
+        worker.shown = worker.sink < 1
+    }
+
+    drawPoses(brush.ctx, [worker, main], brush.moving, brush.now)
+    drawName(brush, mainX, "main", colourOf(0))
+    if t > 1.5 && t < 4.1 {
+        drawName(brush, x, "countPrimes", colour, clamp((t - 1.5) / 0.3) * (1 - clamp((t - 3.7) / 0.4)))
+    }
+    return 0
+}
+
+export const GO_SCENE SmallScene = { files: 6, period: 5.4, rest: 3.2, draw: drawGo }

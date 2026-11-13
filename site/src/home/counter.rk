@@ -1,13 +1,38 @@
-// The counter of the card about components: a real component of the page itself.
+// The card about components in the browser: a line of state, the markup that changes it, and
+// under them the counter itself, a real component of this page. A click changes the state, and
+// the change runs down to the button as a pulse.
 
+import { highlight } from "../highlight.rk"
 import { text } from "../i18n.rk"
+import { COUNTER } from "./code.rk"
 import styles from "./counter.module.css"
 
-/** A component of the page itself: the counter that the card about components talks about. */
 export comp Counter() {
     const h = text().home
     state count = 0
-    return <button class={styles.counter} type="button" onClick={count++}>
-        {h.clicks(count)}
-    </button>
+    /** False until the first click: the pulse does not run by itself. */
+    state pulsed = false
+    ref dot
+    ref button
+
+    func click() {
+        count++
+        pulsed = true
+        // The pulse starts again for each click.
+        for element in [dot, button] {
+            element.style.animation = "none"
+            element.getBoundingClientRect()
+            element.style.animation = ""
+        }
+    }
+
+    return <div class={styles.live}>
+        <pre class={styles.code}>{highlight(COUNTER, "rook")}</pre>
+        <span class={styles.wire} aria-hidden="true">
+            <i class={[styles.dot, pulsed ? styles.run : null]} ref={dot} />
+        </span>
+        <button class={[styles.counter, pulsed ? styles.flash : null]} type="button" ref={button} onClick={click()}>
+            {h.clicks(count)}
+        </button>
+    </div>
 }

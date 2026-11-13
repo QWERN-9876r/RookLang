@@ -1,7 +1,50 @@
-/* The counter of the card about components. */
+/* The card about components in the browser: the code, a wire down from it, and the live counter.
+   A click sends a pulse down the wire, and the counter flashes when it arrives. */
+
+.live {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.code {
+  align-self: stretch;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--rui-line);
+  border-radius: var(--rui-radius);
+  background: var(--rui-bg);
+  font-family: var(--rui-mono);
+  font-size: 12.5px;
+  line-height: 1.65;
+  overflow-x: auto;
+}
+
+.wire {
+  position: relative;
+  width: 2px;
+  height: 20px;
+  margin-left: 26px;
+  background: var(--rui-line-strong);
+}
+
+.dot {
+  position: absolute;
+  top: -3px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rui-accent-strong);
+  box-shadow: 0 0 10px var(--rui-accent);
+  opacity: 0;
+}
+
+.run {
+  animation: drop 0.32s ease-in;
+}
 
 .counter {
-  align-self: flex-start;
   height: 36px;
   padding: 0 16px;
   border: 1px solid rgb(245 158 42 / 40%);
@@ -18,4 +61,38 @@
 
 .counter:hover {
   background: rgb(245 158 42 / 20%);
+}
+
+.flash {
+  animation: flash 0.55s ease-out 0.3s;
+}
+
+@keyframes drop {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(20px);
+    opacity: 1;
+  }
+}
+
+@keyframes flash {
+  from {
+    background: rgb(245 158 42 / 50%);
+    box-shadow: 0 0 0 0 rgb(245 158 42 / 70%);
+  }
+
+  to {
+    box-shadow: 0 0 0 12px rgb(245 158 42 / 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run,
+  .flash {
+    animation: none;
+  }
 }

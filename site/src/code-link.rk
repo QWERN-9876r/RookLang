@@ -1,0 +1,11 @@
+// Code as a part of an address: the playground opens what `#code=...` brings, and "Share" there
+// and the scenes of the home page make such links.
+
+/** The UTF-8 bytes of the code in base64url. */
+export func encode(code string) string {
+    let binary = ""
+    for byte in byte[](code) {
+        binary += String.fromCharCode(byte)
+    }
+    return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "")
+}

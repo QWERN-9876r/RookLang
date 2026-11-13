@@ -1,0 +1,122 @@
+// The words of a piece of Rook and of the JavaScript it compiles to, and which of them are the
+// same ones: the block "Write Rook. Ship JavaScript" (compare.rk) keeps the shared words on the
+// screen and moves them to their places in the other language.
+
+/** The kind of a word, which is the class of its colour (highlight.module.css); "" has none. */
+export type Kind "" | "kw" | "fn" | "num" | "str" | "com"
+
+/** A word of the code and where it stands: the line and the column, from 0. */
+export interface Word {
+    text string
+    line number
+    col number
+    kind Kind
+}
+
+/** A word on the screen: where it stands in each language, null where it is not there. */
+export interface Piece {
+    text string
+    rook ?Word
+    js ?Word
+}
+
+const KEYWORDS = ["func", "function", "return", "const", "let", "await", "go", "comp", "state", "if", "new", "null"]
+
+/** A name, a number, an operator of several characters, or any other character that is not a space. */
+const WORD = /[A-Za-z_$][\w$]*|\d+|===|==|!=|\+\+|=>|\S/g
+
+/**
+ * The words of the code. A comment is one word; the quotes of a string and the words inside it
+ * are words of their own, so that a name can go into a string: `go fib(40)` → `$$go("fib", [40])`.
+ */
+export func wordsOf(code string) Word[] {
+    const words Word[] = []
+    for line, text in code.split("\n") {
+        const comment = text.indexOf("//")
+        const source = comment < 0 ? text : text.slice(0, comment)
+        let quoted = false
+        WORD.lastIndex = 0
+        let match = WORD.exec(source)
+        for match != null {
+            // RegExpExecArray of TypeScript cannot be indexed in Rook yet.
+            const groups any = match
+            const word string = groups[0]
+            let kind Kind = ""
+            if word == "\"" {
+                quoted = !quoted
+                kind = "str"
+            } else if quoted {
+                kind = "str"
+            } else if KEYWORDS.includes(word) {
+                kind = "kw"
+            } else if /^\d/.test(word) {
+                kind = "num"
+            } else if /^[A-Za-z_$]/.test(word) && text[match.index + word.length] == "(" {
+                kind = "fn"
+            }
+            words.push({ text: word, line: line, col: match.index, kind: kind })
+            match = WORD.exec(source)
+        }
+        if comment >= 0 {
+            words.push({ text: text.slice(comment), line: line, col: comment, kind: "com" })
+        }
+    }
+    return words
+}
+
+/**
+ * How much it is worth to keep a word on the screen: a name or a number is worth more than a
+ * bracket, so in `go fib(40)` → `$$go("fib", [40])` it is `fib` that stays, not `(`.
+ */
+func weightOf(word string) number {
+    return /^[\w$]/.test(word) ? 3 : 1
+}
+
+/**
+ * The words of both pieces of code as they stand on the screen. Equal words in the same order
+ * are one word with two places: the order that keeps the most is taken, so as little as possible
+ * leaves and comes.
+ */
+export func piecesOf(rookCode string, jsCode string) Piece[] {
+    const rook = wordsOf(rookCode)
+    const js = wordsOf(jsCode)
+    // common[i][j] is the weight of the words that rook[i..] and js[j..] share in the same order.
+    const common number[][] = []
+    for let i = 0; i <= rook.length; i++ {
+        common.push(new Array(js.length + 1).fill(0))
+    }
+    for let i = rook.length - 1; i >= 0; i-- {
+        for let j = js.length - 1; j >= 0; j-- {
+            common[i][j] = rook[i].text == js[j].text
+                ? common[i + 1][j + 1] + weightOf(rook[i].text)
+                : Math.max(common[i + 1][j], common[i][j + 1])
+        }
+    }
+    const pieces Piece[] = []
+    let i = 0
+    let j = 0
+    for i < rook.length || j < js.length {
+        if i < rook.length && j < js.length && rook[i].text == js[j].text {
+            pieces.push({ text: rook[i].text, rook: rook[i], js: js[j] })
+            i++
+            j++
+        } else if j == js.length || i < rook.length && common[i + 1][j] >= common[i][j + 1] {
+            pieces.push({ text: rook[i].text, rook: rook[i], js: null })
+            i++
+        } else {
+            pieces.push({ text: js[j].text, rook: null, js: js[j] })
+            j++
+        }
+    }
+    return pieces
+}
+
+/** How many lines a piece of code has. */
+export func linesOf(code string) number {
+    return code.split("\n").length
+}
+
+/** How many characters its longest line has. */
+export func widthOf(code string) number {
+    return Math.max(...code.split("\n").map(line => line.length))
+}

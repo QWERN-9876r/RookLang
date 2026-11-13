@@ -116,8 +116,7 @@ func groundRing(ctx CanvasRenderingContext2D, pose Pose, radius number, paint st
 }
 
 /** Under the rooks: the beam of a new one, the mark of a finished one, the rings. */
-func drawGround(shot Shot, pose Pose) {
-    const ctx = shot.ctx
+func drawGround(ctx CanvasRenderingContext2D, pose Pose, moving bool, now number) {
     const size = pose.size
     const colour = tint(pose)
     if pose.beam > 0 {
@@ -136,7 +135,7 @@ func drawGround(shot Shot, pose Pose) {
     }
     if pose.wait > 0.02 {
         ctx.setLineDash([size * 0.14, size * 0.1])
-        ctx.lineDashOffset = shot.moving ? -shot.now * 0.035 : 0
+        ctx.lineDashOffset = moving ? -now * 0.035 : 0
         groundRing(ctx, pose, 0.78 * size, rgba(colour, 0.8 * pose.wait), 1.6)
         ctx.setLineDash([])
     }
@@ -178,11 +177,15 @@ export func drawCall(ctx CanvasRenderingContext2D, x number, y number, radius nu
 }
 
 export func drawRooks(shot Shot, poses Pose[]) {
-    const ctx = shot.ctx
+    drawPoses(shot.ctx, poses, shot.moving, shot.now)
+}
+
+/** The rooks of any scene; `moving` is false when nothing may move by itself. */
+export func drawPoses(ctx CanvasRenderingContext2D, poses Pose[], moving bool, now number) {
     ctx.save()
     ctx.globalCompositeOperation = "lighter"
     for pose in poses {
-        drawGround(shot, pose)
+        drawGround(ctx, pose, moving, now)
     }
     ctx.restore()
     for pose in poses {
