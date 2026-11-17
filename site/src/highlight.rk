@@ -41,7 +41,12 @@ const TYPE_ARG_TOKENS = ["Identifier", ",", "[", "]", "?", ".", "|", "String", "
 // Between tokens are spaces and comments; split with a group keeps the comments in the result.
 const COMMENT = new RegExp("(//[^\\n]*|/\\*[\\s\\S]*?\\*/)")
 
-export func highlight(code string, language string) DocumentFragment {
+export func highlight(
+    code string,
+    language string,
+    morph bool = false,
+    morphScope string = "",
+) DocumentFragment {
     const fragment = <></>
     let tokens any
     try {
@@ -51,6 +56,7 @@ export func highlight(code string, language string) DocumentFragment {
         return fragment
     }
     let pos = 0
+    const seen Map<string, number> = new Map()
     for i, token in tokens {
         // Semicolons inserted by the lexer and the end of the file take no room in the text.
         if token.text == "" {
@@ -60,8 +66,16 @@ export func highlight(code string, language string) DocumentFragment {
             appendGap(fragment, code.slice(pos, token.start))
         }
         const kind = tokenClass(tokens, i, language)
+        let content any = token.text
         if token.kind == "CssText" {
-            fragment.append(highlightCss(token.text))
+            content = highlightCss(token.text)
+        }
+        if morph {
+            const span = <span class={kind}>{content}</span>
+            span.style.viewTransitionName = transitionName(token.text, morphScope, seen)
+            fragment.append(span)
+        } else if token.kind == "CssText" {
+            fragment.append(content)
         } else if kind == "" {
             fragment.append(token.text)
         } else {
@@ -73,6 +87,17 @@ export func highlight(code string, language string) DocumentFragment {
         appendGap(fragment, code.slice(pos))
     }
     return fragment
+}
+
+func transitionName(text string, scope string, seen Map<string, number>) string {
+    let hash = 0
+    for i, _ in text {
+        hash = (hash * 31 + text.charCodeAt(i)) % 2147483647
+    }
+    const key = `${text.length}-${hash}`
+    const count = (seen.get(key) ?? 0) + 1
+    seen.set(key, count)
+    return `rook-token-${scope}-${key}-${count}`
 }
 
 func appendGap(fragment DocumentFragment, text string) {

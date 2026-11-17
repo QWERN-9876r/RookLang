@@ -9,6 +9,8 @@ export comp Generics() {
             {" "}<code>{"func last<T any>(xs T[]) ?T"}</code>, <code>{"interface Box<T>"}</code>,
             {" "}<code>{"class Stack<T>"}</code>. Type arguments are in angle brackets too:
             {" "}<code>{"Box<number>"}</code>, <code>{"Stack<string>"}</code>.
+            A generic task collection or store can retain the task type as values pass through it,
+            while the same collection logic can be reused for other types.
         </p>
         <p>
             The compiler infers the type arguments of a call from the arguments or from the

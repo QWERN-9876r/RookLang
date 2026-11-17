@@ -25,6 +25,10 @@ export comp Styles() {
             other components do not reach these elements.
         </p>
         <Example name="styles" />
+        <p>
+            The board uses these scoped styles to distinguish open, completed and high-priority
+            tasks without leaking row styles into the surrounding page.
+        </p>
         <ul>
             <li>
                 <code>{"{expr}"}</code> in the value of a declaration comes from code. The value

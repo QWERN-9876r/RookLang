@@ -1,6 +1,7 @@
 // The section "Async functions" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Async() {
     return <>
@@ -11,7 +12,13 @@ export comp Async() {
             {" "}<code>{"Promise<(string, error)>"}</code>, and <code>await</code> unpacks the values
             back. A module can <code>await</code> at the top level, and an event handler can be
             async: a change of state after <code>await</code> updates the markup.
+            In the task board, async functions load the current tasks from storage and save changes
+            over the network without blocking the interface.
         </p>
         <Example name="async" />
     </>
+}
+
+export comp AsyncStage() {
+    return <ConcurrencyStage name="async" title="Async functions" />
 }

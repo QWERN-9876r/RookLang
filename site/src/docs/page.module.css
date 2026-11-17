@@ -9,6 +9,15 @@
   margin: 0 auto;
 }
 
+.mapLayout {
+  max-width: var(--rui-page);
+  margin: 0 auto;
+}
+
+.mapMain {
+  min-width: 0;
+}
+
 .sidebar {
   position: sticky;
   top: 65px;

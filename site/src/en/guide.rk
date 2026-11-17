@@ -16,17 +16,18 @@ import { Classes } from "./guide/classes.rk"
 import { Generics } from "./guide/generics.rk"
 import { Make } from "./guide/make.rk"
 import { Modules } from "./guide/modules.rk"
-import { Async } from "./guide/async.rk"
-import { Goroutines } from "./guide/goroutines.rk"
+import { Async, AsyncStage } from "./guide/async.rk"
+import { Goroutines, GoroutinesStage } from "./guide/goroutines.rk"
 import { Channels, ChannelsStage } from "./guide/channels.rk"
-import { Select } from "./guide/select.rk"
-import { Streams } from "./guide/streams.rk"
-import { Topics } from "./guide/topics.rk"
-import { ChannelObjects } from "./guide/channel-objects.rk"
+import { Select, SelectStage } from "./guide/select.rk"
+import { Streams, StreamsStage } from "./guide/streams.rk"
+import { Topics, TopicsStage } from "./guide/topics.rk"
+import { ChannelObjects, ChannelObjectsStage } from "./guide/channel-objects.rk"
 import { Try } from "./guide/try.rk"
 import { Decode } from "./guide/decode.rk"
 import { AsyncIterables } from "./guide/async-iterables.rk"
-import { Signals } from "./guide/signals.rk"
+import { Signals, SignalsStage } from "./guide/signals.rk"
+import { PulseStage } from "../stage/pulse.rk"
 import { Markup } from "./guide/markup.rk"
 import { Components } from "./guide/components.rk"
 import { Reactivity } from "./guide/reactivity.rk"
@@ -79,5 +80,16 @@ export const SECTIONS Section[] = [
 
 /** The sections that open with a scene, above their text. */
 export const STAGES SectionStage[] = [
+    { id: "async", content: AsyncStage },
+    { id: "goroutines", content: GoroutinesStage },
     { id: "channels", content: ChannelsStage },
+    { id: "select", content: SelectStage },
+    { id: "streams", content: StreamsStage },
+    { id: "topics", content: TopicsStage },
+    { id: "channel-objects", content: ChannelObjectsStage },
+    { id: "signals", content: SignalsStage },
+    { id: "markup", content: PulseStage },
+    { id: "components", content: PulseStage },
+    { id: "state", content: PulseStage },
+    { id: "mount", content: PulseStage },
 ]

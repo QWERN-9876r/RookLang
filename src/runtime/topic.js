@@ -6,7 +6,9 @@
 
 import { $$chan, $$closeHere, $$send } from './chan.js';
 import { $$channels } from './channel.js';
-import { $$walk } from './threads.js';
+import { $$registry, $$walk } from './threads.js';
+import { $$place } from './trace.js';
+import { $$tracer } from './trace.js';
 
 export const $$topics = Object.freeze({
   // The zero value of topic types: it has no name, it is closed, and what is sent to it goes
@@ -34,9 +36,14 @@ export function $$topic(name, zero) {
 }
 
 // `t <- v`: the value goes to the other threads that listen and is not kept here, so nothing waits.
-export function $$publish(topic, value) {
+export function $$publish(topic, value, line) {
   if (topic.$$topic === null) return;
   if (topicState().closed.has(topic)) throw new Error('send on a closed topic');
+
+  const trace = $$tracer();
+
+  trace?.emit({ kind: 'publish', actor: trace?.actor(), topic: topic.$$topic, value, line });
+
   $$named(topic.$$topic).channel.postMessage(value);
 }
 
@@ -51,7 +58,7 @@ export function $$listen(topic) {
   let channel = channels.get(topic);
 
   if (channel) return channel;
-  channel = $$chan(Infinity, topic.zero);
+  channel = $$chan(Infinity, topic.zero, topic.$$topic);
   channels.set(topic, channel);
   if (closed.has(topic)) $$closeHere(channel.$$chan);
   else $$listening(topic, true);
@@ -60,7 +67,7 @@ export function $$listen(topic) {
 }
 
 // `close(t)`: the topic stops listening and sending; what it has received can still be received.
-export function $$closeTopic(topic) {
+export function $$closeTopic(topic, line) {
   const { channels, closed } = topicState();
 
   if (topic.$$topic === null) return;
@@ -70,7 +77,7 @@ export function $$closeTopic(topic) {
   const channel = channels.get(topic);
 
   if (!channel) return;
-  $$closeHere(channel.$$chan);
+  $$closeHere(channel.$$chan, $$place($$registry(), line));
   $$listening(topic, false);
 }
 

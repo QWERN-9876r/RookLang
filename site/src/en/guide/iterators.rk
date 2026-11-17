@@ -11,6 +11,8 @@ export comp Iterators() {
             iterator stops at its <code>yield</code> too, as if it had given <code>false</code>,
             and its <code>defer</code> runs. A <code>yield</code> of two values gives a key and a
             value: <code>for place, fruit in numbered(fruits)</code>.
+            The board can use the same pattern to display or process tasks one at a time; lazy
+            iteration is useful when producing results without first building another collection.
         </p>
         <Example name="iterators" />
         <p>

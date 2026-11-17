@@ -3,6 +3,23 @@
 
 import { Labels } from "./camera.rk"
 
+export interface PulseLabels {
+    title string
+    lead string
+    change string
+    reset string
+    ready func(number) string
+    changed func(number) string
+    source string
+    graph string
+    preview string
+    state string
+    button string
+    paragraph string
+    independent string
+    updated string
+}
+
 export interface StageStrings {
     /** What the board means, under the title of the scene. */
     lead string
@@ -30,8 +47,15 @@ export interface StageStrings {
     timeline string
     /** What the canvas writes under the files. */
     labels Labels
-    /** `go`: the name of the new goroutine. */
-    go func(string) string
+    pulse PulseLabels
+    /** `go`: the name of the new goroutine and the copied arguments, if any. */
+    go func(string, ?string) string
+    /** The result of a goroutine returning to the one that started it. */
+    returnResult func(string, string, string) string
+    select func(string) string
+    turn func(number, string) string
+    publish func(string, string) string
+    cancel func(string) string
     /** A receive that waits: who, and on which channel. */
     waitReceive func(string, string) string
     /** A send that waits on a channel without a buffer, and on a full buffer: who, the channel. */

@@ -29,6 +29,11 @@ export comp Tools() {
             {COMMANDS}
         </CodeBlock>
         <p>
+            These are the commands used to build and run the board as its modules appear. With
+            markup enabled it can be checked in the browser; the server version is run by Node or
+            Bun.
+        </p>
+        <p>
             Vite projects have a plugin, <code>rooklang/vite</code>: with it <code>.rk</code>
             modules are imported like any others, and type errors show up over the page. This site
             is built that way; its <code>package.json</code> turns markup and components on.

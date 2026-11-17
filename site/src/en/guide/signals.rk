@@ -1,6 +1,7 @@
 // The section "Signals and cancellation" of the English guide; guide.rk lists the sections.
 
 import { CodeBlock } from "../../../ui/code-block.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 import { Example } from "../../example.rk"
 import { highlight } from "../../highlight.rk"
 import { text } from "../../i18n.rk"
@@ -14,6 +15,11 @@ export comp Signals() {
             when its client goes, with an <code>AbortSignal</code>. Both become channels, so that
             {" "}<code>select</code> waits for them with the rest, as <code>signal.Notify</code> and
             the <code>Done()</code> of a context do in Go.
+        </p>
+        <p>
+            When the server stops, it can use the signal channel to begin a graceful shutdown:
+            stop accepting task work, let background workers finish or stop, then close their
+            channels and the server.
         </p>
         <p>
             <code>signal("SIGINT", "SIGTERM")</code> is a channel that gets the name of each signal.
@@ -32,6 +38,10 @@ export comp Signals() {
         </p>
         <Example name="cancel" />
     </>
+}
+
+export comp SignalsStage() {
+    return <ConcurrencyStage name="signals" title="Signals and cancellation" />
 }
 
 const SHUTDOWN = `import { createServer } from "node:http"

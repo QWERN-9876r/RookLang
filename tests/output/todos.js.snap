@@ -2,86 +2,125 @@
 
 import { $$branches, $$element, $$list } from "rooklang/runtime";
 
-// <Todos>
-let $$todos1;
+// <TaskBoard>
+let $$taskBoard1;
 {
-  let todos = ["Buy guavas", "Learn Rook"];
+  let tasks = [{ id: 1, title: "Define the task model", done: true, priority: "normal" }, { id: 2, title: "Build the task board", done: false, priority: "high" }];
   let title = "";
+  let filter = "open";
+  let nextId = 3;
 
   function add() {
     {
       const trimmed = title.trim();
       if (trimmed !== "") {
-        todos.push(trimmed);
-        $$updateTodos2();
+        tasks.push({ id: nextId, title: trimmed, done: false, priority: "normal" });
+        $$updateTasks2();
+        nextId++;
         title = "";
         $$updateTitle3();
       }
     }
   }
 
-  const $$div4 = $$element("div");
-  const $$form5 = $$element("form");
-  $$form5.addEventListener("submit", (event) => {
+  const $$section6 = $$element("section");
+  const $$form7 = $$element("form");
+  $$form7.addEventListener("submit", (event) => {
     event.preventDefault();
     add();
   });
-  const $$input6 = $$element("input", { placeholder: "New task" });
-  $$input6.value = title;
-  $$input6.addEventListener("input", () => {
-    title = $$input6.value;
+  const $$input8 = $$element("input", { placeholder: "New task" });
+  $$input8.value = title;
+  $$input8.addEventListener("input", () => {
+    title = $$input8.value;
   });
-  const $$button7 = $$element("button");
-  $$button7.append("Add");
-  $$form5.append($$input6, $$button7);
-  const [$$if8, $$updateIf8] = $$branches(() => todos.length === 0 ? 0 : 1, [() => {
-    const $$block9 = document.createDocumentFragment();
-    const $$p10 = $$element("p");
-    $$p10.append("No tasks");
-    $$block9.append($$p10);
-    return [$$block9];
-  }, () => {
-    const $$block11 = document.createDocumentFragment();
-    const $$ul12 = $$element("ul");
-    const [$$for13, $$updateFor13] = $$list(() => todos, (todo, i) => {
-      const $$block14 = document.createDocumentFragment();
-      const $$li15 = $$element("li");
-      const $$text16 = document.createTextNode(todo);
-      const $$button17 = $$element("button");
-      $$button17.addEventListener("click", () => {
-        todos.splice(i, 1);
-        $$updateTodos2();
+  const $$button9 = $$element("button");
+  $$button9.append("Add task");
+  $$form7.append($$input8, $$button9);
+  const $$nav10 = $$element("nav", {}, { "aria-label": "Filter tasks" });
+  const $$button11 = $$element("button", { type: "button" });
+  $$button11.addEventListener("click", () => {
+    filter = "all";
+    $$updateFilter4();
+  });
+  $$button11.append("All");
+  const $$button12 = $$element("button", { type: "button" });
+  $$button12.addEventListener("click", () => {
+    filter = "open";
+    $$updateFilter4();
+  });
+  $$button12.append("Open");
+  const $$button13 = $$element("button", { type: "button" });
+  $$button13.addEventListener("click", () => {
+    filter = "done";
+    $$updateFilter4();
+  });
+  $$button13.append("Done");
+  $$nav10.append($$button11, $$button12, $$button13);
+  const $$p14 = $$element("p");
+  const $$text15 = document.createTextNode(tasks.filter((task) => !task.done).length);
+  $$p14.append($$text15, " open tasks");
+  const $$ul16 = $$element("ul");
+  const [$$for17, $$updateFor17] = $$list(() => tasks, (task) => {
+    const $$block18 = document.createDocumentFragment();
+    const [$$if19, $$updateIf19] = $$branches(() => filter === "all" || filter === "open" && !task.done || filter === "done" && task.done ? 0 : -1, [() => {
+      const $$block20 = document.createDocumentFragment();
+      const $$li21 = $$element("li");
+      const $$label22 = $$element("label");
+      const $$input23 = $$element("input", { type: "checkbox", checked: task.done });
+      $$input23.addEventListener("change", () => {
+        task.done = !task.done;
+        $$updateTasks2();
       });
-      $$button17.append("×");
-      $$li15.append($$text16, " ", $$button17);
-      $$block14.append($$li15);
-      return [$$block14, ($$index) => {
-        i = $$index;
-        $$text16.data = todo;
+      const $$text24 = document.createTextNode(task.title);
+      $$label22.append($$input23, $$text24);
+      const $$small25 = $$element("small");
+      const $$text26 = document.createTextNode(task.priority);
+      $$small25.append($$text26);
+      $$li21.append($$label22, $$small25);
+      $$block20.append($$li21);
+      return [$$block20, () => {
+        $$input23.checked = task.done;
+        $$text24.data = task.title;
+        $$text26.data = task.priority;
       }];
-    });
-    $$ul12.append($$for13);
-    $$block11.append($$ul12);
-    return [$$block11, () => {
-      $$updateFor13();
+    }]);
+    $$block18.append($$if19);
+    return [$$block18, ($$index, $$item) => {
+      task = $$item;
+      $$updateIf19();
     }];
-  }]);
-  $$div4.append($$form5, $$if8);
+  }, (task) => task.id);
+  $$ul16.append($$for17);
+  $$section6.append($$form7, $$nav10, $$p14, $$ul16);
 
-  function $$updateTodos2() {
-    if (!$$todos1) return;
-    $$updateIf8();
+  function $$updateTasks2() {
+    if (!$$taskBoard1) return;
+    $$text15.data = tasks.filter((task) => !task.done).length;
+    $$updateFor17();
   }
 
   function $$updateTitle3() {
-    if (!$$todos1) return;
-    if ($$input6.value !== title) $$input6.value = title;
+    if (!$$taskBoard1) return;
+    if ($$input8.value !== title) $$input8.value = title;
   }
 
-  $$todos1 = $$div4;
+  function $$updateFilter4() {
+    $$updateFor17();
+  }
+
+  $$taskBoard1 = $$section6;
 }
-document.body.append($$todos1);
+document.body.append($$taskBoard1);
 
 // todos.d.ts
 
+type Filter = "all" | "open" | "done";
+type Priority = "low" | "normal" | "high";
+interface Task {
+    id: number;
+    title: string;
+    done: boolean;
+    priority: Priority;
+}
 export {};

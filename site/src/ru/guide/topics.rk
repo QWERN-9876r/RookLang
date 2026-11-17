@@ -1,6 +1,7 @@
 // Раздел «Топики» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Topics() {
     return <>
@@ -19,6 +20,15 @@ export comp Topics() {
             {" "}<code>mount</code>. Значения уходят в другие вкладки копиями, так что это данные,
             как аргументы <code>go</code>; горутина, которая получила топик, тоже шлёт во вкладки.
         </p>
+        <p>
+            Когда одна вкладка меняет доску задач, топик может передать это обновление в другие
+            открытые вкладки. Каждая вкладка слушает его независимо и обновляет своё
+            представление.
+        </p>
         <Example name="topics" />
     </>
+}
+
+export comp TopicsStage() {
+    return <ConcurrencyStage name="topics" title="Топики" />
 }

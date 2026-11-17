@@ -1,0 +1,14 @@
+// Cancellation stops a goroutine and returns control to its caller.
+async func work() number {
+    <-after(100)
+    return 1
+}
+
+const task = go work()
+<-after(10)
+cancel(task)
+try {
+    await task
+} catch {
+    console.log("cancelled")
+}

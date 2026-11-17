@@ -104,15 +104,18 @@ export function runtimeCode(names: readonly string[], mode: RuntimeMode): string
  * The `go` of a module: in a module, a call in a worker that starts with its worker module; in the
  * worker module, a call in the same worker, of a function of `$$goroutines`.
  */
-export function moduleGo(workerUrl: string | null, nodeLoader?: string): string[] {
+export function moduleGo(workerUrl: string | null, nodeLoader?: string, trace = false): string[] {
+  // With the option `trace`, a call passes the line of its `go` (trace.ts).
+  const line = trace ? ', line' : '';
+
   if (workerUrl === null) {
-    return ['const $$go = (fn, args) => $$goHere($$goroutines, fn, args);'];
+    return [`const $$go = (fn, args${line}) => $$goHere($$goroutines, fn, args${line});`];
   }
 
   return [
     ...startWorker(workerUrl, nodeLoader),
     '',
-    'const $$go = (name, args) => $$goWorker($$startWorker, name, args);',
+    `const $$go = (name, args${line}) => $$goWorker($$startWorker, name, args${line});`,
   ];
 }
 
@@ -125,6 +128,17 @@ export function moduleGo(workerUrl: string | null, nodeLoader?: string): string[
  * the Web Worker of Bun, which also loads its module without the plugins and the query.
  */
 function startWorker(url: string, nodeLoader?: string): string[] {
+  if (url === 'import.meta.url') {
+    return [
+      'async function $$startWorker() {',
+      '  if (typeof Worker === "function") return new Worker(import.meta.url, { type: "module" });',
+      '  const threads = "node:worker_threads";',
+      '  const { Worker: NodeWorker } = await import(/* @vite-ignore */ threads);',
+      '  return new NodeWorker(new URL(import.meta.url));',
+      '}',
+    ];
+  }
+
   const base = /^[a-z][a-z\d+.-]*:/i.test(url) ? '' : ', import.meta.url';
   const workerUrl = `new URL(${JSON.stringify(url)}${base})`;
 

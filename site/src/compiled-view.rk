@@ -6,15 +6,24 @@ import { text } from "./i18n.rk"
 import { Compiled, compileRook } from "./sandbox.rk"
 import styles from "./compiled-view.module.css"
 
-export comp CompiledView(source string) {
+export comp CompiledView(
+    source string,
+    morph bool = false,
+    result ?Compiled = null,
+    morphScope string = "",
+) {
     // Null while the compiler loads; once it is loaded, a source is compiled at once, and the
     // sources asked for while it loads are compiled in the order they came.
-    state compiled ?Compiled = null
+    state compiled ?Compiled = result
 
     effect {
-        compileRook(source, result => {
+        if result != null {
             compiled = result
-        })
+        } else {
+            compileRook(source, result => {
+                compiled = result
+            })
+        }
     }
 
     return <div>
@@ -27,7 +36,7 @@ export comp CompiledView(source string) {
                 }}
             </ul>
         } else {
-            <CodeView code={compiled.code} language="js" />
+            <CodeView code={compiled.code} language="js" morph={morph} morphScope={morphScope} />
         }}
     </div>
 }

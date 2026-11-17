@@ -13,6 +13,8 @@ export comp Errors() {
             result is <code>(?Person, error)</code>. <code>error("load", err)</code> wraps an
             error, as <code>%w</code> does in Go: the message ends with that of <code>err</code>,
             and <code>cause</code> is <code>err</code> itself.
+            The board can use this result to report a rejected operation to its caller, which then
+            decides how to present the failure.
         </p>
         <Example name="errors" />
         <p>

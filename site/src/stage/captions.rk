@@ -21,6 +21,7 @@ export interface Mark {
     /** 0 when the move has no line. */
     line number
     actor number
+    lines number[]
 }
 
 func labelOf(trace Trace, id string) string {
@@ -48,7 +49,20 @@ export func captionOf(strings StageStrings, trace Trace, states Snapshot[], inde
     const by = (id string) => strings.moveLabel(index + 1, count, name(id))
     switch event.kind {
     case "go":
-        return { label: by(event.actor), text: strings.go(name(event.task)) }
+        return { label: by(event.actor), text: strings.go(name(event.task), event.args) }
+    case "return":
+        return {
+            label: by(event.actor),
+            text: strings.returnResult(name(event.actor), name(event.to), event.value),
+        }
+    case "select":
+        return { label: by(event.actor), text: strings.select(name(event.actor)) }
+    case "turn":
+        return { label: by(event.actor), text: strings.turn(event.task, event.phase) }
+    case "publish":
+        return { label: by(event.actor), text: strings.publish(name(event.channel), event.value) }
+    case "cancel":
+        return { label: by(event.actor), text: strings.cancel(name(event.task)) }
     case "wait":
         const channel = trace.channels.find(each => each.id == event.channel)
         const who = name(event.actor)
@@ -93,21 +107,31 @@ export func captionOf(strings StageStrings, trace Trace, states Snapshot[], inde
 /** Where the move `index` is in the code. */
 export func markOf(trace Trace, index number) Mark {
     if index < 0 {
-        return { line: 0, actor: 0 }
+        return { line: 0, actor: 0, lines: [] }
     }
     const event = trace.events[index]
     const actor = (id string) => Math.max(0, trace.actors.findIndex(each => each.id == id))
     switch event.kind {
+    case "select":
+        return { line: event.line, actor: actor(event.actor), lines: event.lines }
     case "go":
-        return { line: event.line, actor: actor(event.actor) }
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "return":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "turn":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "publish":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "cancel":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
     case "wait":
-        return { line: event.line, actor: actor(event.actor) }
+        return { line: event.line, actor: actor(event.actor), lines: [] }
     case "pass":
-        return { line: event.line, actor: actor(event.actor) }
+        return { line: event.line, actor: actor(event.actor), lines: [] }
     case "close":
-        return { line: event.line, actor: actor(event.actor) }
+        return { line: event.line, actor: actor(event.actor), lines: [] }
     default:
-        return { line: 0, actor: 0 }
+        return { line: 0, actor: 0, lines: [] }
     }
 }
 

@@ -1,0 +1,118 @@
+// The live reactivity scene: the compiler reports the state and the exact DOM updates it runs.
+
+import { text } from "../i18n.rk"
+import { clearProgram, previewArea, runProgram } from "../sandbox.rk"
+import styles from "./pulse.module.css"
+
+const PROGRAM = `comp Counter() {
+    state count = 0
+    return <main>
+        <button onClick={count++}>{count}</button>
+        <p>{count * 2}</p>
+        <small>{§}</small>
+    </main>
+}
+document.body.append(<Counter />)
+`
+
+export comp PulseStage() {
+    const labels = text().stage.pulse
+    const program = PROGRAM.replace("§", JSON.stringify(labels.independent))
+    const preview = previewArea()
+    state value = 0
+    state status = labels.ready(0)
+    ref stateValue
+    ref graphButton
+    ref graphDouble
+    ref edgeButton
+    ref edgeParagraph
+    ref targetButton
+    ref targetParagraph
+
+    func flash(node Element) {
+        node.classList.remove(styles.pulse)
+        node.getBoundingClientRect()
+        node.classList.add(styles.pulse)
+    }
+
+    func trace(event any) {
+        if event.kind == "state" {
+            value = event.value
+            stateValue.textContent = String(value)
+            graphButton.textContent = String(value)
+            graphDouble.textContent = String(value * 2)
+            status = labels.changed(value)
+        } else if event.kind == "update" && event.target == 0 {
+            flash(edgeButton)
+            flash(targetButton)
+        } else if event.kind == "update" && event.target == 1 {
+            flash(edgeParagraph)
+            flash(targetParagraph)
+        }
+    }
+
+    func launch() {
+        value = 0
+        status = labels.ready(0)
+        runProgram(program, preview, lines => {
+            if lines.length > 0 {
+                status = lines.join("\n")
+            }
+        }, trace)
+    }
+
+    func change() {
+        preview.querySelector("button")?.click()
+    }
+
+    mount {
+        launch()
+        defer {
+            clearProgram(preview)
+        }
+    }
+
+    return <section class={styles.scene} aria-label={labels.title}>
+        <header class={styles.heading}>
+            <h2>{labels.title}</h2>
+            <p>{labels.lead}</p>
+        </header>
+        <div class={styles.controls}>
+            <button onClick={change}>{labels.change}</button>
+            <button onClick={launch}>{labels.reset}</button>
+            <p aria-live="polite">{status}</p>
+        </div>
+        <div class={styles.grid}>
+            <article class={styles.panel}>
+                <h3>{labels.source}</h3>
+                <pre><code>{program}</code></pre>
+            </article>
+            <article class={styles.panel}>
+                <h3>{labels.graph}</h3>
+                <div class={styles.graph}>
+                    <svg viewBox="0 0 400 250" preserveAspectRatio="none" aria-hidden="true">
+                        <path ref={edgeButton} class={styles.edge} d="M200 65 C200 112 100 122 100 174" />
+                        <path ref={edgeParagraph} class={styles.edge} d="M200 65 C200 112 300 122 300 174" />
+                    </svg>
+                    <div class={styles.sourceNode}>
+                        <span>{labels.state}</span>
+                        <strong>count = <span ref={stateValue}>0</span></strong>
+                    </div>
+                    <div ref={targetButton} class={`${styles.targetNode} ${styles.left}`}>
+                        <span>{labels.button}</span>
+                        <strong ref={graphButton}>0</strong>
+                    </div>
+                    <div ref={targetParagraph} class={`${styles.targetNode} ${styles.right}`}>
+                        <span>{labels.paragraph}</span>
+                        <strong ref={graphDouble}>0</strong>
+                    </div>
+                </div>
+            </article>
+            <article class={styles.panel}>
+                <h3>{labels.preview}</h3>
+                <p class={styles.hint}>{labels.updated}</p>
+                <div class={styles.preview}>{preview}</div>
+            </article>
+        </div>
+    </section>
+}

@@ -15,6 +15,8 @@ import { encode } from "../code-link.rk"
 import { CompiledView } from "../compiled-view.rk"
 import { ResultView } from "../result-view.rk"
 import { previewArea, runProgram } from "../sandbox.rk"
+import { liveTrace } from "../stage/live-trace.rk"
+import { Program, Stage } from "../stage/stage.rk"
 import styles from "./page.module.css"
 
 /** The editor of VS Code once it is loaded, as the page uses it (src/editor/editor.ts). */
@@ -39,8 +41,9 @@ func decode(encoded string) (string, error) {
 /** The code that the address brings, or the program the playground starts with. */
 func initialCode() string {
     const hash = location.hash.slice(1)
-    if hash.startsWith("example=") {
-        const code any = exampleCode(decodeURIComponent(hash.slice("example=".length)))
+    if hash.startsWith("example=") || hash.startsWith("board=") {
+        const key = hash.startsWith("board=") ? "board=" : "example="
+        const code any = exampleCode(decodeURIComponent(hash.slice(key.length)))
         if typeof code == "string" {
             return code
         }
@@ -53,24 +56,47 @@ func initialCode() string {
     return text().playgroundStart
 }
 
+func initialTab() string {
+    return location.hash.slice(1).startsWith("board=") ? "board" : "js"
+}
+
 comp Playground() {
     const t = text()
     state source = initialCode()
-    state tab = "js"
+    state tab = initialTab()
     state lines string[] = []
+    state traceEvents any[] = []
     state linkCopied = false
     const preview = previewArea()
-    const tabs TabItem[] = [{ id: "js", label: "JavaScript" }, { id: "result", label: t.run }]
+    const tabs TabItem[] = [
+        { id: "js", label: "JavaScript" },
+        { id: "result", label: t.run },
+        { id: "board", label: t.board },
+    ]
+    derived trace = liveTrace(traceEvents)
+    derived boardProgram Program = {
+        lines: source.split("\n"),
+        initial: 0,
+        next: (value number) => value,
+        trace: (_ number) => trace,
+    }
     // The editor of VS Code has taken the place of the text area.
     state vscode = false
     let editor ?CodeEditor = null
     ref host
 
-    func run() {
+    func collectTrace(event any) {
+        if tab == "board" {
+            traceEvents = [...traceEvents, event]
+        }
+    }
+
+    func run(watch bool = false) {
+        traceEvents = []
+        tab = watch ? "board" : "result"
         runProgram(source, preview, output => {
             lines = output
-        })
-        tab = "result"
+        }, watch ? collectTrace : null)
     }
 
     func setSource(code string) {
@@ -100,8 +126,8 @@ comp Playground() {
     }
 
     func select(id string) {
-        if id == "result" {
-            run()
+        if id == "result" || id == "board" {
+            run(id == "board")
         } else {
             tab = id
         }
@@ -124,6 +150,9 @@ comp Playground() {
     }
 
     mount {
+        if tab == "board" {
+            run(true)
+        }
         if !matchMedia("(pointer: coarse)").matches {
             loadEditor()
                 .then(module => module.createEditor(host, {
@@ -205,6 +234,8 @@ comp Playground() {
                 <div class={styles.output}>
                     {if tab == "js" {
                         <div><CompiledView source={source} /></div>
+                    } else if tab == "board" {
+                        <Stage title={t.board} program={boardProgram} liveTrace={trace} />
                     } else {
                         <div><ResultView preview={preview} lines={lines} /></div>
                     }}

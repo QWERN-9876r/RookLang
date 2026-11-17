@@ -1,28 +1,53 @@
-comp Todos() {
-    state todos = ["Купить гуаву", "Выучить Rook"]
+type Filter "all" | "open" | "done"
+type Priority "low" | "normal" | "high"
+
+interface Task {
+    id number
+    title string
+    done bool
+    priority Priority
+}
+
+comp TaskBoard() {
+    state tasks Task[] = [
+        { id: 1, title: "Описать модель задачи", done: true, priority: "normal" },
+        { id: 2, title: "Собрать доску задач", done: false, priority: "high" },
+    ]
     state title = ""
+    state filter Filter = "open"
+    state nextId = 3
 
     func add() {
         if const trimmed = title.trim(); trimmed != "" {
-            todos.push(trimmed)
+            tasks.push({ id: nextId, title: trimmed, done: false, priority: "normal" })
+            nextId++
             title = ""
         }
     }
 
-    // Список обновляется сам: блоки задач, которые остались, не создаются заново
-    return <div>
+    return <section>
         <form onSubmit={event.preventDefault(); add()}>
             <input bind:value={title} placeholder="Новая задача" />
-            <button>Добавить</button>
+            <button>Добавить задачу</button>
         </form>
-        {if todos.length == 0 {
-            <p>Задач нет</p>
-        } else {
-            <ul>{for i, todo in todos {
-                <li>{todo} <button onClick={todos.splice(i, 1)}>×</button></li>
-            }}</ul>
-        }}
-    </div>
+        <nav aria-label="Фильтр задач">
+            <button type="button" onClick={filter = "all"}>Все</button>
+            <button type="button" onClick={filter = "open"}>Активные</button>
+            <button type="button" onClick={filter = "done"}>Готовые</button>
+        </nav>
+        <p>Открытых задач: {tasks.filter(task => !task.done).length}</p>
+        <ul>{for task in tasks with key task.id {
+            if filter == "all" || (filter == "open" && !task.done) || (filter == "done" && task.done) {
+                <li>
+                    <label>
+                        <input type="checkbox" checked={task.done} onChange={task.done = !task.done} />
+                        {task.title}
+                    </label>
+                    <small>{task.priority}</small>
+                </li>
+            }
+        }}</ul>
+    </section>
 }
 
-document.body.append(<Todos />)
+document.body.append(<TaskBoard />)

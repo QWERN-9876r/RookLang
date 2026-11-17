@@ -1,6 +1,8 @@
 // The section "select" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { GoNote } from "../../source-language.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Select() {
     return <>
@@ -12,7 +14,13 @@ export comp Select() {
             after <code>ms</code>, so it makes a timeout, and a case whose channel is
             {" "}<code>null</code> never goes on.
         </p>
+        <GoNote message="Rook keeps Go's `select` shape, but it runs inside an async function; channel operations in its cases are awaited by the compiler." />
         <Example name="select" />
+        <p>
+            The board's worker can use <code>select</code> to choose between its next task command
+            and a timeout. It can respond to work as soon as a command arrives, but still wake
+            periodically when the queue stays quiet.
+        </p>
         <p>
             <code>tick(ms)</code> gets the time every <code>ms</code> until
             {" "}<code>close(ticks)</code>. <code>cancel(task)</code> stops a goroutine, given the
@@ -21,4 +29,8 @@ export comp Select() {
         </p>
         <Example name="timers" />
     </>
+}
+
+export comp SelectStage() {
+    return <ConcurrencyStage name="select" title="select" />
 }

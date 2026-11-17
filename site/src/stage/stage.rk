@@ -44,7 +44,7 @@ export interface Program {
  * `hero` turns the scene into the first screen of the home page: what is given stands in the place
  * of the card with the code, and the game plays by itself, without its title and its line of moves.
  */
-export comp Stage(title string, program Program, hero ?Content = null) {
+export comp Stage(title string, program Program, hero ?Content = null, liveTrace ?Trace = null) {
     const strings = text().stage
     // The reader asked the system for less motion: a still frame, moved only by the line of moves.
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -54,13 +54,14 @@ export comp Stage(title string, program Program, hero ?Content = null) {
     /** The move that the caption and the code show; -1 before the first one. */
     state shown = -1
     state playing = !still
-    derived trace = program.trace(value)
+    derived trace = liveTrace ?? program.trace(value)
     derived states = snapshots(trace)
     derived moves = trace.events.map(event => moveOf(trace, event))
     derived caption = captionOf(strings, trace, states, shown)
     derived mark = markOf(trace, shown)
     derived snapshot = states[Math.min(shown + 1, states.length - 1)]
     derived source = program.lines.join("\n").replace(LIVE, `${value}`)
+    derived hasLive = program.lines.some(line => line.includes(LIVE))
     ref inner
     ref scene
     ref canvas
@@ -109,7 +110,7 @@ export comp Stage(title string, program Program, hero ?Content = null) {
         }
         const stalemate = drawScene(shot, dust)
         word.classList.toggle(styles.wordOn, stalemate > 0.15)
-        head.style.left = `${time / count * 100}%`
+        head.style.left = `${count == 0 ? 0 : time / count * 100}%`
         // The caption is about the move in play, or the last one played.
         const index = frame.index >= count ? count - 1 : frame.progress > 0.001 ? frame.index : frame.index - 1
         if index != shown {
@@ -133,6 +134,11 @@ export comp Stage(title string, program Program, hero ?Content = null) {
     }
 
     func change() {
+        if liveTrace != null {
+            return
+        }
+        // The move that is shown may not be in the game of the new number: back to the start first.
+        shown = -1
         value = program.next(value)
         time = 0
         loop = true
@@ -177,6 +183,13 @@ export comp Stage(title string, program Program, hero ?Content = null) {
         }
     }
 
+    effect {
+        if liveTrace != null {
+            layout()
+            paint(performance.now())
+        }
+    }
+
     mount {
         context = canvas.getContext("2d")
         // The first frame is in the middle of the game, with its history behind the rooks.
@@ -204,9 +217,9 @@ export comp Stage(title string, program Program, hero ?Content = null) {
                 if time < count {
                     time = Math.min(count, time + passed / PACE)
                     endedAt = now
-                } else if !loop {
+                } else if liveTrace == null && !loop {
                     playing = false
-                } else if now - endedAt > (isStalemate(trace) ? STALEMATE_REST : REST) {
+                } else if liveTrace == null && now - endedAt > (isStalemate(trace) ? STALEMATE_REST : REST) {
                     time = 0
                 }
             }
@@ -256,7 +269,11 @@ export comp Stage(title string, program Program, hero ?Content = null) {
                             {if tab == "rook" {
                                 <div class={code.code}>
                                     {for i, line in program.lines {
-                                        <div class={[code.line, mark.line == i + 1 ? code.now : null]} style={`--c: ${cssColour(colourOf(mark.actor))}`}>
+                                        <div class={[
+                                            code.line,
+                                            mark.line == i + 1 ? code.now : null,
+                                            mark.lines.includes(i + 1) ? code.choice : null,
+                                        ]} style={`--c: ${cssColour(colourOf(mark.actor))}`}>
                                             <span class={code.dots}>
                                                 {for actor, at in snapshot.lines {
                                                     if at == i + 1 && snapshot.statuses[actor] != "done" {
@@ -282,7 +299,9 @@ export comp Stage(title string, program Program, hero ?Content = null) {
                                 <div class={code.output}><CompiledView source={source} /></div>
                             }}
                         </div>
-                        <p class={code.hint}>{isStalemate(trace) ? strings.hintStalemate : strings.hint}</p>
+                        {if liveTrace == null && hasLive {
+                            <p class={code.hint}>{isStalemate(trace) ? strings.hintStalemate : strings.hint}</p>
+                        }}
                     </>
                 }}
             </div>

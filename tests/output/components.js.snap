@@ -2,34 +2,34 @@
 
 import { $$element } from "rooklang/runtime";
 
-// <Card>
-const $$children1 = document.createDocumentFragment();
-$$children1.append("A sweet tropical fruit.");
-let $$card2;
-{
-  const title = "Guava";
-  const kind = "info";
-  const children = $$children1;
-  $$card2 = $$element("section", { className: `card ${kind}` });
-  const $$h43 = $$element("h4");
-  $$h43.append(title);
-  $$card2.append($$h43, children);
+const tasks = [{ id: 1, title: "Write the task model", done: true, priority: "normal" }, { id: 2, title: "Build the task board", done: false, priority: "high" }];
+
+const $$ul1 = $$element("ul");
+for (const task of tasks) {
+  // <TaskRow>
+  const $$0 = task;
+  let $$taskRow2;
+  {
+    const task = $$0;
+    $$taskRow2 = $$element("li");
+    const $$label3 = $$element("label");
+    const $$input4 = $$element("input", { type: "checkbox", checked: task.done });
+    $$label3.append($$input4, task.title);
+    const $$small5 = $$element("small");
+    $$small5.append(task.priority);
+    $$taskRow2.append($$label3, $$small5);
+  }
+  $$ul1.append($$taskRow2);
 }
-// <Card>
-const $$children4 = document.createDocumentFragment();
-$$children4.append("The stone is not edible.");
-let $$card5;
-{
-  const title = "Careful";
-  const kind = "warning";
-  const children = $$children4;
-  $$card5 = $$element("section", { className: `card ${kind}` });
-  const $$h46 = $$element("h4");
-  $$h46.append(title);
-  $$card5.append($$h46, children);
-}
-document.body.append($$card2, $$card5);
+document.body.append($$ul1);
 
 // components.d.ts
 
+type Priority = "low" | "normal" | "high";
+interface Task {
+    id: number;
+    title: string;
+    done: boolean;
+    priority: Priority;
+}
 export {};

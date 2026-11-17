@@ -14,6 +14,11 @@ export comp ServerComponents() {
             {" "}<code>Request</code> to <code>Response</code> for Bun, Deno and Workers. This is
             experimental and may change before 1.0.
         </p>
+        <p>
+            We finish the task board on the server: its page renders the current tasks as HTML, and
+            an API route can return the same typed collection as JSON. The browser-only controls
+            stay in the interactive board.
+        </p>
         <Example name="server-components" />
         <ul>
             <li>

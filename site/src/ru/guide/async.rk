@@ -1,6 +1,7 @@
 // Раздел «Асинхронные функции» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Async() {
     return <>
@@ -11,7 +12,13 @@ export comp Async() {
             {" "}<code>{"Promise<(string, error)>"}</code>, а <code>await</code> распаковывает значения
             обратно. Модуль может делать <code>await</code> на верхнем уровне, а обработчик события
             может быть async: изменение состояния после <code>await</code> обновляет разметку.
+            В доске задач async-функции загружают задачи из хранилища и сохраняют изменения по
+            сети, не блокируя интерфейс.
         </p>
         <Example name="async" />
     </>
+}
+
+export comp AsyncStage() {
+    return <ConcurrencyStage name="async" title="Асинхронные функции" />
 }

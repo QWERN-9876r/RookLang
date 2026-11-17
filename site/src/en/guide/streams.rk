@@ -1,6 +1,7 @@
 // The section "Streams" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Streams() {
     return <>
@@ -17,6 +18,15 @@ export comp Streams() {
             of a channel, which ends when the channel is closed, to give as the body of a
             {" "}<code>Response</code> or to <code>pipeTo</code> somewhere.
         </p>
+        <p>
+            The task board can use a stream for its activity feed: incoming chunks become events
+            for the app to process, while the channel's capacity provides backpressure if the
+            worker falls behind.
+        </p>
         <Example name="streams" />
     </>
+}
+
+export comp StreamsStage() {
+    return <ConcurrencyStage name="streams" title="Streams" />
 }

@@ -68,6 +68,19 @@ export func apply(trace Trace, snapshot Snapshot, event Event) Snapshot {
     case "go":
         next.lines[indexOf(actors, event.actor)] = event.line
         resume(event.task)
+    case "return":
+        next.lines[indexOf(actors, event.actor)] = event.line
+        resume(event.to)
+    case "select":
+    case "turn":
+    case "publish":
+    case "cancel":
+        next.lines[indexOf(actors, event.actor)] = event.line
+        if event.kind == "cancel" {
+            const i = indexOf(actors, event.task)
+            next.statuses[i] = "done"
+            next.waits[i] = null
+        }
     case "wait":
         const i = indexOf(actors, event.actor)
         next.statuses[i] = "wait"
@@ -150,7 +163,7 @@ export interface Move {
     to number
     /** The file of the channel the value goes through from hand to hand; -1 without one. */
     via number
-    /** What is shown on the piece; "" for the call of a goroutine. */
+    /** What is shown on the piece; arguments on a goroutine call, or "" when there are none. */
     value string
     /** The index of the actor whose colour the move has. */
     colour number
@@ -162,7 +175,13 @@ export func moveOf(trace Trace, event Event) ?Move {
     const actors = trace.actors.map(actor => actor.id)
     switch event.kind {
     case "go":
-        return { from: board.indexOf(event.actor), to: board.indexOf(event.task), via: -1, value: "", colour: actors.indexOf(event.task) }
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.task), via: -1, value: event.args ?? "", colour: actors.indexOf(event.task) }
+    case "return":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.to), via: -1, value: event.value, colour: actors.indexOf(event.actor) }
+    case "publish":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.channel), via: -1, value: event.value, colour: actors.indexOf(event.actor) }
+    case "cancel":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.task), via: -1, value: "×", colour: actors.indexOf(event.actor) }
     case "pass":
         const channel = board.indexOf(event.channel)
         const from = event.from

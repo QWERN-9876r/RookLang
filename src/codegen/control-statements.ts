@@ -7,6 +7,7 @@ import { containsBreak } from '../breaks.ts';
 import { declarationsOf, endsWithJump, type BindingKind } from './analysis.ts';
 import { SimpleStatementEmitter } from './simple-statements.ts';
 import { ARROW, BINARY, POSTFIX } from './syntax.ts';
+import { lineAt } from './trace.ts';
 
 /** if, for, switch and try. */
 
@@ -135,7 +136,7 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
         this.line(
           this.labeled(
             node,
-            `for await (const ${value} of $$channels.range(${this.receivedFrom(node.iterable)})) ${this.loopBody(node.body)}`,
+            `for await (const ${value} of $$channels.range(${this.receivedFrom(node.iterable)}${this.traced(node)})) ${this.loopBody(node.body)}`,
           ),
         );
 
@@ -291,10 +292,21 @@ export abstract class ControlStatementEmitter extends SimpleStatementEmitter {
       return [`{ channel: ${channel}, value: ${this.expression(operation.value, ARROW)} }`];
     });
     const hasDefault = node.cases.some((selectCase) => selectCase.operation === null);
+    const trace = this.options.trace
+      ? `, { line: ${lineAt(this.options.source, node.start)}, lines: [${node.cases
+          .flatMap(({ operation }) =>
+            operation ? [lineAt(this.options.source, operation.start)] : [],
+          )
+          .join(', ')}], cases: [${node.cases
+          .flatMap(({ operation }) =>
+            operation ? [lineAt(this.options.source, operation.start)] : [],
+          )
+          .join(', ')}] }`
+      : '';
     let index = 0;
     const select = this.block(() => {
       this.line(
-        `const [$$case, $$received, $$ok] = await $$channels.select([${operations.join(', ')}], ${hasDefault});`,
+        `const [$$case, $$received, $$ok] = await $$channels.select([${operations.join(', ')}], ${hasDefault}${trace});`,
       );
 
       const body = this.withBreakTarget(null, () =>

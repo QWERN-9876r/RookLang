@@ -2,11 +2,14 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { build } from '../src/build.ts';
+import { recordScene, type RecordedScene } from '../site/scenes.ts';
 
 // The scene of the documentation site (site/src/stage/) plays a trace of a program. What it draws
 // at a moment comes from pure functions of the trace, which are compiled and run here: the canvas
-// is not needed to check who runs, who waits and what the buffers hold.
+// is not needed to check who runs, who waits and what the buffers hold. The traces are those of
+// the scene "Channels", recorded from its program as the build of the site records them.
 
 interface Snapshot {
   statuses: string[];
@@ -23,9 +26,8 @@ interface Frame {
   after: Snapshot;
 }
 
-interface Trace {
-  events: { kind: string }[];
-}
+type TraceEvent = RecordedScene['traces'][number]['events'][number];
+type Trace = RecordedScene['traces'][number];
 
 interface Script {
   forStart: number;
@@ -49,16 +51,26 @@ interface Stage {
   filesOf(rooks: number): number;
   tilesOf(moment: Moment): number;
   writerOf(moment: Moment, tile: number): number;
-  pilotTrace(buffer: number): Trace;
-  MAX_BUFFER: number;
   snapshots(trace: Trace): Snapshot[];
   frameAt(trace: Trace, states: Snapshot[], t: number): Frame;
   isStalemate(trace: Trace): boolean;
   files(trace: Trace): string[];
   moveOf(trace: Trace, event: { kind: string }): object | null;
+  markOf(trace: Trace, index: number): { line: number; actor: number; lines: number[] };
+}
+
+interface LiveTraceBuilder {
+  liveTrace(events: object[]): Trace;
+  liveStalemate(events: object[]): boolean;
 }
 
 let stage: Stage;
+let scene: RecordedScene;
+let buildLiveTrace: LiveTraceBuilder['liveTrace'];
+let liveStalemate: LiveTraceBuilder['liveStalemate'];
+
+/** The game of the scene with `buffer` places in `jobs`. */
+const game = (buffer: number): Trace => scene.traces[scene.values.indexOf(buffer)]!;
 
 beforeAll(async () => {
   const outDir = mkdtempSync(join(tmpdir(), 'rook-stage-'));
@@ -80,15 +92,98 @@ beforeAll(async () => {
     >;
 
   stage = {
-    ...(await load('pilot.js')),
     ...(await load('state.js')),
     ...(await load('array.js')),
+    ...(await load('captions.js')),
   } as Stage;
-});
+
+  const program = new URL('../site/scenes/channels.rk', import.meta.url).pathname;
+
+  scene = await recordScene(readFileSync(program, 'utf8'), 'channels.rk');
+
+  const live = (await load('live-trace.js')) as unknown as Partial<LiveTraceBuilder>;
+
+  buildLiveTrace = live.liveTrace!;
+  liveStalemate = live.liveStalemate!;
+}, 30_000);
 
 describe('the scene of the site', () => {
-  it('plays the pilot with a buffer of 2 to the end', () => {
-    const trace = stage.pilotTrace(2);
+  it('turns live runtime events into the trace format the scene plays', () => {
+    const trace = buildLiveTrace([
+      { kind: 'chan', channel: 'thread:0', name: 'shared', size: 0 },
+      { kind: 'go', actor: 'main', task: 'outer-1', line: 8, args: [7] },
+      { kind: 'go', actor: 'outer-1', task: 'outer-1/inner-1', line: 3 },
+      { kind: 'select', actor: 'outer-1/inner-1', line: 4, lines: [5, 7] },
+      { kind: 'turn', actor: 'outer-1/inner-1', task: 1, phase: 'wait', line: 6 },
+      { kind: 'publish', actor: 'outer-1/inner-1', topic: 'updates', value: 7, line: 8 },
+      {
+        kind: 'pass',
+        actor: 'outer-1/inner-1',
+        channel: 'thread:0',
+        from: 'main',
+        to: 'outer-1/inner-1',
+        value: 7,
+        line: 10,
+      },
+      { kind: 'return', actor: 'outer-1/inner-1', value: 49 },
+      { kind: 'cancel', actor: 'main', task: 'outer-1', line: 12 },
+      { kind: 'end', actor: 'outer-1/inner-1' },
+    ]);
+
+    expect(trace.actors).toEqual([
+      { id: 'main', label: 'main' },
+      { id: 'outer-1', label: 'outer' },
+      { id: 'outer-1/inner-1', label: 'inner' },
+    ]);
+    expect(trace.channels).toEqual([
+      { id: 'channel-1', label: 'shared', size: 0 },
+      { id: 'channel-2', label: 'updates', size: 0 },
+    ]);
+    expect(trace.events).toEqual([
+      { kind: 'go', actor: 'main', task: 'outer-1', line: 8, args: '7' },
+      { kind: 'go', actor: 'outer-1', task: 'outer-1/inner-1', line: 3 },
+      { kind: 'select', actor: 'outer-1/inner-1', line: 4, lines: [5, 7] },
+      { kind: 'turn', actor: 'outer-1/inner-1', task: 1, phase: 'wait', line: 6 },
+      { kind: 'publish', actor: 'outer-1/inner-1', channel: 'channel-2', value: '7', line: 8 },
+      {
+        kind: 'pass',
+        actor: 'outer-1/inner-1',
+        channel: 'channel-1',
+        from: 'main',
+        to: 'outer-1/inner-1',
+        value: '7',
+        line: 10,
+      },
+      { kind: 'return', actor: 'outer-1/inner-1', to: 'outer-1', value: '49', line: 3 },
+      { kind: 'cancel', actor: 'main', task: 'outer-1', line: 12 },
+      { kind: 'end', actor: 'outer-1/inner-1' },
+    ]);
+    expect(stage.markOf(trace, 2)).toEqual({ line: 4, actor: 2, lines: [5, 7] });
+  });
+
+  it('detects a live stalemate only while every unfinished goroutine waits', () => {
+    const waiting = [
+      { kind: 'go', actor: 'main', task: 'worker-1' },
+      { kind: 'wait', actor: 'main', op: 'receive', channel: 'jobs' },
+      { kind: 'wait', actor: 'worker-1', op: 'receive', channel: 'jobs' },
+    ];
+
+    expect(liveStalemate(waiting)).toBe(true);
+    expect(
+      liveStalemate([
+        ...waiting,
+        { kind: 'pass', actor: 'worker-1', from: 'main', to: 'worker-1' },
+      ]),
+    ).toBe(false);
+    expect(liveStalemate([...waiting, { kind: 'end', actor: 'main' }])).toBe(true);
+    expect(liveStalemate([...waiting, { kind: 'return', actor: 'worker-1', value: 7 }])).toBe(true);
+    expect(liveStalemate([...waiting, { kind: 'cancel', actor: 'main', task: 'worker-1' }])).toBe(
+      true,
+    );
+  });
+
+  it('plays the scene with a buffer of 2 to the end', () => {
+    const trace = game(2);
     const states = stage.snapshots(trace);
     const last = states.at(-1)!;
 
@@ -101,7 +196,7 @@ describe('the scene of the site', () => {
   });
 
   it('keeps what was sent with no receiver in the buffer, the oldest first', () => {
-    const trace = stage.pilotTrace(2);
+    const trace = game(2);
     const states = stage.snapshots(trace);
     const closing = trace.events.findIndex((event) => event.kind === 'close');
 
@@ -110,25 +205,25 @@ describe('the scene of the site', () => {
     expect(states[closing]!.statuses).toEqual(['run', 'wait', 'wait']);
     expect(states[closing + 1]!.closed).toEqual([true, false]);
     // The line of the code where each goroutine stands.
-    expect(states[closing + 1]!.lines).toEqual([20, 7, 7]);
+    expect(states[closing + 1]!.lines).toEqual([19, 6, 6]);
   });
 
   it('ends in a stalemate when the buffer is too small', () => {
     for (const buffer of [0, 1]) {
-      const trace = stage.pilotTrace(buffer);
+      const trace = game(buffer);
       const last = stage.snapshots(trace).at(-1)!;
 
       expect(stage.isStalemate(trace)).toBe(true);
       expect(last.statuses).toEqual(['wait', 'wait', 'wait']);
     }
 
-    for (let buffer = 2; buffer <= stage.MAX_BUFFER; buffer++) {
-      expect(stage.isStalemate(stage.pilotTrace(buffer))).toBe(false);
-    }
+    for (const buffer of [2, 3, 4]) expect(stage.isStalemate(game(buffer))).toBe(false);
+    expect(scene.values).toEqual([0, 1, 2, 3, 4]);
+    expect(scene.initial).toBe(2);
   });
 
   it('gives the move being played and the states around it', () => {
-    const trace = stage.pilotTrace(2);
+    const trace = game(2);
     const states = stage.snapshots(trace);
     const frame = stage.frameAt(trace, states, 4.25);
 
@@ -147,27 +242,31 @@ describe('the scene of the site', () => {
   });
 
   it('puts the channels between main and the other goroutines, and moves along the ranks', () => {
-    const trace = stage.pilotTrace(2);
+    const trace = game(2);
 
     expect(stage.files(trace)).toEqual(['main', 'jobs', 'results', 'square-1', 'square-2']);
-    // `go square(1)`: from main to the file of the new goroutine, in its colour.
-    expect(stage.moveOf(trace, trace.events[0]!)).toEqual({
+
+    const move = (found: (event: TraceEvent) => boolean) =>
+      stage.moveOf(trace, trace.events.find(found)!);
+
+    // `go square(...)`: from main to the file of the new goroutine, in its colour.
+    expect(move((event) => event.kind === 'go')).toEqual({
       from: 0,
       to: 3,
       via: -1,
-      value: '',
+      value: '{…}, {…}',
       colour: 1,
     });
     // A value for a goroutine that already waits goes through `jobs` from hand to hand.
-    expect(stage.moveOf(trace, trace.events[4]!)).toEqual({
+    expect(move((event) => event.kind === 'pass' && event.value === '2')).toEqual({
       from: 0,
-      to: 3,
+      to: 4,
       via: 1,
-      value: '1',
+      value: '2',
       colour: 0,
     });
     // With nobody waiting it stops in the buffer.
-    expect(stage.moveOf(trace, trace.events[8]!)).toEqual({
+    expect(move((event) => event.kind === 'pass' && event.value === '3')).toEqual({
       from: 0,
       to: 1,
       via: -1,
@@ -175,7 +274,7 @@ describe('the scene of the site', () => {
       colour: 0,
     });
     // Waiting moves nothing.
-    expect(stage.moveOf(trace, trace.events[1]!)).toBeNull();
+    expect(move((event) => event.kind === 'wait')).toBeNull();
   });
 
   it('walks the array with one rook, then with a rook on each part at once', () => {

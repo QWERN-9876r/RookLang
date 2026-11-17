@@ -28,6 +28,11 @@ export comp Mounting() {
             Press "Run", then hide the clock: the timer stops.
         </p>
         <Example name="mount-cleanup" />
+        <p>
+            When the board connects to a live task feed, its component starts listening in
+            <code>mount</code> and removes that listener in <code>defer</code>. Hiding the feed
+            panel therefore stops work instead of leaving a stale subscription behind.
+        </p>
         <ul>
             <li>
                 The body of <code>mount</code> is a function that runs later, like an event

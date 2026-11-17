@@ -8,6 +8,8 @@ export comp Variables() {
             Variables are declared as in JavaScript, with <code>let</code> and <code>const</code>,
             and the type goes after the name, as in Go. With a value, the type can be left out: the
             compiler infers it.
+            In our board, a task is a record with an ID, title, done flag and priority; the chapters
+            that follow use these fields to connect language features to the same app.
         </p>
         <p>
             A <code>let</code> without a value gets the zero value of its type, as in Go:

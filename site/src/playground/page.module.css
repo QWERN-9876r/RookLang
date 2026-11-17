@@ -132,6 +132,10 @@
   overflow: auto;
 }
 
+.output > section {
+  min-height: 100%;
+}
+
 @media (max-width: 860px) {
   .ide {
     height: auto;

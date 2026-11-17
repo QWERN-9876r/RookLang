@@ -15,8 +15,23 @@ export interface Channel {
     size number
 }
 
-/** `go f(x)`: `actor` starts the goroutine `task`. */
-export interface Go { kind "go"; actor string; task string; line number }
+/** `go f(x)`: `actor` starts `task`, with optional text for the copied arguments. */
+export interface Go { kind "go"; actor string; task string; line number; args ?string }
+
+/** The goroutine returns its result to the actor that started it. */
+export interface Return { kind "return"; actor string; to string; value string; line number }
+
+/** The source lines whose cases may go on in a `select`. */
+export interface Select { kind "select"; actor string; line number; lines number[] }
+
+/** An async task waiting or resuming on the same thread. */
+export interface Turn { kind "turn"; actor string; task number; phase "wait" | "resume"; line number }
+
+/** A topic broadcasts a value to its subscribers. */
+export interface Publish { kind "publish"; actor string; channel string; value string; line number }
+
+/** `cancel(task)`: the caller stops a goroutine. */
+export interface Cancel { kind "cancel"; actor string; task string; line number }
 
 /** An operation that cannot go on yet: a send with no room and no receiver, a receive with nothing to take. */
 export interface Wait { kind "wait"; actor string; op "send" | "receive"; channel string; line number }
@@ -36,7 +51,7 @@ export interface End { kind "end"; actor string }
 /** Every goroutine waits and no move is left: the program hangs. */
 export interface Stalemate { kind "stalemate" }
 
-export type Event Go | Wait | Pass | Close | End | Stalemate
+export type Event Go | Return | Select | Turn | Publish | Cancel | Wait | Pass | Close | End | Stalemate
 
 export interface Trace {
     actors Actor[]

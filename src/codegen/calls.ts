@@ -15,6 +15,7 @@ import { TYPED_ARRAYS, TYPED_ELEMENTS } from '../typed-arrays.ts';
 import { hasOptionalLink } from './analysis.ts';
 import { ExpressionEmitter } from './expressions.ts';
 import { ARROW, BINARY, POSTFIX, PRIMARY } from './syntax.ts';
+import { channelNames, lineAt } from './trace.ts';
 
 // Calls, `new`, array literals and conversions. A `byte[]` is a Uint8Array: a literal where the
 // checker found one expected becomes `new Uint8Array([...])`, and the conversions of Go between
@@ -24,6 +25,13 @@ import { ARROW, BINARY, POSTFIX, PRIMARY } from './syntax.ts';
 // channels, queues and topics is here too, with what a topic needs where it is received or closed.
 
 export abstract class CallEmitter extends ExpressionEmitter {
+  private channelNames: Map<ast.ChanExpression, string> | null = null;
+
+  /** With the option `trace`, one more argument of a call of the runtime: the line of `node`. */
+  protected override traced(node: ast.Node): string {
+    return this.options.trace ? `, ${lineAt(this.options.source, node.start)}` : '';
+  }
+
   protected override call(node: ast.CallExpression): string {
     // After `?.` the arguments may not be evaluated at all.
     const conditional = node.optional || hasOptionalLink(node.callee);
@@ -53,10 +61,26 @@ export abstract class CallEmitter extends ExpressionEmitter {
       argument !== undefined &&
       this.isTopicValue(argument)
     ) {
-      return `$$topics.close(${args})`;
+      return `$$topics.close(${args}${this.options.trace ? this.traced(node) : ''})`;
     }
 
-    return `${this.expression(node.callee, POSTFIX)}${node.optional ? '?.' : ''}(${args})`;
+    const callee = this.expression(node.callee, POSTFIX);
+    let line = '';
+
+    if (this.options.trace) {
+      if (callee === '$$channels.close' || callee === '$$channels.send' || callee === '$$cancel') {
+        line = this.traced(node);
+      } else if (callee === '$$channels.make') {
+        line =
+          node.arguments.length === 1
+            ? `, null, "", ${lineAt(this.options.source, node.start)}`
+            : `, "", ${lineAt(this.options.source, node.start)}`;
+      } else if (callee === '$$channels.receive') {
+        line = `, false, null${this.traced(node)}`;
+      }
+    }
+
+    return `${callee}${node.optional ? '?.' : ''}(${args}${line})`;
   }
 
   /**
@@ -108,7 +132,7 @@ export abstract class CallEmitter extends ExpressionEmitter {
           )
         : JSON.stringify(goTarget(this.program, node));
 
-    return `$$go(${fn}, [${args.filter((arg) => arg !== '').join(', ')}])`;
+    return `$$go(${fn}, [${args.filter((arg) => arg !== '').join(', ')}]${this.traced(node)})`;
   }
 
   /** `yield v` for `yield(v)` in an iterator, `yield [k, v]` for `yield(k, v)`; else `null`. */
@@ -221,7 +245,16 @@ export abstract class CallEmitter extends ExpressionEmitter {
   protected override chan(node: ast.ChanExpression): string {
     const size = node.size ? this.expression(node.size, ARROW) : '0';
 
-    return `$$channels.make(${size}, ${this.zeroValue(node.element) ?? 'null'})`;
+    const zero = this.zeroValue(node.element) ?? 'null';
+
+    if (!this.options.trace) return `$$channels.make(${size}, ${zero})`;
+
+    // The listener of tracing shows the channel under the name of its variable.
+    this.channelNames ??= channelNames(this.program);
+
+    const name = JSON.stringify(this.channelNames.get(node) ?? '');
+
+    return `$$channels.make(${size}, ${zero}, ${name}${this.traced(node)})`;
   }
 
   /** `queue<number>(items)`: the queue copies the values, as `[...items]` would. */
@@ -262,7 +295,13 @@ export abstract class CallEmitter extends ExpressionEmitter {
 
   protected override receive(node: ast.Expression, withOk: boolean): string {
     const zero = this.receivedZero(node);
-    const args = zero !== 'null' ? `, ${withOk}, ${zero}` : withOk ? ', true' : '';
+    const args = this.options.trace
+      ? `, ${withOk}, ${zero}${this.traced(node)}`
+      : zero !== 'null'
+        ? `, ${withOk}, ${zero}`
+        : withOk
+          ? ', true'
+          : '';
 
     return `$$channels.receive(${this.receivedFrom(node)}${args})`;
   }
@@ -273,8 +312,8 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const value = this.expression(node.value, ARROW);
 
     return this.isTopicValue(node.channel)
-      ? `$$topics.publish(${channel}, ${value})`
-      : `await $$channels.send(${channel}, ${value})`;
+      ? `$$topics.publish(${channel}, ${value}${this.options.trace ? this.traced(node) : ''})`
+      : `await $$channels.send(${channel}, ${value}${this.traced(node)})`;
   }
 
   /** `topic<T>(name)`: a topic keeps the zero value that a closed one gives, as a channel does. */
@@ -293,7 +332,9 @@ export abstract class CallEmitter extends ExpressionEmitter {
     const channel = type?.kind === 'tuple' ? type.types[0] : undefined;
     const element = channel?.kind === 'object' ? channel.instanceOf?.args[0] : undefined;
 
-    return `$$channels.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'})`;
+    const line = this.options.trace ? `, ${lineAt(this.options.source, node.start)}` : '';
+
+    return `$$channels.fromStream(${stream}, ${size}, ${element ? zeroOf(element) : 'null'}${line})`;
   }
 }
 

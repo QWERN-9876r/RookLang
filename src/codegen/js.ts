@@ -83,8 +83,13 @@ class JsGenerator extends ServerComponentEmitter {
     const own = [
       ...(/(?<![.\w$])\$\$go(?![\w$])/.test(rest.join('\n'))
         ? moduleGo(
-            inWorker ? null : (goroutines?.workerUrl ?? ''),
+            inWorker
+              ? this.options.trace
+                ? 'import.meta.url'
+                : null
+              : (goroutines?.workerUrl ?? ''),
             goroutines && 'nodeLoader' in goroutines ? goroutines.nodeLoader : undefined,
+            this.options.trace,
           )
         : []),
       ...(styles.length > 0 ? ['const $$styles = [];'] : []),

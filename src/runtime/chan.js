@@ -6,10 +6,13 @@
 import { $$deque } from './queue.js';
 import { $$commit, $$lock, $$select, $$try, $$unlock, $$unwait } from './select.js';
 import { $$adopt, $$ask, $$isEmpty, $$ownerOf, $$post, $$registry, $$stopped } from './threads.js';
+import { $$place, $$tracer } from './trace.js';
 
 $$registry().handle ??= { message: $$message, pump: $$pump };
 
-export function $$chan(size, zero) {
+// `name` and `line` are the variable the channel is made for and its line, from code compiled with
+// the option `trace`: a listener is told about the channel (trace.js).
+export function $$chan(size, zero, name, line) {
   const registry = $$registry();
   const id = `${registry.key}:${registry.channels++}`;
   const channel = { $$chan: id, size, zero };
@@ -25,59 +28,69 @@ export function $$chan(size, zero) {
     busy: false,
   });
   $$adopt(channel);
+  $$tracer()?.emit({ kind: 'chan', channel: id, name: name ?? '', size, line });
 
   return channel;
 }
 
 // A local operation waits in the queue of its channel; one of another thread asks the thread
 // that made the channel.
-export function $$send(channel, value) {
+export function $$send(channel, value, line) {
   const id = channel.$$chan;
 
   if ($$isEmpty(id)) return Promise.resolve();
 
+  const registry = $$registry();
   const owner = $$ownerOf(id);
+  const at = $$place(registry, line);
 
-  if (owner !== $$registry().key) return $$ask(owner, { op: 'send', channel: id, value });
+  if (owner !== registry.key) return $$ask(owner, { op: 'send', channel: id, value, at });
 
   return new Promise((resolve, reject) =>
-    $$wait(id, 'senders', { value, done: resolve, fail: reject }),
+    $$wait(id, 'senders', { value, done: resolve, fail: reject, at }),
   );
 }
 
-export function $$receive(channel, withOk = false, zero = null) {
+export function $$receive(channel, withOk = false, zero = null, line) {
   const id = channel.$$chan;
+  const registry = $$registry();
   const owner = $$ownerOf(id);
+  const at = $$isEmpty(id) ? undefined : $$place(registry, line);
   const received = $$isEmpty(id)
     ? Promise.resolve([zero, false])
-    : owner !== $$registry().key
-      ? $$ask(owner, { op: 'receive', channel: id })
-      : new Promise((resolve, reject) => $$wait(id, 'receivers', { done: resolve, fail: reject }));
+    : owner !== registry.key
+      ? $$ask(owner, { op: 'receive', channel: id, at })
+      : new Promise((resolve, reject) =>
+          $$wait(id, 'receivers', { done: resolve, fail: reject, at }),
+        );
 
   return withOk ? received : received.then(([value]) => value);
 }
 
 // Closing a channel of another thread fails this one if it was closed already, as a panic would.
-export function $$close(channel) {
+export function $$close(channel, line) {
   const id = channel.$$chan;
 
   if ($$isEmpty(id)) return;
 
+  const registry = $$registry();
   const owner = $$ownerOf(id);
+  const at = $$place(registry, line);
 
-  if (owner === $$registry().key) return $$closeHere(id);
-  $$ask(owner, { op: 'close', channel: id }).catch((error) => {
+  if (owner === registry.key) return $$closeHere(id, at);
+  $$ask(owner, { op: 'close', channel: id, at }).catch((error) => {
     setTimeout(() => {
       throw error;
     });
   });
 }
 
-export function $$closeHere(id) {
+export function $$closeHere(id, at) {
   const state = $$registry().states.get(id);
 
   if (state.closed) throw new Error('close of a closed channel');
   state.closed = true;
+  if (at) $$tracer()?.emit({ kind: 'close', actor: at.actor, channel: id, line: at.line });
   // What made the channel stops with it, as signal() does (signals.js).
   state.onClose?.();
   $$pump(id);
@@ -88,9 +101,9 @@ export function $$zero({ zero }) {
   return Array.isArray(zero) ? [] : zero instanceof $$deque ? new $$deque() : zero;
 }
 
-export async function* $$range(channel) {
+export async function* $$range(channel, line) {
   while (true) {
-    const [value, ok] = await $$receive(channel, true);
+    const [value, ok] = await $$receive(channel, true, null, line);
 
     if (!ok) return;
     yield value;
@@ -103,6 +116,12 @@ export function $$wait(id, queue, entry) {
   if (!state) return entry.fail?.($$stopped());
   state[queue].push(entry);
   $$pump(id);
+  // A traced operation that is still in the queue waits.
+  if (entry.at && !entry.at.passed) {
+    const op = queue === 'senders' ? 'send' : 'receive';
+
+    $$tracer()?.emit({ kind: 'wait', actor: entry.at.actor, op, channel: id, line: entry.at.line });
+  }
 }
 
 // The operations of other threads on the channels of this one.
@@ -113,14 +132,20 @@ export function $$message(from, data) {
 
   switch (data.op) {
     case 'send':
-      return $$wait(data.channel, 'senders', { from, value: data.value, done: answer, fail });
+      return $$wait(data.channel, 'senders', {
+        from,
+        value: data.value,
+        done: answer,
+        fail,
+        at: data.at,
+      });
 
     case 'receive':
-      return $$wait(data.channel, 'receivers', { from, done: answer, fail });
+      return $$wait(data.channel, 'receivers', { from, done: answer, fail, at: data.at });
 
     case 'close':
       try {
-        $$closeHere(data.channel);
+        $$closeHere(data.channel, data.at);
 
         return answer();
       } catch (error) {
@@ -194,7 +219,7 @@ export function $$pair(id, state, receiver, sender) {
   const locks = entries.map((entry) => (entry.select ? $$lock(entry.select.sid) : 'locked'));
 
   if (locks.every((lock) => lock === 'locked')) {
-    $$complete(state, receiver, sender);
+    $$complete(state, receiver, sender, id);
 
     return true;
   }
@@ -224,7 +249,7 @@ export async function $$pairLater(id, state, receiver, sender) {
 
   state.busy = false;
   if (locks.length === entries.length && locks.every((lock) => lock === 'locked')) {
-    $$complete(state, receiver, sender);
+    $$complete(state, receiver, sender, id);
   } else {
     entries.forEach((entry, i) => locks[i] === 'locked' && $$unlockAt(entry.select));
     if (!$$settle(id, state, entries, locks)) return;
@@ -251,9 +276,11 @@ export function $$remove(state, entry) {
 }
 
 // Takes the pair off the queues and passes the value.
-export function $$complete(state, receiver, sender) {
+export function $$complete(state, receiver, sender, id) {
   if (receiver) state.receivers.$$delete(receiver);
   if (sender) state.senders.$$delete(sender);
+  if (receiver?.at) receiver.at.passed = true;
+  if (sender?.at) sender.at.passed = true;
   if (receiver) {
     const result =
       state.buffer.length > 0
@@ -262,14 +289,36 @@ export function $$complete(state, receiver, sender) {
           ? [sender.value, true]
           : [$$zero(state), false];
 
+    if (result[1]) $$passed(id, receiver, sender, result[0]);
     $$finish(receiver, result);
     if (sender) $$finish(sender);
   } else if (state.closed) {
     $$finish(sender, undefined, new Error('send on a closed channel'));
   } else {
     state.buffer.push(sender.value);
+    $$passed(id, null, sender, sender.value);
     $$finish(sender);
   }
+}
+
+// Tells the listener of a value that went through a channel (trace.js): from the sender or the
+// buffer to the receiver or the buffer. Who came to the channel later made the move.
+export function $$passed(id, receiver, sender, value) {
+  const places = [receiver?.at, sender?.at].filter(Boolean);
+
+  if (places.length === 0) return;
+
+  const mover = places.reduce((a, b) => (a.order > b.order ? a : b));
+
+  $$tracer()?.emit({
+    kind: 'pass',
+    actor: mover.actor,
+    channel: id,
+    from: sender?.at?.actor ?? null,
+    to: receiver?.at?.actor ?? null,
+    value,
+    line: mover.line,
+  });
 }
 
 export function $$finish(entry, result, error) {

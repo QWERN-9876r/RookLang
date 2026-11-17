@@ -32,6 +32,8 @@ export interface JsOptions {
     | { workerUrl: string; nodeLoader?: string | undefined }
     | { targets: readonly string[] }
     | undefined;
+  /** Pass the places of the operations of goroutines and channels to the runtime (trace.ts). */
+  trace?: boolean | undefined;
   /** How the module gets the runtime it uses: imported, by default, or in it (runtime.ts). */
   runtime?: RuntimeMode | undefined;
   /** Markup of the server, `"markup": "html"`: templates of HTML and async components. */

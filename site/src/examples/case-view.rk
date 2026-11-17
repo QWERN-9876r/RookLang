@@ -11,7 +11,8 @@ import { CompiledView } from "../compiled-view.rk"
 import { HandwrittenView } from "../handwritten-view.rk"
 import { exampleCode, handwrittenFiles, pageHref, text } from "../i18n.rk"
 import { ResultView } from "../result-view.rk"
-import { runProgram } from "../sandbox.rk"
+import { changeCodeTab } from "../code-morph.rk"
+import { Compiled, compileRook, runProgram } from "../sandbox.rk"
 import styles from "./case-view.module.css"
 
 /** A button of the switch: "code", "result" or "both", the panes it shows. */
@@ -26,7 +27,7 @@ export comp CaseView(name string, preview HTMLElement) {
     const byHand = handwrittenFiles(name)
     const tabs TabItem[] = [
         { id: "code", label: "Rook" },
-        { id: "js", label: "JavaScript" },
+        { id: "js", label: t.jsOutput },
         ...(byHand.length > 0 ? [{ id: "hand", label: t.withoutRook }] : []),
     ]
     const switches PaneSwitch[] = [
@@ -35,6 +36,9 @@ export comp CaseView(name string, preview HTMLElement) {
         { id: "both", label: t.both },
     ]
     state tab = "code"
+    state morph = false
+    state compiled ?Compiled = null
+    state compiling = false
     state panes = "both"
     state lines string[] = []
 
@@ -45,13 +49,29 @@ export comp CaseView(name string, preview HTMLElement) {
         })
     }
 
+    func selectTab(id string) {
+        if id == "js" && compiled == null {
+            if compiling {
+                return
+            }
+            compiling = true
+            compileRook(code, result => {
+                compiled = result
+                compiling = false
+                changeCodeTab(tab, id, () => { morph = true }, () => { tab = id })
+            })
+            return
+        }
+        changeCodeTab(tab, id, () => { morph = true }, () => { tab = id })
+    }
+
     mount {
         run()
     }
 
     return <div class={styles.view} data-panes={panes}>
         <section class={styles.code}>
-            <Tabs items={tabs} active={tab} onSelect={tab = event}>
+            <Tabs items={tabs} active={tab} onSelect={selectTab(event)}>
                 <CopyButton text={code} label={t.copy} doneLabel={t.copied} />
                 <LinkButton
                     kind="ghost"
@@ -61,13 +81,23 @@ export comp CaseView(name string, preview HTMLElement) {
                 >
                     {t.openInPlayground}
                 </LinkButton>
+                {if !code.includes("import ") {
+                    <LinkButton
+                        kind="ghost"
+                        size="sm"
+                        icon="play"
+                        href={`${pageHref("playground")}#board=${name}`}
+                    >
+                        {t.playOnBoard}
+                    </LinkButton>
+                }}
             </Tabs>
             <div class={styles.scroll}>
                 {switch tab {
                 case "code":
-                    <CodeView code={code} />
+                    <CodeView code={code} morph={morph} morphScope={name} />
                 case "js":
-                    <CompiledView source={code} />
+                    <CompiledView source={code} morph={morph} result={compiled} morphScope={name} />
                 default:
                     <HandwrittenView files={byHand} />
                 }}

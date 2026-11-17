@@ -1,0 +1,24 @@
+// Recorded programs for the concurrency sections of the guide.
+
+import { SCENES } from "virtual:scenes"
+import { Program, Stage } from "./stage.rk"
+import { Trace } from "./trace.rk"
+
+export func programOf(name string) Program {
+    const scene = SCENES[name]
+    const traces Trace[] = scene.traces
+    const values number[] = scene.values
+    return {
+        lines: scene.lines,
+        initial: scene.initial,
+        next: value => {
+            const index = values.indexOf(value)
+            return values[(index + 1) % values.length]
+        },
+        trace: value => traces[values.indexOf(value)],
+    }
+}
+
+export comp ConcurrencyStage(name string, title string) {
+    return <Stage title={title} program={programOf(name)} />
+}

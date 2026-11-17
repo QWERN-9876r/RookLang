@@ -1,0 +1,236 @@
+// Turns the runtime events of a live run into the trace the scene plays.
+
+import { Actor, Channel, Event, Trace } from "./trace.rk"
+
+func actorLabel(id string) string {
+    const name = id.split("/").at(-1) ?? id
+    const dash = name.lastIndexOf("-")
+    if dash < 0 {
+        return name
+    }
+    return name.slice(0, dash)
+}
+
+func valueLabel(value any) string {
+    if typeof value == "string" {
+        return value.length > 8 ? `${value.slice(0, 7)}…` : value
+    }
+    if value == null {
+        return String(value)
+    }
+    if Array.isArray(value) {
+        return "[…]"
+    }
+    if typeof value == "object" && value != null {
+        return "{…}"
+    }
+    return String(value)
+}
+
+/** Whether all goroutines that have not finished are waiting on channels. */
+export func liveStalemate(raw any[]) bool {
+    let actors string[] = ["main"]
+    let waits any[] = []
+    const parents Map<string, { actor string; line number }> = new Map()
+
+    func addActor(id string) {
+        if !actors.includes(id) {
+            actors.push(id)
+        }
+    }
+
+    func removeWait(id string) {
+        waits = waits.filter(wait => wait.actor != id)
+    }
+
+    for event in raw {
+        switch event.kind {
+        case "go":
+            addActor(event.actor)
+            addActor(event.task)
+            parents.set(event.task, { actor: event.actor, line: event.line })
+            removeWait(event.task)
+        case "return":
+            addActor(event.actor)
+        case "cancel":
+            actors = actors.filter(actor => actor != event.task)
+            removeWait(event.task)
+        case "wait":
+            addActor(event.actor)
+            removeWait(event.actor)
+            waits.push(event)
+        case "pass":
+            removeWait(event.actor)
+            if event.from != null {
+                removeWait(event.from)
+            }
+            if event.to != null {
+                removeWait(event.to)
+            }
+        case "close":
+            removeWait(event.actor)
+            waits = waits.filter(wait => wait.channel != event.channel || wait.op != "receive")
+        case "select":
+        case "turn":
+        case "publish":
+            addActor(event.actor)
+        case "end":
+            actors = actors.filter(actor => actor != event.actor)
+            removeWait(event.actor)
+        default:
+        }
+    }
+
+    return actors.length > 0 && actors.every(actor => waits.some(wait => wait.actor == actor))
+}
+
+/** Rebuilds the scene trace as events arrive from the runtime. */
+export func liveTrace(raw any[]) Trace {
+    const actors Actor[] = [{ id: "main", label: "main" }]
+    const channels Channel[] = []
+    const byRuntimeChannel Map<string, Channel> = new Map()
+    const events Event[] = []
+    const parents Map<string, { actor string; line number }> = new Map()
+
+    func addActor(id string) {
+        if !actors.some(actor => actor.id == id) {
+            actors.push({ id: id, label: actorLabel(id) })
+        }
+    }
+
+    func addChannel(id string, name string = "", size number = 0) Channel {
+        const found = byRuntimeChannel.get(id)
+        if found != null {
+            if name != "" {
+                found.label = name
+                found.size = size
+            }
+            return found
+        }
+
+        const index = channels.length + 1
+        const channel Channel = {
+            id: `channel-${index}`,
+            label: name != "" ? name : `channel ${index}`,
+            size: size,
+        }
+        channels.push(channel)
+        byRuntimeChannel.set(id, channel)
+        return channel
+    }
+
+    for event in raw {
+        switch event.kind {
+        case "chan":
+            addChannel(event.channel, event.name, event.size)
+        case "go":
+            addActor(event.actor)
+            addActor(event.task)
+            parents.set(event.task, { actor: event.actor, line: event.line })
+            events.push({
+                kind: "go",
+                actor: event.actor,
+                task: event.task,
+                line: event.line,
+                ...(event.args == null ? {} : {
+                    args: Array.isArray(event.args) ? event.args.map(valueLabel).join(", ") : event.args,
+                }),
+            })
+        case "return":
+            addActor(event.actor)
+            const parent = parents.get(event.actor)
+            const to = parent?.actor ?? "main"
+            addActor(to)
+            events.push({
+                kind: "return",
+                actor: event.actor,
+                to: to,
+                value: valueLabel(event.value),
+                line: parent?.line ?? 0,
+            })
+        case "select":
+            addActor(event.actor)
+            events.push({
+                kind: "select",
+                actor: event.actor,
+                line: event.line,
+                lines: event.lines,
+            })
+        case "turn":
+            addActor(event.actor)
+            events.push({
+                kind: "turn",
+                actor: event.actor,
+                task: event.task,
+                phase: event.phase,
+                line: event.line,
+            })
+        case "publish":
+            addActor(event.actor)
+            const topicName = event.topic
+            const found = channels.find(each => each.label == topicName)
+            const channel = found ?? addChannel(`topic:${topicName}`, topicName)
+            events.push({
+                kind: "publish",
+                actor: event.actor,
+                channel: channel.id,
+                value: valueLabel(event.value),
+                line: event.line,
+            })
+        case "cancel":
+            addActor(event.actor)
+            addActor(event.task)
+            events.push({
+                kind: "cancel",
+                actor: event.actor,
+                task: event.task,
+                line: event.line,
+            })
+        case "wait":
+            addActor(event.actor)
+            const channel = addChannel(event.channel)
+            events.push({
+                kind: "wait",
+                actor: event.actor,
+                op: event.op,
+                channel: channel.id,
+                line: event.line,
+            })
+        case "pass":
+            addActor(event.actor)
+            if event.from != null {
+                addActor(event.from)
+            }
+            if event.to != null {
+                addActor(event.to)
+            }
+            const channel = addChannel(event.channel)
+            events.push({
+                kind: "pass",
+                actor: event.actor,
+                channel: channel.id,
+                from: event.from,
+                to: event.to,
+                value: valueLabel(event.value),
+                line: event.line,
+            })
+        case "close":
+            addActor(event.actor)
+            const channel = addChannel(event.channel)
+            events.push({
+                kind: "close",
+                actor: event.actor,
+                channel: channel.id,
+                line: event.line,
+            })
+        case "end":
+            addActor(event.actor)
+            events.push({ kind: "end", actor: event.actor })
+        case "stalemate":
+            events.push({ kind: "stalemate" })
+        default:
+        }
+    }
+
+    return { actors: actors, channels: channels, events: events }
+}

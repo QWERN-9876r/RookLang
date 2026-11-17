@@ -1,6 +1,7 @@
 // Раздел «Потоки» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Streams() {
     return <>
@@ -16,6 +17,15 @@ export comp Streams() {
             канала, который кончается, когда канал закрыт; его можно отдать телом
             {" "}<code>Response</code> или передать в <code>pipeTo</code>.
         </p>
+        <p>
+            Доска задач может использовать поток для ленты активности: входящие фрагменты
+            становятся событиями для приложения, а ёмкость канала создаёт обратное давление,
+            если воркер не успевает их обрабатывать.
+        </p>
         <Example name="streams" />
     </>
+}
+
+export comp StreamsStage() {
+    return <ConcurrencyStage name="streams" title="Потоки" />
 }

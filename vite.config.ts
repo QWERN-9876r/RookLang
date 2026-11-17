@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { scenes } from './site/scenes.ts';
 import { sections } from './site/sections.ts';
 import { seo } from './site/seo.ts';
 import { rook } from './src/vite.ts';
@@ -94,5 +95,5 @@ export default defineConfig({
       ),
     },
   },
-  plugins: [rook(), examples(), seo(site, PAGES), sections()],
+  plugins: [rook(), examples(), scenes(site), seo(site, PAGES), sections()],
 });

@@ -17,6 +17,10 @@ export comp AsyncIterables() {
             {" "}<code>break</code> closes the stream.
         </p>
         <p>
+            The board can process an incoming sequence of task changes with this loop, handling
+            each change as it arrives instead of waiting for the whole feed to finish.
+        </p>
+        <p>
             The types come from TypeScript declarations, such as <code>@types/node</code>, which the
             playground on this page does not have, so here is the code with what it compiles to:
         </p>

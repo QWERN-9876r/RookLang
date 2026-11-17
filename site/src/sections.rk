@@ -11,16 +11,25 @@ export func sectionIn(ids string[], path string) number {
 }
 
 /**
- * Before the page is drawn: docs/ and the old docs/#goroutines go to the address of a section,
- * docs/goroutines/, for which the links of the page are written.
+ * Before the page is drawn: the old docs/#goroutines goes to the address of a section. Pages with
+ * a map keep their root; other section pages redirect it to the first section.
  */
-export func withSections(ids string[]) {
+export func withSections(ids string[], keepRoot bool = false) {
     if sectionIn(ids, location.pathname) >= 0 {
         return
     }
     const hash = decodeURIComponent(location.hash.slice(1))
-    const id = ids.includes(hash) ? hash : ids[0]
-    history.replaceState(null, "", `${id}/`)
+    if ids.includes(hash) {
+        history.replaceState(null, "", `${hash}/`)
+        return
+    }
+    if keepRoot {
+        if location.hash != "" {
+            history.replaceState(null, "", location.pathname)
+        }
+        return
+    }
+    history.replaceState(null, "", `${ids[0]}/`)
 }
 
 /** The folder of a section: /docs/ of /docs/goroutines/. */

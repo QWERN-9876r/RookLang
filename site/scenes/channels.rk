@@ -1,0 +1,23 @@
+async func square(
+    jobs <-chan number,
+    results chan<- number,
+) {
+    for n in jobs {
+        results <- n * n
+    }
+}
+
+const jobs = chan<number>(2) // live: 0..4
+const results = chan<number>()
+
+go square(jobs, results)
+go square(jobs, results)
+
+for let n = 1; n <= 4; n++ {
+    jobs <- n
+}
+close(jobs)
+
+for let i = 0; i < 4; i++ {
+    console.log(<-results)
+}

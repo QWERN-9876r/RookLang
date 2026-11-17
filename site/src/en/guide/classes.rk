@@ -7,6 +7,8 @@ export comp Classes() {
         <p>
             Classes are as in TypeScript: typed fields, <code>constructor</code>,
             {" "}<code>extends</code>, the <code>private</code> and <code>protected</code> modifiers.
+            If the board needs task behavior alongside task data, a class can encapsulate both;
+            using a class is an organization choice, not a requirement for every record.
         </p>
         <p>
             Interfaces are structural: a class or an object fits if it has the fields and methods.

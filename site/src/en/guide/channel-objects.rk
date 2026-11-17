@@ -1,6 +1,7 @@
 // The section "Channel and Topic" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp ChannelObjects() {
     return <>
@@ -17,6 +18,11 @@ export comp ChannelObjects() {
             {" "}<code>Topic.make</code> does not check that the values can go to other tabs.
         </p>
         <p>
+            As the board grows, its task API can take these channel and topic operations as values
+            wherever a callback is needed, while the rest of the app continues to use the concise
+            channel and topic syntax.
+        </p>
+        <p>
             <code>Channel.EMPTY</code> and <code>Topic.EMPTY</code> are the zero values of
             {" "}<code>chan T</code> and <code>topic T</code>, the same for all types, and they are
             closed: receiving gives the zero value of the type at once and <code>ok</code> is
@@ -28,4 +34,8 @@ export comp ChannelObjects() {
         </p>
         <Example name="channel-objects" />
     </>
+}
+
+export comp ChannelObjectsStage() {
+    return <ConcurrencyStage name="channel-objects" title="Channel and Topic" />
 }

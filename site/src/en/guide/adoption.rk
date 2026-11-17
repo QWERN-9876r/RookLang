@@ -46,6 +46,11 @@ export comp Adoption() {
             time, and it can leave the same way.
         </p>
         <p>
+            The task board can join an existing Vite app one piece at a time: start with a typed
+            task module, then expose a custom element or move the request-rendered page to Rook.
+            The rest of the app does not have to migrate with it.
+        </p>
+        <p>
             <b>A module in a Vite project.</b> With <code>npm install rooklang</code> and the plugin
             in the config of Vite, a <code>.rk</code> module is imported from JS and TS like any
             other:

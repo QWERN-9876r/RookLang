@@ -1,0 +1,210 @@
+// The language map, its saved reading progress, and a small puzzle checked by the live runtime.
+
+import { DocsMapStrings, Section, text } from "../i18n.rk"
+import { clearProgram, previewArea, runProgram } from "../sandbox.rk"
+import styles from "./map.module.css"
+
+const STORAGE_KEY = "rook.docs.visited"
+
+export func visitedSections(ids string[]) string[] {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
+        if !Array.isArray(saved) {
+            return []
+        }
+        return saved.filter(id => typeof id == "string" && ids.includes(id))
+    } catch error {
+        console.warn("could not read guide progress:", error)
+        return []
+    }
+}
+
+export func markVisited(id string, visited string[]) string[] {
+    if visited.includes(id) {
+        return visited
+    }
+    const updated = [...visited, id]
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    } catch error {
+        console.warn("could not save guide progress:", error)
+    }
+    return updated
+}
+
+export func clearVisited() {
+    try {
+        localStorage.removeItem(STORAGE_KEY)
+    } catch error {
+        console.warn("could not clear guide progress:", error)
+    }
+}
+
+func traceMessage(event any, labels DocsMapStrings) ?string {
+    switch event.kind {
+    case "chan":
+        return labels.channel(event.size)
+    case "wait":
+        return labels.taskWaiting
+    case "pass":
+        if event.to == null {
+            return labels.taskSent(Number(event.value))
+        }
+        if event.from == null {
+            return labels.taskReceived(String(event.value))
+        }
+    case "stalemate":
+        return labels.taskStalemate
+    case "end":
+        return labels.taskFinished
+    default:
+    }
+    return null
+}
+
+func traceClass(kind string) string {
+    switch kind {
+    case "wait":
+        return styles.wait
+    case "stalemate":
+        return styles.stalemate
+    case "pass":
+        return styles.pass
+    case "end":
+        return styles.end
+    default:
+        return ""
+    }
+}
+
+export comp LanguageMap(sections Section[], current string, visited string[], onClear func()) {
+    const labels = text().docsMap
+    const preview = previewArea()
+    state capacity = 0
+    state traceLines string[] = []
+    state traceKinds string[] = []
+    state status = labels.taskReady
+    state output = ""
+    let sent = false
+    let received = false
+    let deadlocked = false
+
+    func trace(event any) {
+        if event.kind == "pass" && event.to == null {
+            sent = true
+            status = labels.taskSent(Number(event.value))
+        } else if event.kind == "pass" && event.from == null {
+            received = true
+            status = labels.taskReceived(String(event.value))
+        } else if event.kind == "stalemate" {
+            deadlocked = true
+            status = labels.taskStalemate
+        } else if event.kind == "end" && event.actor == "main" {
+            if sent && received && !deadlocked {
+                status = labels.taskSolved
+            } else {
+                status = labels.taskFinished
+            }
+        }
+
+        const message = traceMessage(event, labels)
+        if message != null {
+            traceLines = [...traceLines, message]
+            traceKinds = [...traceKinds, event.kind]
+        }
+    }
+
+    func runTask() {
+        sent = false
+        received = false
+        deadlocked = false
+        traceLines = []
+        traceKinds = []
+        status = labels.taskRunning
+        output = ""
+        const source = `const jobs = chan<number>(${capacity})
+jobs <- 7
+console.log(<-jobs)
+`
+        runProgram(source, preview, lines => {
+            if lines.length == 0 {
+                return
+            }
+            output = lines.join(" ")
+            if !received {
+                status = labels.taskError(output)
+            }
+        }, trace)
+    }
+
+    mount {
+        runTask()
+        defer {
+            clearProgram(preview)
+        }
+    }
+
+    return <section class={styles.map}>
+        <header class={styles.mapHeading}>
+            <div>
+                <p class={styles.eyebrow}>{labels.mapEyebrow}</p>
+                <h1>{labels.mapTitle}</h1>
+                <p class={styles.lead}>{labels.mapLead}</p>
+            </div>
+            <div class={styles.progress} aria-live="polite">
+                <strong>{labels.progress(visited.length, sections.length)}</strong>
+                <button onClick={onClear}>{labels.clearProgress}</button>
+            </div>
+        </header>
+        <div class={styles.legend} aria-label={labels.mapTitle}>
+            <span><i class={styles.currentKey} />{labels.current}</span>
+            <span><i class={styles.visitedKey} />{labels.visited}</span>
+            <span><i class={styles.aheadKey} />{labels.ahead}</span>
+        </div>
+        <nav class={styles.board} aria-label={text().sections}>
+            {for i, section in sections {
+                const isCurrent = section.id == current
+                const isVisited = visited.includes(section.id)
+                <a
+                    class={`${styles.square} ${isVisited ? styles.visited : ""} ${isCurrent ? styles.current : ""}`}
+                    href={`./${section.id}/`}
+                    aria-label={`${i + 1}. ${section.title} · ${section.group}`}
+                    aria-current={isCurrent ? "location" : null}
+                >
+                    <span class={styles.number}>{String(i + 1).padStart(2, "0")}</span>
+                    <span class={styles.name}>{section.title}</span>
+                    <span class={styles.group}>{section.group}</span>
+                    {if isCurrent { <span class={styles.rook} aria-hidden="true">♜</span> }}
+                </a>
+            }}
+        </nav>
+
+        <section class={styles.challenge} aria-labelledby="task-title">
+            <div class={styles.challengeCopy}>
+                <p class={styles.eyebrow}>{labels.taskEyebrow}</p>
+                <h2 id="task-title">{labels.taskTitle}</h2>
+                <p>{labels.taskLead}</p>
+                <pre><code>{`const jobs = chan<number>(${capacity})
+jobs <- 7
+console.log(<-jobs)`}</code></pre>
+                <div class={styles.controls} role="group" aria-label={labels.buffer}>
+                    <span>{labels.buffer}</span>
+                    <button aria-pressed={capacity == 0} onClick={capacity = 0}>0</button>
+                    <button aria-pressed={capacity == 1} onClick={capacity = 1}>1</button>
+                    <button class={styles.run} onClick={runTask}>{labels.tryMove}</button>
+                </div>
+                <p class={styles.status} aria-live="polite">{status}</p>
+                {if output != "" { <p class={styles.output}>{labels.taskOutput(output)}</p> }}
+                <div hidden>{preview}</div>
+            </div>
+            <div class={styles.tracePanel}>
+                <div class={styles.traceHeading}>{labels.traceTitle}</div>
+                <ol class={styles.trace} aria-live="polite">
+                    {for i, line in traceLines {
+                        <li class={traceClass(traceKinds[i])}>{line}</li>
+                    }}
+                </ol>
+            </div>
+        </section>
+    </section>
+}

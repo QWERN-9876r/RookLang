@@ -7,6 +7,8 @@ export comp Functions() {
         <p>
             A function is declared with <code>func</code>. Parameters of the same type can be listed
             together, and a function can have several results, unpacked into several variables.
+            In the board, ordinary functions can add a task, mark one complete or filter the
+            collection; these are app operations, not special language APIs.
         </p>
         <p>
             Literals <code>{"func(x number) number { ... }"}</code> and arrow functions

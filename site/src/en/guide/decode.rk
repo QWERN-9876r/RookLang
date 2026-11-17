@@ -20,6 +20,11 @@ export comp Decode() {
             not fit: <code>items[1]: expected string, got 3</code>. Types that JSON cannot hold,
             such as a class, <code>Date</code> or <code>Map</code>, are a compile error.
         </p>
+        <p>
+            Before the board accepts task data from a request, <code>decode</code> can check the
+            incoming value against the task type. The UI and background worker can then handle
+            validated task data instead of trusting an unchecked payload.
+        </p>
         <Example name="decode" />
     </>
 }

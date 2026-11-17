@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Интерактивный прототип карты языка Rook с прогрессом и задачей на один ход."
+    />
+    <title>Карта языка — прототип этапа 7</title>
+    <link rel="stylesheet" href="./map.css" />
+    <link rel="stylesheet" href="./map-task.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="top">
+        <a class="brand" href="../" aria-label="Rook">
+          <span class="rook" aria-hidden="true">♜</span>
+          <span>ROOK</span>
+        </a>
+        <span class="stage" data-en="STAGE 7 PROTOTYPE" data-ru="ПРОТОТИП ЭТАПА 7">
+          ПРОТОТИП ЭТАПА 7
+        </span>
+        <button class="language" id="language" type="button" aria-label="Switch to English">
+          EN
+        </button>
+      </header>
+
+      <p class="eyebrow" data-en="The language, on one board" data-ru="Весь язык на одной доске">
+        Весь язык на одной доске
+      </p>
+      <h1 data-en="Your path through Rook." data-ru="Ваш путь по Rook.">Ваш путь по Rook.</h1>
+      <p
+        class="lead"
+        data-en="Each square is a section of the guide. The rook marks where you are; gold squares are the sections you have visited. Your progress stays in this browser."
+        data-ru="Каждая клетка — раздел руководства. Ладья показывает, где вы сейчас; золотые клетки — уже посещённые разделы. Прогресс сохраняется в этом браузере."
+      >
+        Каждая клетка — раздел руководства. Ладья показывает, где вы сейчас; золотые клетки — уже
+        посещённые разделы. Прогресс сохраняется в этом браузере.
+      </p>
+
+      <section class="map-panel" aria-labelledby="map-title">
+        <div class="map-heading">
+          <div>
+            <p class="eyebrow" data-en="01 / LANGUAGE MAP" data-ru="01 / КАРТА ЯЗЫКА">
+              01 / КАРТА ЯЗЫКА
+            </p>
+            <h2 id="map-title" data-en="The guide, as a route" data-ru="Руководство как маршрут">
+              Руководство как маршрут
+            </h2>
+          </div>
+          <div class="progress" aria-live="polite">
+            <strong id="progress-value">0 / 35</strong>
+            <span data-en="sections visited" data-ru="разделов посещено">разделов посещено</span>
+            <button id="clear-progress" type="button" data-en="Clear" data-ru="Сбросить">
+              Сбросить
+            </button>
+          </div>
+        </div>
+        <div class="legend" aria-label="Map legend">
+          <span
+            ><i class="legend-current"></i
+            ><span data-en="you are here" data-ru="вы здесь">вы здесь</span></span
+          >
+          <span
+            ><i class="legend-visited"></i
+            ><span data-en="visited" data-ru="прочитано">прочитано</span></span
+          >
+          <span
+            ><i class="legend-new"></i><span data-en="ahead" data-ru="впереди">впереди</span></span
+          >
+        </div>
+        <nav class="board" id="board" aria-label="Разделы руководства"></nav>
+      </section>
+
+      <section class="challenge" aria-labelledby="challenge-title">
+        <div class="challenge-copy">
+          <p class="eyebrow" data-en="02 / ONE MOVE" data-ru="02 / ОДИН ХОД">02 / ОДИН ХОД</p>
+          <h2
+            id="challenge-title"
+            data-en="Let the message through."
+            data-ru="Пропустите сообщение."
+          >
+            Пропустите сообщение.
+          </h2>
+          <p
+            data-en="The send is waiting and the program is stuck. Change one number so the value can enter the channel before the receive."
+            data-ru="Отправка ждёт, программа зависла. Измените одно число, чтобы значение попало в канал до получения."
+          >
+            Отправка ждёт, программа зависла. Измените одно число, чтобы значение попало в канал до
+            получения.
+          </p>
+          <pre
+            aria-label="Rook code"
+          ><code>const jobs = chan&lt;number&gt;(<span id="capacity-code">0</span>)
+jobs &lt;- 7
+console.log(&lt;-jobs)</code></pre>
+          <div class="capacity" role="group" aria-label="Channel buffer capacity">
+            <span data-en="buffer" data-ru="буфер">буфер</span>
+            <button type="button" data-capacity="0" aria-pressed="true">0</button>
+            <button type="button" data-capacity="1" aria-pressed="false">1</button>
+            <button
+              class="run"
+              id="run-task"
+              type="button"
+              data-en="Try this move"
+              data-ru="Сделать ход"
+            >
+              Сделать ход
+            </button>
+          </div>
+          <p class="task-status" id="task-status" aria-live="polite">
+            Выберите буфер и запустите программу.
+          </p>
+        </div>
+
+        <div class="trace-panel">
+          <div class="trace-heading">
+            <span data-en="Sample trace" data-ru="Пример трассы">Пример трассы</span>
+            <span class="trace-state" id="trace-state">ПАТ</span>
+          </div>
+          <ol class="trace" id="trace" aria-live="polite"></ol>
+        </div>
+      </section>
+      <footer>
+        <span
+          data-en="A prototype for discussion · Stage 7"
+          data-ru="Прототип для обсуждения · этап 7"
+        >
+          Прототип для обсуждения · этап 7
+        </span>
+        <a href="../PLAN.ru.md" data-en="Project plan" data-ru="План проекта">План проекта</a>
+      </footer>
+    </main>
+    <script src="./map.js" defer></script>
+  </body>
+</html>

@@ -9,6 +9,8 @@ export comp Make() {
             left in the JS: <code>make(Song)</code> is <code>{'{ title: "", seconds: 0 }'}</code>,
             {" "}<code>make(Song[])</code> is <code>[]</code>, <code>make(Seconds)</code> of
             {" "}<code>type Seconds number</code> is <code>0</code>.
+            For the board, <code>make(Task[])</code> creates an empty, typed task list; it does not
+            populate the list or initialize any additional store behavior.
         </p>
         <p>
             An interface gives an object of its fields, each with its own value; a field that may

@@ -7,6 +7,7 @@ import { IconLink } from "../../ui/icon-link.rk"
 import { LinkButton } from "../../ui/link-button.rk"
 import { Drawer } from "../../ui/drawer.rk"
 import { currentPage, otherLanguageHref, pageHref, REPOSITORY, text } from "../i18n.rk"
+import { chooseSourceLanguage, sourceLanguage } from "../source-language.rk"
 import styles from "./header.module.css"
 import { Brand } from "./brand.rk"
 import { PageLink } from "./page-link.rk"
@@ -18,11 +19,26 @@ import { PageLink } from "./page-link.rk"
 export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content = null) {
     const t = text()
     state open = false
+    state source = sourceLanguage()
 
     // The other language opens at the same place, the section of the guide or the example.
     func switchLanguage(event Event) {
         event.preventDefault()
         location.assign(otherLanguageHref() + location.hash)
+    }
+
+    func selectSource(event Event) {
+        const value = (event.target as HTMLSelectElement).value
+        if value == "js" {
+            source = "js"
+            chooseSourceLanguage("js")
+        } else if value == "ts" {
+            source = "ts"
+            chooseSourceLanguage("ts")
+        } else if value == "go" {
+            source = "go"
+            chooseSourceLanguage("go")
+        }
     }
 
     // A link in the menu leads somewhere, so the menu closes.
@@ -44,6 +60,14 @@ export comp SiteHeader(wide bool = false, tools ?Content = null, menu ?Content =
                 </nav>
                 {tools}
                 <div class={styles.end}>
+                    <label class={styles.source}>
+                        <span class={styles.sourceLabel}>{t.sourceLanguage}</span>
+                        <select id="source" aria-label={t.sourceLanguage} onChange={selectSource(event)}>
+                            <option value="js" selected={source == "js"}>{t.sourceJavaScript}</option>
+                            <option value="ts" selected={source == "ts"}>{t.sourceTypeScript}</option>
+                            <option value="go" selected={source == "go"}>{t.sourceGo}</option>
+                        </select>
+                    </label>
                     <a
                         class={styles.language}
                         href={otherLanguageHref()}

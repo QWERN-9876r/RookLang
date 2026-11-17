@@ -26,6 +26,35 @@ export interface SectionStage {
     content comp()
 }
 
+/** Texts of the language map and its trace-checked puzzle. */
+export interface DocsMapStrings {
+    mapEyebrow string
+    mapTitle string
+    mapLead string
+    current string
+    visited string
+    ahead string
+    clearProgress string
+    progress func(number, number) string
+    taskEyebrow string
+    taskTitle string
+    taskLead string
+    buffer string
+    tryMove string
+    taskReady string
+    taskRunning string
+    taskWaiting string
+    taskStalemate string
+    taskSent func(number) string
+    taskReceived func(string) string
+    taskFinished string
+    taskSolved string
+    taskOutput func(string) string
+    taskError func(string) string
+    traceTitle string
+    channel func(number) string
+}
+
 /** Texts of the pages around the guide itself. */
 export interface Strings {
     tagline string
@@ -71,11 +100,18 @@ export interface Strings {
     editor string
     run string
     openInPlayground string
+    playOnBoard string
+    sourceLanguage string
+    sourceJavaScript string
+    sourceTypeScript string
+    sourceGo string
+    jsOutput string
     /** The tab of an example with the same program written in JS by hand. */
     withoutRook string
     /** The panes of the page of examples, the switch between them, and the button that runs it again. */
     code string
     result string
+    board string
     both string
     runAgain string
     reset string
@@ -102,6 +138,7 @@ export interface Strings {
     home HomeStrings
     /** Texts of the scene of a section (stage/). */
     stage StageStrings
+    docsMap DocsMapStrings
 }
 
 /** Texts of the home page. */
@@ -249,6 +286,8 @@ export func sectionHref(target Page, id string) string {
 /** A link to the same page in the other language, at the same section. */
 export func otherLanguageHref() string {
     const parts = location.pathname.split("/").filter(part => part != "")
-    const section = hasSections(page) && parts.length > 0 ? `${parts.at(-1)}/` : ""
+    const pageFolder = PATHS[page].split("/").filter(part => part != "").at(-1)
+    const last = parts.at(-1) ?? ""
+    const section = hasSections(page) && last != pageFolder ? `${last}/` : ""
     return root() + text().otherRoot + PATHS[page] + section
 }

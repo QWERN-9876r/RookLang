@@ -35,6 +35,52 @@
   margin-left: auto;
 }
 
+.source {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.source::after {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  color: var(--rui-muted);
+  content: '';
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.sourceLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.source select {
+  max-width: 118px;
+  padding: 6px 28px 6px 9px;
+  border: 1px solid var(--rui-line);
+  border-radius: var(--rui-radius-sm);
+  background: var(--rui-surface);
+  color: var(--rui-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  appearance: none;
+}
+
+.source select:focus-visible {
+  outline: 2px solid var(--rui-accent);
+  outline-offset: 2px;
+}
+
 .language {
   padding: 6px 10px;
   border-radius: var(--rui-radius-sm);

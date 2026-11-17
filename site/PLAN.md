@@ -7,8 +7,14 @@ A working document, written on 11 November 2026 after the discussion and the pro
 - **The approved prototype:** <https://claude.ai/artifact/MPCWCiMj1Wynka615Jq8pK>, version 3, the
   page "Channels". It is the reference for the look and the motion.
 - **Status:** stage 0 is done. The engine of the scene, the pilot "Channels" and the first screen
-  of the home page are on the site (stage 1). Now: the home page as one game (in stage 3); its
-  blocks are all done. Next: stage 2, real moves.
+  of the home page are on the site (stage 1). The home page as one game is done (stage 3). In stage
+  2, the tracing hook, compiler option, build-time traces, pilot migration and the live Board tab
+  of the playground are done. Stage 4 is done: every Concurrency section has a scene, and examples
+  can be played on the board from the guide and playground. Stage 5 is implemented; browser
+  verification of token motion is pending because even a minimal View Transition is rejected by
+  the browser used for validation. Stage 6, the approved Pulse scene, is done. Stage 7, the bilingual
+  language map, saved progress and runtime-trace-checked puzzle, is done. Stage 8, the task-board
+  thread through all 35 guide sections, is done.
 
 ## 1. What we build
 
@@ -104,8 +110,8 @@ What is known about the runtime, and what follows from it:
 - The state of a channel lives in the thread that made it; the operations of other threads come to
   it as messages (`src/runtime/chan.js`, `threads.js`). So the events of one channel have a common
   order: the owner thread sees it.
-- The playground already sends `console.log` of the workers through a `BroadcastChannel`
-  (`site/src/sandbox.rk`). The events of a trace can go the same way.
+- The playground sends `console.log` of workers through a `BroadcastChannel`
+  (`site/src/sandbox.rk`). Trace events return through the worker tree and reach the Board tab.
 
 A draft of the design (made exact in stage 2):
 
@@ -118,20 +124,21 @@ A draft of the design (made exact in stage 2):
   so the compiler needs an option `trace`: with it the generator passes the place of an operation
   to the call of the runtime. This is not syntax of the language, and the maintainer chose it
   (decision 4).
-- **Who made the move.** A thread of the pool may hold several calls that wait in `await`. While
-  tracing, the pool must give each goroutine a thread of its own; then the thread is the goroutine.
-  To be checked against `src/runtime/go.js`.
+- **Who made the move.** While tracing, each goroutine gets its own worker. Nested workers route
+  channel messages through their parents, so they can use channels created by ancestor workers.
 - **Stalemate.** All known goroutines wait on channels and no new events come: the scene shows a
   stalemate. In the roadmap this is "Phase 3 — debugging goroutines" ("A deadlock is not
   reported"), so the hook is of use there too.
 - **The traces of the examples are recorded at build time** and get into the page with the code of
   the examples, like `virtual:examples`. The scene plays at once, without compiling in the browser.
-  The order of moves in real threads is not defined, so recording needs a deterministic run. A
-  candidate is `$$goHere` (a goroutine in the same thread); to be checked.
-- **A live run** is needed when the reader has changed the code: the compiler in the browser, a run
-  with tracing, a new game.
-- **The cost without tracing:** no more than one check per operation. The size of the runtime is
-  to be measured before and after and written here.
+  The order of moves in real threads is not defined, so recording uses one thread and
+  `AsyncLocalStorage` for deterministic actor context.
+- **A live run** is available in the playground's Board tab: the browser compiler emits source
+  locations, the worker runtime streams events, and the scene turns them into a playable trace.
+- **The cost without tracing:** one listener lookup per traced-capable operation; without a
+  listener, no event or location object is made. The runtime JS files, concatenated in name order,
+  grew from 81,297 B (23,695 B gzip) at `HEAD` to 89,807 B (26,113 B gzip): +8,510 B raw and
+  +2,418 B gzip.
 
 ## 5. The visual system
 
@@ -185,20 +192,22 @@ Done when:
 The goal: the pilot plays what the runtime did.
 
 1. The hook of tracing in `src/runtime/`; `src/runtime/sources.ts` is written again by
-   `npm run format`.
-2. The compiler option `trace` (decision 4).
-3. Recording the traces of examples at build time. The pilot moves to it, and the data of stage 1
-   is deleted.
-4. A live run in the browser after the code is changed.
-5. Detecting a stalemate.
-6. Tests of the runtime: the events of sending, receiving, closing and starting a goroutine, their
-   order, the stalemate.
+   `npm run format`. _(done)_
+2. The compiler option `trace` (decision 4). _(done)_
+3. Recording the traces of scenes at build time. The pilot uses them, and the data of stage 1 is
+   deleted. _(done)_
+4. A live run in the browser after the code is changed; the playground's Board tab plays its trace.
+   _(done)_
+5. Detecting a stalemate. _(done)_
+6. Tests of sending, receiving, closing and starting a goroutine, their order, and the stalemate.
+   _(done)_
 
 Done when:
 
 - changing the buffer to 1 shows the stalemate of a real run;
 - without the option `trace` the generated code does not change (`tests/output/` has no changes);
-- the growth of the runtime is measured and written into section 4.
+- the growth of the runtime is measured and written into section 4;
+- a changed program can be run in the browser and its moves are available to the scene.
 
 ### Stage 3. The home page and the style of the whole site (M)
 
@@ -280,10 +289,12 @@ The change of code and the final call (prototype:
 | Section         | What is new on the board                                                                                                        |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | goroutines      | Copies of the arguments fly to the new rook, the result comes back as a move. `go for`: several rooks on the parts of an array. |
+| channels        | Messages wait in the buffer or go hand to hand.                                                                                 |
 | select          | The lines of all the cases are lit in front of the rook, and one is played.                                                     |
 | streams, topics | One move goes out to all the subscribers.                                                                                       |
 | signals         | A cancellation is a capture: the rook goes dark and leaves the board.                                                           |
 | async           | The tasks of one thread take turns on one file.                                                                                 |
+| channel-objects | `Channel.make`, `send`, `receive` and `close` are visible as moves.                                                             |
 
 Also in this stage: the button "Play on the board" of examples and the tab "Board" of the
 playground.
@@ -291,7 +302,7 @@ playground.
 Done when every section of the group Concurrency has a scene in both languages, and a program with
 channels from the playground plays on the board.
 
-### Stage 5. The translator (M)
+### Stage 5. The translator (M) _(implemented; motion verification pending)_
 
 1. The tabs of the card with the code: Rook, the JS output, "Without Rook" (the files of
    `site/examples/js/<name>/`).
@@ -299,25 +310,49 @@ channels from the playground plays on the board.
    notes for those who come from Go. This is new text in two languages.
 3. The code morphs when switching Rook → JS: the tokens they share stay in place, the others move.
 
-### Stage 6. The scene "Pulse" (L)
+### Stage 6. The scene "Pulse" (L) _(done)_
 
-Reactivity: a change of state runs as a pulse to the DOM nodes. It needs tracing of
-`src/runtime/signals.js` and `markup.js`. Before it is built, a prototype of its own is made as an
-artifact and approved by the maintainer, as the scene "Game" was.
+Reactivity: a state change runs as a pulse through its dependency graph to the DOM nodes that read
+it. The approved prototype is in `site/prototypes/pulse.html`.
 
-### Stage 7. The map, progress, tasks (M)
+1. Trace state changes and each dependent DOM update in code generated with `trace`.
+2. Keep the live tracer installed for the lifetime of the preview owner; restore the previous
+   tracer when the preview is replaced or removed.
+3. Build the live graph and DOM preview into the guide sections Markup, Components, State and
+   Mounting, in both languages.
+4. Respect `prefers-reduced-motion`; test that independent nodes do not flash.
+5. Run `npm run check` and `npm run site:build`, then verify the scene in the browser.
+
+### Stage 7. The map, progress, tasks (M) _(done)_
 
 1. `docs/` opens with the map of the language: a square is a section, the rook stands on the
    current one, what is read is marked. The progress is kept in the browser.
 2. Tasks in the scene ("mate in one": remove the stalemate by changing one number), checked by the
    trace.
 
-A prototype comes first.
+The map is integrated at `docs/`; section pages record progress in local storage, and the puzzle
+uses the live runtime trace to distinguish a stalemate from a successful buffered send and receive.
 
-### Stage 8. One application through the guide (by a decision of its own)
+### Stage 8. One application through the guide (M) _(done)_
 
-The guide builds one application, from `hello` to components on the server. That means writing the
-text of 35 sections again in two languages. To be decided after stage 7.
+The approved application is a small task board. The guide follows one workspace from its first
+typed task to an interactive board and a server-rendered page. Keep the existing explanations of
+Rook complete; make their examples and transitions advance the same application rather than
+replacing the language reference with a tutorial. Keep the examples truthful to Rook's current
+syntax and APIs; this stage does not change the language.
+
+| Sections                                                                      | The task board gains                                                                                                                                |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| intro, variables, bigint, queues, null, functions, errors, control, iterators | A typed task model, stable IDs, task batches, optional selection, and the operations and transitions that make up the domain.                       |
+| classes, generics, make, modules                                              | Reusable task behavior, a typed collection, initial state, and a module boundary.                                                                   |
+| async, goroutines, channels, select, streams, topics, channel-objects         | Loading and saving, background work, task commands and results, competing events, an activity stream, and shared updates.                           |
+| try, decode, async-iterables, signals                                         | Safe storage and input decoding, processing incoming updates, and orderly cancellation.                                                             |
+| markup, components, state, mount, ref, styles, web-components, decorators     | A live board, reusable task rows, reactive filters and counts, connected lifetimes, focus, visual status, embedding, and shared component behavior. |
+| server-components, tools, adoption                                            | A server-rendered board and its request boundary, the commands to build and check it, and how to introduce Rook into an existing project.           |
+
+Rewrite and connect the 35 sections in both languages, updating the examples where needed. The
+finished path should make clear what the reader has built, preserve direct reference material, and
+leave each section's existing runnable examples compiling.
 
 ## 7. How we work
 

@@ -1,0 +1,12 @@
+// `go` runs a function on another thread, with copies of its arguments and its result.
+func square(n number) number {
+    return n * n
+}
+
+const result = await go square(7)
+const values = [1, 2, 3, 4]
+go for i, value in values {
+    values[i] = value * value
+}
+console.log("result:", result)
+console.log("parallel:", values.join(", "))

@@ -13,15 +13,33 @@ import {
   $$registry,
   $$transfer,
 } from './threads.js';
+import { $$tracer } from './trace.js';
 
 // `go` in a module: a call in a worker of the pool. `start` starts a worker of the module, with its
 // worker module: it is $$startWorker of the module, whose URL a bundler needs to see there.
-export function $$goWorker(start, name, args) {
-  return (globalThis[Symbol.for('rook.goroutines')] ??= $$pool()).call(
+// With a listener of tracing that keeps the goroutines in this thread, the call runs here
+// (trace.js); `line` is the line of the `go`, from code compiled with the option `trace`.
+export function $$goWorker(start, name, args, line) {
+  const trace = $$tracer();
+  const actor = trace?.go(name, line, args);
+
+  if (trace?.inline) return track(trace, $$goHere(trace.inline, name, args, line, actor), actor);
+
+  const task = (globalThis[Symbol.for('rook.goroutines')] ??= $$pool()).call(
     start,
     name,
     $$copy(args, true),
+    actor,
+    trace?.id,
   );
+
+  return track(trace, task, actor);
+}
+
+function track(trace, task, actor) {
+  if (actor !== undefined) trace?.track?.(task, actor);
+
+  return task;
 }
 
 // The workers of the program, shared by its modules: up to one per processor. Each runs the worker
@@ -53,33 +71,59 @@ export function $$pool() {
     worker.thread.ref?.();
     call.worker = worker;
     calls.set(call.id, call);
-    $$post(worker.key, { call: call.id, name: call.name, args: call.args });
+    $$post(worker.key, {
+      call: call.id,
+      name: call.name,
+      args: call.args,
+      ...(call.actor === undefined ? {} : { actor: call.actor }),
+      ...(call.traceId === undefined ? {} : { traceId: call.traceId }),
+    });
     call.args = null;
   };
   const dispatch = () => {
     const starting = new Map();
 
     for (const worker of workers) {
-      if (!worker.key) starting.set(worker.start, (starting.get(worker.start) ?? 0) + 1);
+      if (!worker.key) {
+        const modes = starting.get(worker.start) ?? new Map();
+
+        modes.set(worker.traced, (modes.get(worker.traced) ?? 0) + 1);
+        starting.set(worker.start, modes);
+      }
     }
 
     for (let i = 0; i < queue.length; i++) {
       const call = queue[i];
+      const traced = call.actor !== undefined;
       let free = null;
 
       for (const worker of workers) {
-        if (worker.start !== call.start || !worker.key || worker.busy) continue;
+        if (
+          worker.start !== call.start ||
+          worker.traced !== traced ||
+          !worker.key ||
+          worker.busy ||
+          (traced && worker.calls > 0)
+        )
+          continue;
         if (!free || worker.calls < free.calls) free = worker;
       }
 
       // A free worker without calls; else a new worker; else one whose calls wait in await.
-      if (free?.calls === 0 || (free && workers.length >= size)) {
+      if (
+        free?.calls === 0 ||
+        (free && !traced && workers.filter((each) => !each.traced).length >= size)
+      ) {
         queue.splice(i--, 1);
         send(free, call);
-      } else if (starting.get(call.start) > 0) {
-        starting.set(call.start, starting.get(call.start) - 1);
-      } else if (workers.length < size || retire(call.start)) {
-        add(call.start);
+      } else if (starting.get(call.start)?.get(traced) > 0) {
+        starting.get(call.start).set(traced, starting.get(call.start).get(traced) - 1);
+      } else if (
+        traced ||
+        workers.filter((each) => !each.traced).length < size ||
+        retire(call.start, traced)
+      ) {
+        add(call.start, traced);
       } else {
         // It waits for a busy worker of its module, which may have let go of the program when
         // its last call returned: the program runs on until that worker is free and takes it.
@@ -88,10 +132,15 @@ export function $$pool() {
       }
     }
   };
-  const retire = (start) => {
+  const retire = (start, traced) => {
     const idle = workers.find(
       (worker) =>
-        worker.key && worker.start !== start && !worker.busy && worker.calls === 0 && !worker.owns,
+        worker.key &&
+        worker.traced === traced &&
+        worker.start !== start &&
+        !worker.busy &&
+        worker.calls === 0 &&
+        !worker.owns,
     );
 
     if (!idle) return false;
@@ -130,7 +179,8 @@ export function $$pool() {
     }
   };
   const receive = (worker, data) => {
-    if ('op' in data || 'answer' in data) return $$incoming(worker.key, data);
+    if ('trace' in data) return $$tracer()?.emit(data.trace, data.traceId);
+    if ('route' in data || 'op' in data || 'answer' in data) return $$incoming(worker.key, data);
     if ('hello' in data) {
       worker.key = data.hello;
       $$connect(worker.key, worker.thread, false);
@@ -168,8 +218,8 @@ export function $$pool() {
     // A worker that a waiting call held on to, now free and without a call, lets go again.
     if ('free' in data) unref(worker);
   };
-  const add = (start) => {
-    const worker = { start, key: null, thread: null, busy: true, calls: 0, owns: false };
+  const add = (start, traced) => {
+    const worker = { start, traced, key: null, thread: null, busy: true, calls: 0, owns: false };
 
     workers.push(worker);
     start().then(
@@ -192,8 +242,18 @@ export function $$pool() {
   const tasks = new WeakMap();
 
   return {
-    call: (start, name, args) => {
-      const call = { id: ids++, start, name, args, resolve: null, reject: null, worker: null };
+    call: (start, name, args, actor, traceId) => {
+      const call = {
+        id: ids++,
+        start,
+        name,
+        args,
+        actor,
+        traceId,
+        resolve: null,
+        reject: null,
+        worker: null,
+      };
       const task = new Promise((resolve, reject) => Object.assign(call, { resolve, reject }));
 
       tasks.set(task, call);
@@ -230,18 +290,41 @@ export function $$pool() {
 
 // `go` inside a goroutine: the function runs in the same worker, with copies of the arguments. A
 // name is one of the `functions` of the worker module, a function literal is itself.
-export function $$goHere(functions, fn, args) {
+export function $$goHere(functions, fn, args, line, actor) {
   const copies = $$copy(args);
   const run = typeof fn === 'function' ? fn : functions[fn];
+  const trace = $$tracer();
+  const goroutine =
+    actor ?? trace?.go(typeof fn === 'function' ? fn.name || 'func' : fn, line, args);
+  const start = () => {
+    const result =
+      goroutine !== undefined && trace?.run
+        ? trace.run(goroutine, () => run(...copies))
+        : run(...copies);
+
+    if (goroutine === undefined) return result;
+
+    return Promise.resolve(result)
+      .then((value) => {
+        trace?.emit({ kind: 'return', actor: goroutine, value });
+
+        return value;
+      })
+      .finally(() => {
+        trace?.emit({ kind: 'end', actor: goroutine });
+      });
+  };
   let cancel;
   const cancelled = new Promise((_, reject) => (cancel = reject));
-  const task = Promise.race([cancelled, Promise.resolve().then(() => cancel && run(...copies))]);
+  const task = Promise.race([cancelled, Promise.resolve().then(() => cancel && start())]);
 
   $$registry().cancels.set(task, () => {
     task.catch(() => {});
     cancel(new Error('goroutine cancelled'));
     cancel = null;
   });
+
+  if (goroutine !== undefined) trace?.track?.(task, goroutine);
 
   return task;
 }
@@ -292,58 +375,11 @@ export function $$shared(bytes) {
   return new SharedArrayBuffer(bytes);
 }
 
-// The worker: runs the calls that the pool sends and sends back their results or errors. Once the
-// thread is free again, it says so, and the pool may send another call.
-export async function $$serve(functions) {
-  const threads = 'node:worker_threads';
-  const port =
-    typeof postMessage === 'function'
-      ? globalThis
-      : (await import(/* @vite-ignore */ threads)).parentPort;
-  const registry = $$registry();
-
-  // The port to the main thread keeps the worker running.
-  registry.idle = (key) => key !== registry.main && registry.ports.get(key)?.unref?.();
-  port.postMessage({ hello: registry.key });
-
-  const free = () => port.postMessage({ free: true, owns: registry.states.size > 0 });
-  const receive = async (data) => {
-    if ('op' in data || 'answer' in data) return $$incoming(registry.main, data);
-    if ('init' in data) {
-      registry.main = data.init;
-
-      return $$connect(data.init, port, false);
-    }
-
-    if ('port' in data) return $$connect(data.port, data.through, true);
-    if ('gone' in data) return $$gone(data.gone);
-    setTimeout(free);
-    $$adopt(data.args);
-    $$reclassed(data);
-
-    const { main } = registry;
-
-    try {
-      const value = await functions[data.name](...data.args);
-
-      $$post(main, { returned: data.call, value, owns: registry.states.size > 0 });
-    } catch (error) {
-      try {
-        $$post(main, { returned: data.call, error, owns: registry.states.size > 0 });
-      } catch {
-        $$post(main, { returned: data.call, error: new Error(String(error)), owns: true });
-      }
-    }
-  };
-
-  if (port.on) port.on('message', receive);
-  else port.onmessage = (event) => receive(event.data);
-}
-
 // `cancel(task)`: stops a goroutine of `go`, whose Promise fails with "goroutine cancelled". A call
 // in a worker stops with its worker; inside a goroutine, `go` runs in the same worker, so its
 // Promise fails but code that has started goes on.
-export function $$cancel(task) {
+export function $$cancel(task, line) {
+  $$tracer()?.cancel?.(task, line);
   globalThis[Symbol.for('rook.goroutines')]?.cancel(task);
   $$registry().cancels.get(task)?.();
 }

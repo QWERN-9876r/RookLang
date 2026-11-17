@@ -1,6 +1,8 @@
 // Раздел «select» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { GoNote } from "../../source-language.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Select() {
     return <>
@@ -12,7 +14,13 @@ export comp Select() {
             приходит время через <code>ms</code>, поэтому он даёт тайм-аут, а ветка, чей канал
             равен <code>null</code>, никогда не выполняется.
         </p>
+        <GoNote message="Форма `select` в Rook похожа на Go, но работает внутри async-функции; операции с каналами в ветках компилятор ожидает сам." />
         <Example name="select" />
+        <p>
+            Воркер доски может использовать <code>select</code>, чтобы выбрать между следующей
+            командой задачи и тайм-аутом. Он сразу реагирует на новую работу, но периодически
+            просыпается, если очередь пока пуста.
+        </p>
         <p>
             <code>tick(ms)</code> присылает время каждые <code>ms</code>, пока не вызван
             {" "}<code>close(ticks)</code>. <code>cancel(task)</code> останавливает горутину по
@@ -21,4 +29,8 @@ export comp Select() {
         </p>
         <Example name="timers" />
     </>
+}
+
+export comp SelectStage() {
+    return <ConcurrencyStage name="select" title="select" />
 }
