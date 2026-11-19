@@ -142,3 +142,29 @@
     display: none;
   }
 }
+
+@media (max-width: 380px) {
+  .inner {
+    gap: 4px;
+  }
+
+  .end {
+    gap: 2px;
+  }
+
+  .language {
+    padding-right: 4px;
+    padding-left: 4px;
+  }
+
+  .source select {
+    width: 86px;
+    padding-right: 22px;
+    padding-left: 6px;
+    font-size: 0.75rem;
+  }
+
+  .source::after {
+    right: 8px;
+  }
+}

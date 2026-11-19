@@ -114,12 +114,28 @@
 }
 
 @media (max-width: 640px) {
+  .content {
+    align-items: center;
+    width: 100%;
+    text-align: center;
+  }
+
   .news {
     font-size: 0.8rem;
   }
 
+  .title {
+    width: 100%;
+  }
+
+  .lead {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
   .actions {
     flex-direction: column;
-    align-self: stretch;
+    align-items: center;
+    align-self: center;
   }
 }

@@ -108,7 +108,13 @@ async function save(tab: Tab, page: Page): Promise<void> {
   const drawn = await tab.evaluate<string>('document.documentElement.outerHTML');
   // The scripts gave some elements absolute addresses on this server, as an image from new URL().
   const up = '../'.repeat(pagePath(page).split('/').length - 1) || './';
-  const html = `<!doctype html>\n${drawn.replaceAll(origin, up)}\n`;
+  const saved = drawn
+    .replaceAll(origin, up)
+    .replace(
+      /url\((['"]?)(?:\.\/|\.\.\/)*assets\/([^)'"]+)\1\)/g,
+      (_url, quote: string, asset: string) => `url(${quote}${up}assets/${asset}${quote})`,
+    );
+  const html = `<!doctype html>\n${saved}\n`;
   const tags = tagsHtml(headTags(html, page));
   const folder = join(dist, pagePath(page));
 
