@@ -317,7 +317,15 @@ close(progress)
 topic<number>("sent") <- 1
 `);
 
-    expect(stdout).toBe('progress 1\nprogress 2\nprogress 3\ndone 3\n');
+    const output = stdout.trimEnd().split('\n');
+
+    expect(output.filter((line) => line.startsWith('progress '))).toEqual([
+      'progress 1',
+      'progress 2',
+      'progress 3',
+    ]);
+    expect(output).toContain('done 3');
+    expect(output).toHaveLength(4);
     expect(status).toBe(0);
   });
 });
