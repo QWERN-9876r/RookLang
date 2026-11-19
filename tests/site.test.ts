@@ -20,10 +20,13 @@ describe('documentation site', () => {
     expect(result.errors.flatMap((error) => error.diagnostics)).toEqual([]);
     expect(result.outputs.map((output) => output.output.slice(outDir.length + 1)).sort()).toEqual([
       'server/main.js',
+      'src/code-link.js',
+      'src/code-morph.js',
       'src/code-view.js',
       'src/compiled-view.js',
       'src/console-view.js',
       'src/docs/key.js',
+      'src/docs/map.js',
       'src/docs/page.js',
       'src/docs/search-button.js',
       'src/docs/search-dialog.js',
@@ -71,6 +74,7 @@ describe('documentation site', () => {
       'src/en/playground.js',
       'src/en/roadmap-text.js',
       'src/en/roadmap.js',
+      'src/en/stage-strings.js',
       'src/en/strings.js',
       'src/example.js',
       'src/examples/case-view.js',
@@ -84,11 +88,13 @@ describe('documentation site', () => {
       'src/home/counter.js',
       'src/home/feature.js',
       'src/home/features.js',
+      'src/home/go-for.js',
       'src/home/hero.js',
-      'src/home/lanes.js',
       'src/home/page.js',
+      'src/home/small-board.js',
       'src/home/start.js',
       'src/home/step.js',
+      'src/home/words.js',
       'src/i18n.js',
       'src/layout/brand.js',
       'src/layout/footer.js',
@@ -142,9 +148,37 @@ describe('documentation site', () => {
       'src/ru/playground.js',
       'src/ru/roadmap-text.js',
       'src/ru/roadmap.js',
+      'src/ru/stage-strings.js',
       'src/ru/strings.js',
       'src/sandbox.js',
       'src/sections.js',
+      'src/source-language.js',
+      'src/stage/array-scene.js',
+      'src/stage/array.js',
+      'src/stage/board.js',
+      'src/stage/camera.js',
+      'src/stage/captions.js',
+      'src/stage/channels.js',
+      'src/stage/concurrency.js',
+      'src/stage/endgame.js',
+      'src/stage/goroutines.js',
+      'src/stage/lanes.js',
+      'src/stage/live-trace.js',
+      'src/stage/paint.js',
+      'src/stage/pieces.js',
+      'src/stage/poses.js',
+      'src/stage/pulse.js',
+      'src/stage/rook-shape.js',
+      'src/stage/rooks.js',
+      'src/stage/scene.js',
+      'src/stage/small-go.js',
+      'src/stage/small-select.js',
+      'src/stage/small-types.js',
+      'src/stage/small.js',
+      'src/stage/stage.js',
+      'src/stage/state.js',
+      'src/stage/strings.js',
+      'src/stage/trace.js',
       // The RookUI kit, which the pages import.
       'ui/button.js',
       'ui/callout.js',
@@ -207,6 +241,24 @@ describe('documentation site', () => {
 
     expect(sections('src/ru/guide.rk')).toEqual(sections('src/en/guide.rk'));
     expect(sections('src/ru/cases.rk')).toEqual(sections('src/en/cases.rk'));
+
+    const stages = (path: string) =>
+      [...readFileSync(site(path), 'utf8').matchAll(/\{ id: "([^"]+)", content:/g)].map(
+        (match) => match[1],
+      );
+    const expected = [
+      'async',
+      'goroutines',
+      'channels',
+      'select',
+      'streams',
+      'topics',
+      'channel-objects',
+      'signals',
+    ];
+
+    expect(stages('src/en/guide.rk')).toEqual(expect.arrayContaining(expected));
+    expect(stages('src/ru/guide.rk')).toEqual(expect.arrayContaining(expected));
   });
 
   // An example may have the same program written in JS by hand, in js/<name>/ of its folder, which

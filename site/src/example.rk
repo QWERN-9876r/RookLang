@@ -13,7 +13,8 @@ import { CodeView } from "./code-view.rk"
 import { CompiledView } from "./compiled-view.rk"
 import { HandwrittenView } from "./handwritten-view.rk"
 import { ResultView } from "./result-view.rk"
-import { previewArea, runProgram } from "./sandbox.rk"
+import { changeCodeTab } from "./code-morph.rk"
+import { Compiled, compileRook, previewArea, runProgram } from "./sandbox.rk"
 
 export comp Example(name string) {
     const t = text()
@@ -22,11 +23,14 @@ export comp Example(name string) {
     // An example that imports modules cannot run on the page.
     const tabs TabItem[] = [
         { id: "code", label: "Rook" },
-        { id: "js", label: "JavaScript" },
+        { id: "js", label: t.jsOutput },
         ...(byHand.length > 0 ? [{ id: "hand", label: t.withoutRook }] : []),
         ...(code.includes("import ") ? [] : [{ id: "result", label: t.run }]),
     ]
     state tab = "code"
+    state morph = false
+    state compiled ?Compiled = null
+    state compiling = false
     state lines string[] = []
     const preview = previewArea()
 
@@ -39,8 +43,28 @@ export comp Example(name string) {
         tab = id
     }
 
+    func selectTab(id string) {
+        if id == "result" {
+            select(id)
+            return
+        }
+        if id == "js" && compiled == null {
+            if compiling {
+                return
+            }
+            compiling = true
+            compileRook(code, result => {
+                compiled = result
+                compiling = false
+                changeCodeTab(tab, id, () => { morph = true }, () => { tab = id })
+            })
+            return
+        }
+        changeCodeTab(tab, id, () => { morph = true }, () => { tab = id })
+    }
+
     return <figure class={styles.example}>
-        <Tabs items={tabs} active={tab} onSelect={select(event)}>
+        <Tabs items={tabs} active={tab} onSelect={selectTab(event)}>
             <CopyButton text={code} label={t.copy} doneLabel={t.copied} />
             <LinkButton
                 kind="ghost"
@@ -50,12 +74,22 @@ export comp Example(name string) {
             >
                 {t.openInPlayground}
             </LinkButton>
+            {if !code.includes("import ") {
+                <LinkButton
+                    kind="ghost"
+                    size="sm"
+                    icon="play"
+                    href={`${pageHref("playground")}#board=${name}`}
+                >
+                    {t.playOnBoard}
+                </LinkButton>
+            }}
         </Tabs>
         {switch tab {
         case "code":
-            <div><CodeView code={code} /></div>
+            <div><CodeView code={code} morph={morph} morphScope={name} /></div>
         case "js":
-            <div><CompiledView source={code} /></div>
+            <div><CompiledView source={code} morph={morph} result={compiled} morphScope={name} /></div>
         case "hand":
             <HandwrittenView files={byHand} />
         default:

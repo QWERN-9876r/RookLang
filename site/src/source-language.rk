@@ -1,0 +1,47 @@
+import styles from "./source-language.module.css"
+
+export type SourceLanguage "js" | "ts" | "go"
+
+const STORAGE_KEY = "rook.source-language"
+const EVENT_NAME = "rook-source-language"
+
+export func sourceLanguage() SourceLanguage {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if saved == "ts" {
+            return "ts"
+        }
+        if saved == "go" {
+            return "go"
+        }
+    } catch error {
+        console.warn("could not read the source language preference:", error)
+    }
+    return "js"
+}
+
+export func chooseSourceLanguage(language SourceLanguage) {
+    try {
+        localStorage.setItem(STORAGE_KEY, language)
+    } catch error {
+        console.warn("could not save the source language preference:", error)
+    }
+    window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: language }))
+}
+
+export comp GoNote(message string) {
+    state visible = sourceLanguage() == "go"
+
+    func update(event Event) {
+        visible = (event as CustomEvent).detail == "go"
+    }
+
+    mount {
+        window.addEventListener(EVENT_NAME, update)
+        defer {
+            window.removeEventListener(EVENT_NAME, update)
+        }
+    }
+
+    return <aside class={styles.note} role="note" hidden={!visible}>{message}</aside>
+}

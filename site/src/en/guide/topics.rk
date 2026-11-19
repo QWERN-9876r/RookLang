@@ -1,6 +1,7 @@
 // The section "Topics" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp Topics() {
     return <>
@@ -19,6 +20,14 @@ export comp Topics() {
             The values go to other tabs as copies, so they are data, as the arguments of
             {" "}<code>go</code> are; a goroutine that gets a topic sends to the tabs too.
         </p>
+        <p>
+            When one tab changes the task board, a topic can publish that board update to the
+            other open tabs. Each tab listens independently and applies the update to its own view.
+        </p>
         <Example name="topics" />
     </>
+}
+
+export comp TopicsStage() {
+    return <ConcurrencyStage name="topics" title="Topics" />
 }

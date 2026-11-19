@@ -1,11 +1,13 @@
-/* Rook beside its JavaScript, with a switch of topics above them. */
+/* Rook that turns into its JavaScript in one card, with a switch of topics above it and a switch
+   of the two languages in its bar. */
 
 .switch {
   display: flex;
   justify-content: center;
   gap: 4px;
   width: fit-content;
-  margin: 0 auto 28px;
+  max-width: 100%;
+  margin: 0 auto 20px;
   padding: 4px;
   border: 1px solid var(--rui-line);
   border-radius: 999px;
@@ -39,22 +41,90 @@
   color: var(--rui-text);
 }
 
-.pair {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.card {
+  max-width: 880px;
+  margin: 0 auto;
+  border: 1px solid var(--rui-line);
+  border-radius: 14px;
+  background: rgb(18 13 9 / 82%);
+  box-shadow: 0 40px 90px rgb(0 0 0 / 45%);
 }
 
-.pair[hidden] {
-  display: none;
+.bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 8px 18px;
+  border-bottom: 1px solid var(--rui-line);
 }
 
-.pair > figure {
-  margin: 0;
+/* The name of the file: its extension is the language. */
+.file {
+  color: var(--rui-subtle);
+  font: 600 12px var(--rui-mono);
 }
 
-@media (max-width: 900px) {
-  .pair {
-    grid-template-columns: minmax(0, 1fr);
+.file b {
+  color: var(--rui-accent);
+  font-weight: 600;
+}
+
+.languages {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--rui-line);
+  border-radius: 999px;
+}
+
+.language {
+  height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--rui-muted);
+  font: 600 12px var(--rui-mono);
+  cursor: pointer;
+}
+
+.chosen {
+  background: var(--rui-accent);
+  box-shadow: 0 0 18px rgb(245 158 42 / 45%);
+  color: var(--rui-on-accent);
+}
+
+.scroll {
+  padding: 18px 20px 20px;
+  overflow-x: auto;
+}
+
+/* Every word of the code stands by itself, so that it can go to its place in the other language. */
+.code {
+  position: relative;
+  color: var(--rui-code-text);
+  font: 13.5px/1.75 var(--rui-mono);
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+  transition: height 0.7s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.word {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: pre;
+  transition:
+    transform 0.7s cubic-bezier(0.3, 0.7, 0.2, 1) var(--move, 0s),
+    opacity 0.3s ease var(--fade, 0s),
+    color 0.5s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code,
+  .word {
+    transition: none;
   }
 }

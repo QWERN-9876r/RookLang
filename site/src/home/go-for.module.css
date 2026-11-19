@@ -1,0 +1,220 @@
+/* The scene of go for: a board as wide as the page. The card with the two loops floats in the
+   empty sky at its left, the result at its right, the caption stands under the board and the line
+   of time under the scene. Where the board leaves the card no room, the card goes under the scene. */
+
+.section {
+  padding-bottom: 72px;
+}
+
+.heading {
+  margin-bottom: 20px;
+}
+
+.stage {
+  position: relative;
+  container-type: inline-size;
+  overflow: hidden;
+  font-variant-ligatures: none;
+}
+
+.scene {
+  position: relative;
+  height: clamp(340px, 42cqw, 580px);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.result {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  margin: 0;
+  transform: translateY(6px);
+  color: var(--rui-muted);
+  font-size: 14px;
+  text-align: right;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.4s,
+    transform 0.4s;
+}
+
+.resultOn {
+  transform: none;
+  opacity: 1;
+}
+
+.result strong {
+  display: block;
+  background: linear-gradient(180deg, #fff6e6 20%, #f5a53a 95%);
+  background-clip: text;
+  color: transparent;
+  font-family: var(--rui-display);
+  font-size: clamp(34px, 5cqw, 64px);
+  font-weight: 700;
+  line-height: 1;
+  filter: drop-shadow(0 0 28px rgb(245 158 42 / 40%));
+}
+
+.caption {
+  position: absolute;
+  right: 0;
+  bottom: 14px;
+  left: 0;
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0 var(--rui-gutter);
+  color: #fff3df;
+  font-size: 15px;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.card {
+  position: absolute;
+  top: 20px;
+  left: 32px;
+  width: 340px;
+  padding: 14px 16px;
+  border: 1px solid var(--rui-line);
+  border-radius: 12px;
+  background: rgb(18 13 9 / 82%);
+  backdrop-filter: blur(6px);
+  font-family: var(--rui-mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* A loop of the card; the one being played is lit. */
+.loop {
+  margin: 0 -8px;
+  padding: 2px 8px;
+  overflow-x: auto;
+  border-left: 2px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-feature-settings:
+    'liga' 0,
+    'calt' 0;
+  transition:
+    background 0.25s,
+    border-color 0.25s;
+}
+
+.now {
+  border-left-color: var(--rui-accent);
+  background: rgb(245 158 42 / 9%);
+}
+
+/* What the loop above has taken so far. */
+.time {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 2px 0 10px;
+  color: var(--rui-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.time b {
+  color: #fff3df;
+  font-weight: 600;
+}
+
+.open {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--rui-line);
+  color: var(--rui-muted);
+  font-family: var(--rui-font);
+  text-decoration: none;
+}
+
+.open:hover {
+  color: var(--rui-accent);
+}
+
+.hud {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 10px var(--rui-gutter) 6px;
+}
+
+.slider {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  appearance: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: rgb(255 236 205 / 16%);
+}
+
+.slider::-moz-range-track {
+  height: 2px;
+  background: rgb(255 236 205 / 16%);
+}
+
+.slider::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--rui-accent);
+  box-shadow: 0 0 12px var(--rui-accent);
+  appearance: none;
+}
+
+.slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--rui-accent);
+  box-shadow: 0 0 12px var(--rui-accent);
+}
+
+.note {
+  margin: 8px 0 0;
+  padding: 0 var(--rui-gutter);
+  color: var(--rui-subtle);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Narrower than this, the near corner of the board comes under the card. */
+@container (max-width: 1400px) {
+  .card {
+    position: static;
+    width: auto;
+    max-width: 440px;
+    margin: 8px auto 0;
+  }
+}
+
+@container (max-width: 860px) {
+  .card {
+    max-width: none;
+    margin: 8px var(--rui-gutter) 0;
+  }
+
+  .result {
+    top: 12px;
+    right: var(--rui-gutter);
+  }
+}

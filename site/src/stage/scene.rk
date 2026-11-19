@@ -1,0 +1,42 @@
+// One frame of the scene, from the far end to the near one: the board, the lanes and the played
+// moves, the channels, the value on its way, the rooks, the names of the files.
+
+import { Speck, drawBoard } from "./board.rk"
+import { Shot } from "./camera.rk"
+import { drawLanes } from "./lanes.rk"
+import { RED, rgba } from "./paint.rk"
+import { drawChannels, drawNames, drawPiece } from "./pieces.rk"
+import { drawRooks } from "./rook-shape.rk"
+import { posesOf } from "./rooks.rk"
+import { isStalemate } from "./state.rk"
+
+/**
+ * Draws the frame and returns how far the stalemate has come over the board, from 0 to 1: the
+ * page shows its word over the canvas.
+ */
+export func drawScene(shot Shot, dust Speck[]) number {
+    const ctx = shot.ctx
+    const view = shot.view
+    const frame = shot.frame
+    ctx.clearRect(0, 0, view.width, view.height)
+    drawBoard(shot, dust)
+    drawLanes(shot)
+    drawChannels(shot)
+    drawPiece(shot)
+    drawRooks(shot, posesOf(shot))
+    drawNames(shot)
+
+    const event = frame.current
+    const stalemate = event != null && event.kind == "stalemate"
+        ? frame.progress
+        : event == null && frame.index > 0 && isStalemate(shot.trace) ? 1 : 0
+    if stalemate > 0 {
+        const middle = view.height * 0.5
+        const red = ctx.createRadialGradient(view.centre, middle, view.unit, view.centre, middle, Math.max(view.width, view.height) * 0.75)
+        red.addColorStop(0, rgba(RED, 0.05 * stalemate))
+        red.addColorStop(1, rgba(RED, 0.34 * stalemate))
+        ctx.fillStyle = red
+        ctx.fillRect(0, 0, view.width, view.height)
+    }
+    return stalemate
+}

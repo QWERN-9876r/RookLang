@@ -3,6 +3,11 @@
 import { highlight } from "./highlight.rk"
 import styles from "./code-view.module.css"
 
-export comp CodeView(code string, language "rook" | "js" = "rook") {
-    return <pre class={styles.code}>{highlight(code, language)}</pre>
+export comp CodeView(
+    code string,
+    language "rook" | "js" = "rook",
+    morph bool = false,
+    morphScope string = "",
+) {
+    return <pre class={styles.code}>{highlight(code, language, morph, morphScope)}</pre>
 }

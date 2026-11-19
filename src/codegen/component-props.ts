@@ -110,7 +110,15 @@ export abstract class ComponentPropsEmitter extends ControlFlowEmitter {
 
       this.line(`${text} = $$value;`);
       for (const name of rootsOf(target, this.shared)) {
-        this.line(`$$changed(${this.shared.listeners.get(name)!});`);
+        const listeners = this.shared.listeners.get(name)!;
+
+        if (this.options.trace) {
+          this.line(
+            `$$traceReactive({ kind: "state", name: ${JSON.stringify(name)}, value: ${this.name(name)} });`,
+          );
+        }
+
+        this.line(`$$changed(${listeners});`);
       }
 
       for (const source of written) this.line(`${this.write(source)};`);

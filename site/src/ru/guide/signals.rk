@@ -1,6 +1,7 @@
 // Раздел «Сигналы и отмена» русского гайда; разделы перечислены в guide.rk.
 
 import { CodeBlock } from "../../../ui/code-block.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 import { Example } from "../../example.rk"
 import { highlight } from "../../highlight.rk"
 import { text } from "../../i18n.rk"
@@ -14,6 +15,11 @@ export comp Signals() {
             когда уходит его клиент, через <code>AbortSignal</code>. И то и другое становится
             каналом, чтобы <code>select</code> ждал их вместе с остальным, как
             {" "}<code>signal.Notify</code> и <code>Done()</code> у контекста в Go.
+        </p>
+        <p>
+            При остановке сервера канал сигналов запускает корректное завершение: сервер перестаёт
+            принимать задачи, фоновые воркеры завершают работу или останавливаются, затем закрываются
+            их каналы и сам сервер.
         </p>
         <p>
             <code>signal("SIGINT", "SIGTERM")</code> — канал, в который приходит имя каждого
@@ -32,6 +38,10 @@ export comp Signals() {
         </p>
         <Example name="cancel" />
     </>
+}
+
+export comp SignalsStage() {
+    return <ConcurrencyStage name="signals" title="Сигналы и отмена" />
 }
 
 const SHUTDOWN = `import { createServer } from "node:http"

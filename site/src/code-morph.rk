@@ -1,0 +1,25 @@
+/** Changes between the Rook and generated-JS tabs with a shared-token transition when available. */
+export func changeCodeTab(from string, to string, prepare func(), update func()) {
+    if from == to || (from != "code" && from != "js") || (to != "code" && to != "js") ||
+        typeof document.startViewTransition != "function" ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches {
+        update()
+        return
+    }
+
+    prepare()
+    requestAnimationFrame(() => {
+        const transition = document.startViewTransition(() => { update() })
+        transition.ready.catch(error => {
+            console.warn("the code transition could not start:", error)
+            update()
+        })
+        transition.updateCallbackDone.catch(error => {
+            console.warn("the code transition failed:", error)
+            update()
+        })
+        transition.finished.catch(error => {
+            console.warn("the code transition was interrupted:", error)
+        })
+    })
+}

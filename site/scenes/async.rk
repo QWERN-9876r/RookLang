@@ -1,0 +1,9 @@
+// Async tasks share a thread: the waits interleave, but no new rook appears.
+async func load(name string, delay number) string {
+    <-after(delay)
+    return name
+}
+
+const first = load("first", 30)
+const second = load("second", 10)
+console.log(await first, await second)

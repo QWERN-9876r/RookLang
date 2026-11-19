@@ -12,6 +12,8 @@ export comp Iterators() {
             {" "}<code>yield</code>, как если бы тот вернул <code>false</code>, и его
             {" "}<code>defer</code> выполняется. <code>yield</code> двух значений даёт ключ и
             значение: <code>for place, fruit in numbered(fruits)</code>.
+            Так же доска может показывать или обрабатывать задачи по одной; ленивый перебор полезен,
+            когда результат не нужно заранее собирать в отдельную коллекцию.
         </p>
         <Example name="iterators" />
         <p>

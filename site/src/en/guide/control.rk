@@ -11,6 +11,9 @@ export comp Control() {
             three parts. It also goes over a <code>Map</code>, by keys and values, over a
             {" "}<code>Set</code> and a typed array, which is indexed as an array is.
             {" "}<code>switch</code> has no <code>break</code>: each case ends by itself.
+            For the board, its own rules can allow <code>done</code> to change from
+            <code>false</code> to <code>true</code> only when the task is eligible; Rook provides
+            the branching tools, not a built-in task state machine.
         </p>
         <Example name="control" />
         <p>

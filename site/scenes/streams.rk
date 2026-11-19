@@ -1,0 +1,14 @@
+// A stream fills a channel only as its reader makes room.
+const input = new ReadableStream({
+    start(controller any) {
+        controller.enqueue("one")
+        controller.enqueue("two")
+        controller.close()
+    },
+})
+const chunks, failed = chan(input, 1)
+
+for chunk in chunks {
+    console.log(chunk)
+}
+console.log("error:", <-failed)

@@ -1,0 +1,11 @@
+// A select chooses the ready case; the other case stays dark.
+const fast = chan<string>(1)
+const slow = chan<string>(1)
+fast <- "ready"
+
+select {
+case value = <-fast:
+    console.log(value)
+case value = <-slow:
+    console.log(value)
+}

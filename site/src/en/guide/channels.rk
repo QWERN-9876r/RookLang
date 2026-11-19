@@ -1,6 +1,9 @@
 // The section "Channels" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { GoNote } from "../../source-language.rk"
+import { CHANNELS } from "../../stage/channels.rk"
+import { Stage } from "../../stage/stage.rk"
 
 export comp Channels() {
     return <>
@@ -13,6 +16,12 @@ export comp Channels() {
             what passes through it is copied. <code>{"<-chan number"}</code> only receives and <code>{"chan<- string"}</code> only sends: a function that takes one
             cannot use it the other way.
         </p>
+        <GoNote message="Unlike Go, a channel send or receive suspends an async function, so write `await` around channel operations when calling the Channel methods; the `<-` shorthand handles it for you." />
+        <p>
+            In the board's background work, one channel carries task commands to a worker and
+            another carries its results back. The channel operations let the sender and receiver
+            wait for each other without sharing the board's memory.
+        </p>
         <p>
             A channel that the module makes and never closes is a warning: a line with
             {" "}<code>close(ch)</code>, or a function of the module that closes the channel it is
@@ -22,4 +31,9 @@ export comp Channels() {
         </p>
         <Example name="channels" />
     </>
+}
+
+/** The scene above the section: its program played on the board, move by move. */
+export comp ChannelsStage() {
+    return <Stage title="Channels" program={CHANNELS} />
 }

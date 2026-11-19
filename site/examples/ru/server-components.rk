@@ -1,23 +1,25 @@
-// Разметка на сервере — строка HTML: в package.json пакета этой
-// программы стоит "rook": { "markup": "html" }
+// Сервер отдаёт одну модель задач как HTML или JSON; в package.json
+// пакета стоит "rook": { "markup": "html" }.
 import { reply, serve } from "rooklang/server"
 
-interface Post {
+type Priority "low" | "normal" | "high"
+
+interface Task {
     id string
     title string
-    text string
+    done bool
+    priority Priority
 }
 
-const POSTS Post[] = [
-    { id: "hello", title: "Привет", text: "Первая запись блога." },
-    { id: "rook", title: "Почему Rook", text: "Синтаксис Go, семантика JS." },
+const TASKS Task[] = [
+    { id: "model", title: "Описать модель задачи", done: true, priority: "normal" },
+    { id: "board", title: "Вывести доску задач", done: false, priority: "high" },
 ]
 
-async func findPost(id string) ?Post {
-    return POSTS.find(post => post.id == id) ?? null
+async func loadTasks() Task[] {
+    return TASKS
 }
 
-// Content ленивый: дети рендерятся, когда компонент их показывает
 comp Layout(title string, children Content) {
     return <html lang="ru">
         <head><title>{title}</title></head>
@@ -25,27 +27,33 @@ comp Layout(title string, children Content) {
     </html>
 }
 
-// Компонент асинхронный: он может ждать. Response среди детей
-// всплывает и становится ответом на весь запрос
-comp Article(id string) {
-    const post = await findPost(id)
-    if post == null {
-        return reply("Такой записи нет", { status: 404 })
-    }
-    return <article><h1>{post.title}</h1><p>{post.text}</p></article>
+comp TaskRows(tasks Task[]) {
+    return <ul>{for task in tasks {
+        <li>
+            <label>
+                <input type="checkbox" checked={task.done} />
+                {task.title} <small>{task.priority}</small>
+            </label>
+        </li>
+    }}</ul>
 }
 
-// Он возвращает любое значение: это уйдёт как JSON
-comp PostList() Post[] {
-    return POSTS
+comp TaskPage() {
+    const tasks = await loadTasks()
+    return <Layout title="Доска задач">
+        <h1>Доска задач</h1><TaskRows tasks={tasks} />
+    </Layout>
 }
 
 comp App(request Request) {
     const path = new URL(request.url).pathname
-    if path == "/api/posts" {
-        return <PostList />
+    if path == "/api/tasks" {
+        return await loadTasks()
     }
-    return <Layout title="Блог"><Article id={path.slice(1)} /></Layout>
+    if path == "/" {
+        return <TaskPage />
+    }
+    return reply("Не найдено", { status: 404 })
 }
 
 serve(App, { port: 3000 })

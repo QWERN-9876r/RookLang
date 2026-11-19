@@ -26,6 +26,8 @@ export abstract class ExpressionEmitter extends Emitter {
   /** `f(x)`, `new C(x)`, `[a, b]` and `byte[](s)`; implemented by CallEmitter. */
   protected abstract call(node: ast.CallExpression): string;
 
+  protected abstract traced(node: ast.Node): string;
+
   protected abstract newExpression(node: ast.NewExpression): string;
 
   protected abstract arrayLiteral(node: ast.ArrayLiteral): string;
@@ -340,6 +342,10 @@ export abstract class ExpressionEmitter extends Emitter {
       return `await ${this.receive(node.argument, this.commaOk.has(node))}`;
 
     const argument = this.expression(node.argument, UNARY);
+
+    if (node.operator === 'await' && this.options.trace) {
+      return `await $$traceAwait(${argument}${this.traced(node)})`;
+    }
 
     if (node.operator === 'typeof' || node.operator === 'await') {
       return `${node.operator} ${argument}`;

@@ -39,6 +39,8 @@ export interface BrowserOptions {
    * runs without imports, as in the playground, needs it there.
    */
   runtime?: 'import' | 'inline';
+  /** Pass source locations to the runtime so a browser listener can record a live trace. */
+  trace?: boolean;
 }
 
 /** Compiles a program; `workerUrl` is where its worker module of `go` will be, if not next to it. */
@@ -52,6 +54,7 @@ export function compile(
     workerUrl: workerUrl ?? undefined,
     markup: options.markup ?? false,
     runtime: options.runtime,
+    trace: options.trace,
   });
   const file = new SourceFile('', source);
   const located = (diagnostic: Diagnostic) => {

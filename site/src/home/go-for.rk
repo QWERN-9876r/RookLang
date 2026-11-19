@@ -1,0 +1,197 @@
+// "One thread, or every core": the second screen of the home page. An array lies as tiles across
+// a board; the rook of `main` walks it alone, then go for splits it into parts and a rook walks
+// each one at the same time (stage/array.rk). The card with the two loops shows the time of each
+// as it was measured. The scene plays once it is seen, and again on request.
+
+import { Button } from "../../ui/button.rk"
+import { Icon } from "../../ui/icon.rk"
+import { encode } from "../code-link.rk"
+import { highlight } from "../highlight.rk"
+import { pageHref, text } from "../i18n.rk"
+import { Reveal } from "../layout/reveal.rk"
+import { filesOf, momentAt, scriptOf, stepAt } from "../stage/array.rk"
+import { arrayView, drawArrayScene } from "../stage/array-scene.rk"
+import { makeDust } from "../stage/board.rk"
+import { View } from "../stage/camera.rk"
+import { FOR_LOOP, GO_FOR, GO_FOR_LOOP, GO_FOR_MS, ONE_THREAD_MS } from "./code.rk"
+import common from "./section.module.css"
+import styles from "./go-for.module.css"
+
+/** The positions of the line of time. */
+const NOTCHES = 1000
+
+/** A rook for each of the 14 cores of the measurement where the screen has the room for them. */
+func rooksFor(width number) number {
+    return width < 640 ? 4 : width < 1100 ? 8 : 14
+}
+
+export comp GoFor() {
+    const t = text()
+    const h = t.home
+    // The reader asked the system for less motion: the last frame, moved only by the line of time.
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches
+    const script = scriptOf(ONE_THREAD_MS, GO_FOR_MS)
+    const steps = h.goForSteps(ONE_THREAD_MS, GO_FOR_MS, ONE_THREAD_MS / GO_FOR_MS)
+    const dust = makeDust()
+    const labels = { main: "main", waits: t.stage.labels.waits, array: "primes", size: h.goForArray }
+    state step = 0
+    /** The milliseconds each loop has taken so far. */
+    state oneThread = 0
+    state goFor = 0
+    state done = false
+    ref scene
+    ref canvas
+    ref slider
+
+    // The moment of the scene in seconds. Before it is seen, the array lies on the board.
+    let time = still ? script.total : script.forStart - 0.01
+    let playing = false
+    let started = false
+    let onScreen = false
+    let rooks = 8
+    let view ?View = null
+    let context ?CanvasRenderingContext2D = null
+
+    func layout() {
+        const box = scene.getBoundingClientRect()
+        if box.width == 0 || context == null {
+            return
+        }
+        const ratio = Math.min(devicePixelRatio, 2)
+        canvas.width = Math.round(box.width * ratio)
+        canvas.height = Math.round(box.height * ratio)
+        context.setTransform(ratio, 0, 0, ratio, 0, 0)
+        rooks = rooksFor(box.width)
+        view = arrayView(box.width, box.height, filesOf(rooks))
+    }
+
+    func paint(now number) {
+        if view == null || context == null {
+            return
+        }
+        const moment = momentAt(script, time, rooks)
+        drawArrayScene(context, view, moment, dust, labels, !still, now)
+        slider.value = `${Math.round(time / script.total * NOTCHES)}`
+        const at = stepAt(script, time)
+        const one = Math.round(ONE_THREAD_MS * moment.forDone)
+        const all = Math.round(GO_FOR_MS * moment.goDone)
+        if at != step {
+            step = at
+        }
+        if one != oneThread {
+            oneThread = one
+        }
+        if all != goFor {
+            goFor = all
+        }
+        if moment.finish > 0 != done {
+            done = moment.finish > 0
+        }
+    }
+
+    func play() {
+        time = still ? script.total : 0
+        playing = !still
+        paint(performance.now())
+    }
+
+    func seek() {
+        playing = false
+        time = parseFloat(slider.value) / NOTCHES * script.total
+        paint(performance.now())
+    }
+
+    mount {
+        context = canvas.getContext("2d")
+        const redraw = () => {
+            layout()
+            paint(performance.now())
+        }
+        const sizes = new ResizeObserver(redraw)
+        sizes.observe(scene)
+        const watcher = new IntersectionObserver(entries => {
+            onScreen = entries[0].isIntersecting
+            if !started && entries[0].intersectionRatio >= 0.3 {
+                started = true
+                play()
+            }
+        }, { threshold: [0, 0.3] })
+        watcher.observe(scene)
+        document.fonts.ready.then(redraw)
+        redraw()
+
+        let request = 0
+        let last = performance.now()
+        func tick(now number) {
+            const passed = Math.min(now - last, 60)
+            last = now
+            if playing {
+                time = Math.min(script.total, time + passed / 1000)
+                playing = time < script.total
+            }
+            // A scene that is off the screen, or in a tab that is not shown, draws nothing.
+            if onScreen && !document.hidden {
+                paint(now)
+            }
+            request = requestAnimationFrame(tick)
+        }
+        if !still {
+            request = requestAnimationFrame(tick)
+        }
+        defer {
+            cancelAnimationFrame(request)
+            sizes.disconnect()
+            watcher.disconnect()
+        }
+    }
+
+    return <section class={[common.section, styles.section]}>
+        <div class={common.container}>
+            <Reveal>
+                <div class={[common.heading, styles.heading]}>
+                    <h2>{h.lanesTitle}</h2>
+                    <p>{h.lanesLead}</p>
+                </div>
+            </Reveal>
+        </div>
+        <div class={styles.stage}>
+            <div class={styles.scene} ref={scene}>
+                <canvas class={styles.canvas} ref={canvas} aria-hidden="true" />
+                <p class={[styles.result, done ? styles.resultOn : null]}>
+                    <strong>{h.ratio(ONE_THREAD_MS / GO_FOR_MS)}</strong>
+                    <span>{h.faster}</span>
+                </p>
+                <p class={styles.caption} aria-live="polite">{steps[step]}</p>
+            </div>
+            <div class={styles.hud}>
+                <Button kind="ghost" size="sm" icon="refresh" onClick={play()}>{h.replay}</Button>
+                <input
+                    class={styles.slider}
+                    ref={slider}
+                    type="range"
+                    min="0"
+                    max={`${NOTCHES}`}
+                    aria-label={h.goForMoment}
+                    onInput={seek()}
+                />
+            </div>
+            <div class={styles.card}>
+                <pre class={[styles.loop, step == 1 ? styles.now : null]}>{highlight(FOR_LOOP, "rook")}</pre>
+                <p class={styles.time}>
+                    <span>{h.oneThread}</span>
+                    <b>{h.ms(oneThread)}</b>
+                </p>
+                <pre class={[styles.loop, step == 3 || step == 4 ? styles.now : null]}>{highlight(GO_FOR_LOOP, "rook")}</pre>
+                <p class={styles.time}>
+                    <span>{h.goFor}</span>
+                    <b>{h.ms(goFor)}</b>
+                </p>
+                <a class={styles.open} href={`${pageHref("playground")}#code=${encode(GO_FOR)}`}>
+                    {t.openInPlayground}
+                    <Icon name="arrow-right" size={14} />
+                </a>
+            </div>
+        </div>
+        <p class={styles.note}>{h.lanesNote}</p>
+    </section>
+}

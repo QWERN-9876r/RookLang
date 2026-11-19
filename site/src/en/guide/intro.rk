@@ -14,6 +14,8 @@ export comp Intro() {
             of its own, on another processor, and channels pass values between them, as in Go. It
             compiles to readable JavaScript: what you write is what runs, and what JS cannot do
             alone, such as channels, a small runtime does.
+            To make the language features concrete, this guide follows a small task board for one
+            workspace, growing its task list and operations step by step.
         </p>
         <CardGrid>
             <Card title="Goroutines and channels" icon="cpu">

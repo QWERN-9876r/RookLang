@@ -1,6 +1,9 @@
 // The section "Goroutines" of the English guide; guide.rk lists the sections.
 
 import { Example } from "../../example.rk"
+import { GoNote } from "../../source-language.rk"
+import { GOROUTINES } from "../../stage/goroutines.rk"
+import { Stage } from "../../stage/stage.rk"
 
 export comp Goroutines() {
     return <>
@@ -17,7 +20,13 @@ export comp Goroutines() {
             arguments and sends back a copy of the result, so they are data, and the function cannot
             use the <code>let</code> variables of the module. The compiler checks both.
         </p>
+        <GoNote message="Unlike Go, Rook goroutines do not share memory: arguments and results are copied across worker threads. Use channels to pass values between them." />
         <Example name="goroutines" />
+        <p>
+            The board uses goroutines for background task work that keeps a processor busy. A worker
+            receives task data and returns its result; channels carry commands and results between
+            the worker and the rest of the app.
+        </p>
         <p>
             <code>{"go func(n number) { ... }(i)"}</code> runs a function literal as a goroutine: the
             local names it uses are copied to it, like its arguments. <code>transfer(x)</code> moves
@@ -44,4 +53,8 @@ export comp Goroutines() {
         </p>
         <Example name="data-classes" />
     </>
+}
+
+export comp GoroutinesStage() {
+    return <Stage title="Goroutines" program={GOROUTINES} />
 }

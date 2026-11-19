@@ -1,0 +1,64 @@
+// The poses that the scenes outside a trace build by hand (the scene of go for, the small boards
+// of the home page): a rook that stands, falls onto the board, throws a value and catches one.
+
+import { FRONT, View, project } from "./camera.rk"
+import { clamp, colourOf } from "./paint.rk"
+import { Pose } from "./rooks.rk"
+
+/** A rook that just stands at `x`, in the colour of an actor. */
+export func standing(view View, x number, actor number) Pose {
+    const foot = project(view, x, FRONT)
+    return {
+        x: foot.x, y: foot.y, size: foot.scale * 0.6, colour: colourOf(actor), shown: true, alpha: 1,
+        wide: 1, tall: 1, tilt: 0, lift: 0, sink: 0, shift: 0, glow: 0, wait: 0, red: 0,
+        wave: -1, sparks: -1, reach: 1, beam: 0, ember: 0,
+    }
+}
+
+export func squash(pose Pose, amount number) {
+    pose.tall = 1 - amount
+    pose.wide = 1 + amount * 0.65
+}
+
+/** A new rook: a beam comes down, and the rook falls in it and lands. `done` is from 0 to 1. */
+export func fall(pose Pose, done number) {
+    pose.beam = Math.sin(clamp(done / 0.9) * Math.PI)
+    if done < 0.3 {
+        pose.shown = false
+        return
+    }
+    const down = clamp((done - 0.3) / 0.4)
+    pose.lift = 3.2 * (1 - down * down)
+    if done >= 0.7 && done < 1 {
+        const landed = (done - 0.7) / 0.3
+        squash(pose, 0.3 * Math.sin(landed * Math.PI * 2.2) * Math.exp(-3 * landed))
+        pose.wave = landed
+        pose.sparks = landed
+        pose.glow = (1 - landed) * 0.8
+    }
+}
+
+/** The sender leans after what it throws to the side `direction`, -1 or 1. */
+export func toss(pose Pose, done number, direction number) {
+    if done <= 0 || done >= 1 {
+        return
+    }
+    const swing = Math.sin(done * Math.PI)
+    pose.tilt = direction * 0.15 * swing
+    squash(pose, -0.08 * swing)
+    pose.lift = 0.08 * swing
+    pose.glow = 0.5 * (1 - done)
+}
+
+/** The receiver rocks to the side `direction` from what it caught, flashes, and a ring runs from it. */
+export func grab(pose Pose, done number, direction number) {
+    if done <= 0 || done >= 1 {
+        return
+    }
+    const swing = Math.sin(done * Math.PI * 2.4) * Math.exp(-3.2 * done)
+    pose.tilt = direction * 0.13 * swing
+    squash(pose, 0.12 * swing)
+    pose.glow = (1 - done) * (1 - done)
+    pose.wave = done
+    pose.sparks = done
+}

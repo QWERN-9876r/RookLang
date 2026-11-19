@@ -58,6 +58,11 @@ export interface CoreCompileOptions {
   runtime?: RuntimeMode | undefined;
   /** The name of the source in the source maps, `app.rk`. */
   sourceName?: string | undefined;
+  /**
+   * Pass the line of each operation of goroutines and channels, and the names of the channels, to
+   * the runtime, for a listener of tracing (src/runtime/trace.js). Not a public API before 1.0.
+   */
+  trace?: boolean | undefined;
 }
 
 /**
@@ -134,6 +139,7 @@ export function compileModule(source: string, options: CoreCompileOptions = {}):
     typeValues,
     styleModules,
     runtime: options.runtime,
+    trace: options.trace,
     dataClasses,
     server: options.markup === 'html',
     ...importedCode(program, options.importModule),

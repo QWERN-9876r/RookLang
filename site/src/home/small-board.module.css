@@ -1,0 +1,27 @@
+/* A small board in a card, with what stands under it. The board has no frame: it lies in the
+   card. The mark of the frame it plays is in `data-mark`: the styles of the card light up the
+   text it is about (features.module.css). */
+
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 200px;
+}
+
+/* In a card of two columns. */
+.tall .canvas {
+  height: 300px;
+}
+
+@media (max-width: 640px) {
+  .tall .canvas {
+    height: 200px;
+  }
+}

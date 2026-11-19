@@ -1,36 +1,42 @@
 // server-components.js
 
 import { reply, serve } from "rooklang/server";
-import { $$html } from "rooklang/runtime";
+import { $$attr, $$html } from "rooklang/runtime";
 
-const POSTS = [{ id: "hello", title: "Hello", text: "The first post of the blog." }, { id: "rook", title: "Why Rook", text: "Go-style syntax, JS semantics." }];
+const TASKS = [{ id: "model", title: "Define the task model", done: true, priority: "normal" }, { id: "board", title: "Render the task board", done: false, priority: "high" }];
 
-async function findPost(id) {
-  return POSTS.find((post) => post.id === id) ?? null;
+async function loadTasks() {
+  return TASKS;
 }
 
 async function $$Layout({ title, children }, $$ctx) {
   return await $$html`<!doctype html><html lang="en"><head><title>${title}</title></head><body><main>${children?.()}</main></body></html>`;
 }
 
-async function $$Article({ id }, $$ctx) {
-  const post = await findPost(id);
-  if (post == null) {
-    return reply("No such post", { status: 404 });
-  }
-  return $$html`<article><h1>${post.title}</h1><p>${post.text}</p></article>`;
+async function $$TaskRows({ tasks }, $$ctx) {
+  return $$html`<ul>${(() => {
+    const $$parts0 = [];
+    for (const task of tasks) {
+      $$parts0.push($$html`<li><label><input type="checkbox"${$$attr("checked", task.done)}>${task.title} <small>${task.priority}</small></label></li>`);
+    }
+    return $$parts0;
+  })()}</ul>`;
 }
 
-async function $$PostList($$props, $$ctx) {
-  return POSTS;
+async function $$TaskPage($$props, $$ctx) {
+  const tasks = await loadTasks();
+  return await $$Layout({ title: "Task board", children: () => $$html`<h1>Task board</h1>${$$TaskRows({ tasks: tasks }, $$ctx)}` }, $$ctx);
 }
 
 async function $$App({ request }, $$ctx) {
   const path = new URL(request.url).pathname;
-  if (path === "/api/posts") {
-    return await $$PostList({}, $$ctx);
+  if (path === "/api/tasks") {
+    return await loadTasks();
   }
-  return await $$Layout({ title: "Blog", children: () => $$html`${$$Article({ id: path.slice(1) }, $$ctx)}` }, $$ctx);
+  if (path === "/") {
+    return await $$TaskPage({}, $$ctx);
+  }
+  return reply("Not found", { status: 404 });
 }
 
 serve($$App, { port: 3000 });
@@ -38,9 +44,11 @@ serve($$App, { port: 3000 });
 // server-components.d.ts
 
 import { reply, serve } from "rooklang/server";
-interface Post {
+type Priority = "low" | "normal" | "high";
+interface Task {
     id: string;
     title: string;
-    text: string;
+    done: boolean;
+    priority: Priority;
 }
 export {};

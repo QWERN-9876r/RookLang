@@ -257,7 +257,12 @@ export abstract class EarlyReturnEmitter extends ComponentValueEmitter {
       // State of the module: the changes are elsewhere, and they run the update it listens with.
       const listened = source.kind === 'shared' && updatesOf(source).length > 0;
 
-      if (!listened && (source.kind !== 'state' || !called || inlinesUpdate(source))) continue;
+      if (
+        !listened &&
+        (source.kind !== 'state' || !called || inlinesUpdate(source, this.options.trace))
+      ) {
+        continue;
+      }
 
       const body = this.block(() => {
         // Derived values are computed again even before the markup exists, which a function of
@@ -266,7 +271,21 @@ export abstract class EarlyReturnEmitter extends ComponentValueEmitter {
         // The parent gets the value of a bound property even before the markup exists.
         if (source.bound) this.line(source.bound);
         if (source.writes.some((write) => write.early)) this.line(`if (!${result}) return;`);
-        for (const dependent of source.dependents) this.line(indentMore(dependent));
+        if (this.options.trace && source.kind !== 'shared') {
+          this.line(
+            `$$traceReactive({ kind: "state", name: ${JSON.stringify(source.name)}, value: ${this.name(source.name)} });`,
+          );
+        }
+
+        for (const [target, dependent] of source.dependents.entries()) {
+          if (this.options.trace) {
+            this.line(
+              `$$traceReactive({ kind: "update", name: ${JSON.stringify(source.name)}, target: ${target} });`,
+            );
+          }
+
+          this.line(indentMore(dependent));
+        }
       });
 
       this.blankLine();

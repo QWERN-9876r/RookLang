@@ -1,0 +1,60 @@
+// A trace: what a program did with its goroutines and channels, move by move. The scene plays a
+// trace and knows nothing else about the program, so a trace may be written by hand, recorded at
+// build time or come from a run in the browser.
+
+/** A goroutine; the first one of a trace is the program itself, `main`. */
+export interface Actor {
+    id string
+    label string
+}
+
+/** A channel and the room in its buffer; 0 is a channel without a buffer. */
+export interface Channel {
+    id string
+    label string
+    size number
+}
+
+/** `go f(x)`: `actor` starts `task`, with optional text for the copied arguments. */
+export interface Go { kind "go"; actor string; task string; line number; args ?string }
+
+/** The goroutine returns its result to the actor that started it. */
+export interface Return { kind "return"; actor string; to string; value string; line number }
+
+/** The source lines whose cases may go on in a `select`. */
+export interface Select { kind "select"; actor string; line number; lines number[] }
+
+/** An async task waiting or resuming on the same thread. */
+export interface Turn { kind "turn"; actor string; task number; phase "wait" | "resume"; line number }
+
+/** A topic broadcasts a value to its subscribers. */
+export interface Publish { kind "publish"; actor string; channel string; value string; line number }
+
+/** `cancel(task)`: the caller stops a goroutine. */
+export interface Cancel { kind "cancel"; actor string; task string; line number }
+
+/** An operation that cannot go on yet: a send with no room and no receiver, a receive with nothing to take. */
+export interface Wait { kind "wait"; actor string; op "send" | "receive"; channel string; line number }
+
+/**
+ * A value goes through a channel, and `actor` is who made the move. With `from` and `to` it goes
+ * from hand to hand; without `to` it goes into the buffer, without `from` out of it.
+ */
+export interface Pass { kind "pass"; actor string; channel string; from ?string; to ?string; value string; line number }
+
+/** `close(ch)`: the receivers that wait on the channel go on. */
+export interface Close { kind "close"; actor string; channel string; line number }
+
+/** The goroutine has finished. */
+export interface End { kind "end"; actor string }
+
+/** Every goroutine waits and no move is left: the program hangs. */
+export interface Stalemate { kind "stalemate" }
+
+export type Event Go | Return | Select | Turn | Publish | Cancel | Wait | Pass | Close | End | Stalemate
+
+export interface Trace {
+    actors Actor[]
+    channels Channel[]
+    events Event[]
+}

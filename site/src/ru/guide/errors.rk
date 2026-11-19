@@ -14,6 +14,8 @@ export comp Errors() {
             {" "}<code>error("load", err)</code> оборачивает ошибку, как <code>%w</code> в Go:
             сообщение заканчивается сообщением <code>err</code>, а <code>cause</code> — сам
             {" "}<code>err</code>.
+            Так доска может сообщить вызывающему коду об отклонённой операции, а тот решит, как
+            показать ошибку.
         </p>
         <Example name="errors" />
         <p>

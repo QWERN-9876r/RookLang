@@ -1,0 +1,21 @@
+// The program of the scene of the section "Channels": two goroutines square the numbers that
+// `main` sends through a channel with a buffer. The reader changes the size of the buffer, and
+// with too small a one the game ends in a stalemate. The code is site/scenes/channels.rk, and its
+// traces are what the runtime did with each size of the buffer, recorded when the site is built
+// (site/scenes.ts).
+
+import { SCENES } from "virtual:scenes"
+import { Program } from "./stage.rk"
+import { Trace } from "./trace.rk"
+
+const lines string[] = SCENES.channels.lines
+const values number[] = SCENES.channels.values
+const traces Trace[] = SCENES.channels.traces
+
+export const CHANNELS Program = {
+    lines: lines,
+    initial: SCENES.channels.initial,
+    // The first clicks go down to the smallest buffer, a stalemate; then round from the largest.
+    next: value => value == values[0] ? values[values.length - 1] : value - 1,
+    trace: value => traces[Math.max(0, values.indexOf(value))],
+}

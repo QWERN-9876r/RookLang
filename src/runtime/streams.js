@@ -3,13 +3,14 @@
 import { $$chan, $$closeHere, $$receive, $$send } from './chan.js';
 import { $$try } from './select.js';
 import { $$registry } from './threads.js';
+import { $$place } from './trace.js';
 
 // `chan(stream, size)`: a channel of the chunks of a stream and one of its error. The next chunk is
 // read only when the last one is in the channel, so a full channel stops the stream; closing
 // the channel cancels it.
-export function $$fromStream(stream, size, zero) {
-  const channel = $$chan(size, zero);
-  const failed = $$chan(1, null);
+export function $$fromStream(stream, size, zero, line) {
+  const channel = $$chan(size, zero, '', line);
+  const failed = $$chan(1, null, '', line);
   const id = channel.$$chan;
 
   (async () => {
@@ -28,7 +29,7 @@ export function $$fromStream(stream, size, zero) {
 
       if (chunk.done) break;
       try {
-        await $$send(channel, chunk.value);
+        await $$send(channel, chunk.value, line);
       } catch {
         reader.cancel().catch(() => {});
         break;
@@ -36,7 +37,7 @@ export function $$fromStream(stream, size, zero) {
     }
 
     // The pump holds both channels, so they are not forgotten; the one of the error has room.
-    if (!$$registry().states.get(id).closed) $$closeHere(id);
+    if (!$$registry().states.get(id).closed) $$closeHere(id, $$place($$registry(), line));
     $$try(failed.$$chan, true, failure);
     $$closeHere(failed.$$chan);
   })();

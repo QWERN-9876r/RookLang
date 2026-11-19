@@ -12,6 +12,11 @@ export comp Refs() {
             {" "}<code>null</code>.
         </p>
         <Example name="ref" />
+        <p>
+            On the board, give the new-task input a ref so <code>mount</code> can focus it when the
+            add form opens. The input stays in the markup; the ref is for the browser operation,
+            not a replacement for the component.
+        </p>
         <ul>
             <li>
                 A ref has the type of its element, here <code>HTMLUListElement</code>, or the one

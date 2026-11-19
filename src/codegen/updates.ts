@@ -41,7 +41,17 @@ export abstract class UpdateEmitter extends StatementEmitter {
     }
 
     const notify = () => {
-      for (const name of shared) this.line(`$$changed(${this.shared.listeners.get(name)!});`);
+      for (const name of shared) {
+        const listeners = this.shared.listeners.get(name)!;
+
+        if (this.options.trace) {
+          this.line(
+            `$$traceReactive({ kind: "state", name: ${JSON.stringify(name)}, value: ${this.name(name)} });`,
+          );
+        }
+
+        this.line(`$$changed(${listeners});`);
+      }
     };
 
     if (node.kind !== 'ReturnStatement' && node.kind !== 'ThrowStatement') {
@@ -226,7 +236,7 @@ export abstract class UpdateEmitter extends StatementEmitter {
  * Replaces the markers of a component's sources: by the call of the update function, by the only
  * update statement, or by nothing when no markup depends on the source.
  */
-export function resolveMarkers(block: string, reactive: Reactive): string {
+export function resolveMarkers(block: string, reactive: Reactive, trace = false): string {
   const sources = new Map<number, Source>();
 
   for (const source of reactive.sources.values()) sources.set(source.id, source);
@@ -254,7 +264,7 @@ export function resolveMarkers(block: string, reactive: Reactive): string {
 
       if (dependents.length === 0) return '';
 
-      const text = inlinesUpdate(source) ? dependents[0]! : `${source.update}();`;
+      const text = inlinesUpdate(source, trace) ? dependents[0]! : `${source.update}();`;
 
       return `${indent}${text}\n`;
     },
@@ -274,7 +284,9 @@ export function needed(source: Source, write: Write): string[] {
 }
 
 /** One place changes the source, after the markup exists, and needs one update statement. */
-export function inlinesUpdate(source: Source): boolean {
+export function inlinesUpdate(source: Source, trace = false): boolean {
+  if (trace) return false;
+
   const [write] = source.writes;
 
   if (source.writes.length !== 1 || write!.early) return false;

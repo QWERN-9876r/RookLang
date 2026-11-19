@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
+import { scenes } from './site/scenes.ts';
 import { sections } from './site/sections.ts';
 import { seo } from './site/seo.ts';
 import { rook } from './src/vite.ts';
@@ -77,6 +78,72 @@ function examples(): Plugin {
   };
 }
 
+/** Inline font-face declarations so font requests start with the document, not a CSS request. */
+function inlineFontStyles(): Plugin {
+  return {
+    name: 'rooklang-inline-font-styles',
+    enforce: 'post',
+    generateBundle(_options, bundle) {
+      const fonts = Object.values(bundle).find((output) => {
+        if (output.type !== 'asset' || !output.fileName.endsWith('.css')) return false;
+
+        const css =
+          typeof output.source === 'string'
+            ? output.source
+            : new TextDecoder().decode(output.source);
+
+        return css.includes('@font-face') && css.includes('Geist Variable');
+      });
+
+      if (!fonts || fonts.type !== 'asset')
+        throw new Error('Vite did not emit the font-face stylesheet');
+
+      const css =
+        typeof fonts.source === 'string' ? fonts.source : new TextDecoder().decode(fonts.source);
+      let rewritten = 0;
+
+      for (const [fileName, output] of Object.entries(bundle)) {
+        if (output.type !== 'asset' || !fileName.endsWith('.html')) continue;
+
+        const html =
+          typeof output.source === 'string'
+            ? output.source
+            : new TextDecoder().decode(output.source);
+        const updated = html.replace(
+          /<link rel="stylesheet"[^>]*href="([^"]+\.css)"[^>]*>/g,
+          (tag, href: string) => {
+            if (posix.normalize(posix.join(posix.dirname(fileName), href)) !== fonts.fileName)
+              return tag;
+
+            rewritten++;
+
+            const inlineCss = css.replace(
+              /url\((['"]?)([^'")]+)\1\)/g,
+              (match: string, quote: string, value: string) => {
+                if (/^(?:data:|https?:|\/)/.test(value)) return match;
+
+                const asset = posix.normalize(posix.join(posix.dirname(fonts.fileName), value));
+                const relative = posix.relative(posix.dirname(fileName), asset);
+                const path = relative.startsWith('.') ? relative : `./${relative}`;
+
+                return `url(${quote}${path}${quote})`;
+              },
+            );
+
+            return `<style>${inlineCss}</style>`;
+          },
+        );
+
+        output.source = updated;
+      }
+
+      if (rewritten === 0) throw new Error('No HTML page references the font-face stylesheet');
+
+      delete bundle[fonts.fileName];
+    },
+  };
+}
+
 export default defineConfig({
   root: site,
   // Relative paths to the assets: GitHub Pages serves the site from /<repository>/, and
@@ -94,5 +161,5 @@ export default defineConfig({
       ),
     },
   },
-  plugins: [rook(), examples(), seo(site, PAGES), sections()],
+  plugins: [rook(), examples(), scenes(site), seo(site, PAGES), sections(), inlineFontStyles()],
 });

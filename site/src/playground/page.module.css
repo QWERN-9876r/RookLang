@@ -54,6 +54,7 @@
 .pane {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
   background: var(--rui-code-bg);
 }
@@ -86,6 +87,7 @@
   flex: 1;
   grid-template-columns: minmax(100%, max-content);
   align-content: start;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
 }
@@ -132,6 +134,10 @@
   overflow: auto;
 }
 
+.output > section {
+  min-height: 100%;
+}
+
 @media (max-width: 860px) {
   .ide {
     height: auto;
@@ -159,5 +165,23 @@
   .examples {
     min-width: 0;
     flex: 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .examples {
+    width: 100%;
+    flex: 1 0 100%;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
   }
 }

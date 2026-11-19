@@ -4,6 +4,7 @@
 
 import { loadCompiler } from "./compiler.ts"
 import { markupOf } from "./server-programs.ts"
+import { liveStalemate } from "./stage/live-trace.rk"
 import { text } from "./i18n.rk"
 import styles from "./sandbox.module.css"
 
@@ -19,7 +20,7 @@ export interface Compiled {
  * the code has the runtime of Rook in it, to run without imports; else it imports the runtime, as
  * the code of rook build does, which the JavaScript tab shows.
  */
-type Compile func(string, string, bool) Compiled
+type Compile func(string, string, bool, bool) Compiled
 
 // The compiler is loaded on the first run, when a JavaScript tab is opened and when the playground
 // comes into view; null until then. Compilations asked for while it loads wait in `waiting`.
@@ -32,7 +33,7 @@ export func compileRook(source string, done func(Compiled)) {
         if compile == null {
             done({ code: "", errors: [text().compilerFailed], worker: "" })
         } else {
-            done(compile(source, "", false))
+            done(compile(source, "", false, false))
         }
     })
 }
@@ -49,12 +50,12 @@ func withCompiler(use func(?Compile)) {
     }
     loadCompiler().then(
         module => {
-            compiler = (source, workerUrl, inline) => {
+            compiler = (source, workerUrl, inline, trace) => {
                 // The page is the DOM: its programs have markup and components, but for those of
                 // a server, whose markup is HTML.
                 const url = workerUrl == "" ? null : workerUrl
                 const runtime "import" | "inline" = inline ? "inline" : "import"
-                const result = module.compile(source, url, { markup: markupOf(source), runtime: runtime })
+                const result = module.compile(source, url, { markup: markupOf(source), runtime: runtime, trace: trace })
                 return {
                     code: result.code,
                     errors: result.diagnostics.map(d => `${text().position(d.line, d.column)}: ${d.message}`),
@@ -87,13 +88,20 @@ interface Owner {
 const OWNER = Symbol.for("rook.owner")
 let owners Map<HTMLElement, Owner> = new Map()
 
-func runOwned(preview HTMLElement, run func()) {
+func disposeOwner(owner Owner) {
+    if owner.removed {
+        return
+    }
+    owner.removed = true
+    for let i = owner.cleanups.length - 1; i >= 0; i-- {
+        owner.cleanups[i]()
+    }
+}
+
+func runOwned(preview HTMLElement, run func(Owner)) {
     const previous = owners.get(preview)
     if previous != null {
-        previous.removed = true
-        for let i = previous.cleanups.length - 1; i >= 0; i-- {
-            previous.cleanups[i]()
-        }
+        disposeOwner(previous)
     }
     const owner Owner = { removed: false, cleanups: [] }
     owners.set(preview, owner)
@@ -103,7 +111,7 @@ func runOwned(preview HTMLElement, run func()) {
     defer {
         global[OWNER] = parent
     }
-    run()
+    run(owner)
 }
 
 // The number of the last run in each result area: output of earlier runs is dropped.
@@ -112,24 +120,32 @@ let runs Map<HTMLElement, number> = new Map()
 // A custom element cannot be defined twice, so each run has its own tags: <app-card> of the
 // program is <app-card-3> on the page.
 let allRuns = 0
+let traceIds = 0
 
 /**
  * Runs a program: document.body is `preview`, and the lines of console.log go to `output` right
  * after the run and then with every new line. Compile errors and exceptions are lines too.
  */
-export func runProgram(source string, preview HTMLElement, output func(string[])) {
+export func runProgram(source string, preview HTMLElement, output func(string[]), onTrace ?func(any) = null) {
+    const run = (runs.get(preview) ?? 0) + 1
+    runs.set(preview, run)
+    stopProgram(preview)
     withCompiler(compile => {
+        if runs.get(preview) != run {
+            return
+        }
         if compile == null {
             output([text().compilerFailed])
             return
         }
-        const compiled = compile(source, "", true)
+        const tracing = onTrace != null
+        const compiled = compile(source, "", true, tracing)
         if compiled.errors.length > 0 {
             output(compiled.errors)
         } else if source.includes("import ") {
             output([text().noImports])
         } else if compiled.worker == "" {
-            runCompiled(compiled.code, null, preview, output)
+            runCompiled(compiled.code, null, preview, output, onTrace, run)
         } else {
             // `go` runs functions in workers whose module is a Blob: the program is compiled again
             // with its URL. What the workers print comes back through a channel of the run.
@@ -137,7 +153,7 @@ export func runProgram(source string, preview HTMLElement, output func(string[])
             const channel = `rooklang-sandbox-${channels}`
             const worker = workerConsole(channel) + compiled.worker
             const url = URL.createObjectURL(new Blob([worker], { type: "text/javascript" }))
-            runCompiled(compile(source, url, true).code, channel, preview, output)
+            runCompiled(compile(source, url, true, tracing).code, channel, preview, output, onTrace, run)
         }
     })
 }
@@ -146,6 +162,24 @@ let channels = 0
 
 // What the previous run of each result area left: the channel of its workers.
 let workerChannels Map<HTMLElement, BroadcastChannel> = new Map()
+
+/** Stops a run and restores the tracer it replaced. */
+func stopProgram(preview HTMLElement) {
+    const owner = owners.get(preview)
+    if owner != null {
+        disposeOwner(owner)
+        owners.delete(preview)
+    }
+    workerChannels.get(preview)?.close()
+    workerChannels.delete(preview)
+    preview.replaceChildren()
+}
+
+/** Removes a run and prevents a pending compilation from starting it afterwards. */
+export func clearProgram(preview HTMLElement) {
+    runs.set(preview, (runs.get(preview) ?? 0) + 1)
+    stopProgram(preview)
+}
 
 /** The `console` of the worker module: its lines go to the channel, formatted as by show(). */
 func workerConsole(channel string) string {
@@ -162,9 +196,14 @@ func workerConsole(channel string) string {
 `
 }
 
-func runCompiled(code string, channel ?string, preview HTMLElement, output func(string[])) {
-    const run = (runs.get(preview) ?? 0) + 1
-    runs.set(preview, run)
+func runCompiled(
+    code string,
+    channel ?string,
+    preview HTMLElement,
+    output func(string[]),
+    onTrace ?func(any),
+    run number,
+) {
     const lines string[] = []
     // Output after the run, from mount and timers, is shown right away, line by line.
     let finished = false
@@ -223,8 +262,81 @@ func runCompiled(code string, channel ?string, preview HTMLElement, output func(
         // An async function, so that the program may await at the top level, as a module can.
         const AsyncFunction = globalThis.Object.getPrototypeOf(async func() {}).constructor
         const program = new AsyncFunction("console", "document", "customElements", code)
-        runOwned(preview, () => {
-            program(sandboxConsole, sandboxDocument, sandboxElements).catch(fail)
+        const traceKey = Symbol.for("rook.trace")
+        const global any = globalThis
+        let parent any = null
+        let nextActor = 0
+        let nextTurn = 0
+        let stalemate = false
+        const traceEvents any[] = []
+        const tasks Map<any, string> = new Map()
+        traceIds++
+        let trace any = null
+        trace = {
+            id: traceIds,
+            actor: () => "main",
+            emit: (event any, traceId ?number) => {
+                if traceId != null && traceId != trace.id {
+                    parent?.emit(event, traceId)
+                    return
+                }
+                traceEvents.push(event)
+                if runs.get(preview) == run {
+                    onTrace?.(event)
+                    if onTrace != null && !stalemate && (event.kind == "wait" || event.kind == "end") && liveStalemate(traceEvents) {
+                        stalemate = true
+                        onTrace({ kind: "stalemate" })
+                    }
+                }
+            },
+            reactive: (event any) => {
+                traceEvents.push(event)
+                if runs.get(preview) == run {
+                    onTrace?.(event)
+                }
+            },
+            go: (name string, line number, args any[]) => {
+                nextActor++
+                const actor = `${name}-${nextActor}`
+                trace.emit({ kind: "go", actor: "main", task: actor, line: line, args: args })
+                return actor
+            },
+            turn: (line number) => {
+                nextTurn++
+                trace.emit({ kind: "turn", actor: "main", task: nextTurn, phase: "wait", line: line })
+                return nextTurn
+            },
+            resume: (task number, line number) => {
+                trace.emit({ kind: "turn", actor: "main", task: task, phase: "resume", line: line })
+            },
+            track: (task any, actor string) => {
+                tasks.set(task, actor)
+            },
+            cancel: (task any, line number) => {
+                const actor = tasks.get(task)
+                if actor != null {
+                    trace.emit({ kind: "cancel", actor: "main", task: actor, line: line })
+                }
+            },
+            run: (_actor string, run func()) => run(),
+        }
+        runOwned(preview, owner => {
+            if onTrace != null {
+                parent = global[traceKey]
+                owner.cleanups.push(() => {
+                    if global[traceKey] == trace {
+                        global[traceKey] = parent
+                    }
+                })
+                global[traceKey] = trace
+            }
+            program(sandboxConsole, sandboxDocument, sandboxElements).then(
+                () => trace.emit({ kind: "end", actor: "main" }),
+                error => {
+                    fail(error)
+                    trace.emit({ kind: "end", actor: "main" })
+                },
+            )
         })
     } catch e {
         fail(e)

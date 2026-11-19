@@ -20,6 +20,11 @@ export comp Components() {
         </p>
         <Example name="components" />
         <p>
+            On the task board, a <code>TaskRow</code> receives one task and renders its title and
+            controls. The parent keeps the collection; each row owns only the presentation of one
+            item.
+        </p>
+        <p>
             The last property <code>...attrs</code> takes the attributes of a use that are not
             properties, and <code>{"{...attrs}"}</code> puts them on one element of the component.
             They are checked as attributes of that element, so a button keeps all of its own:

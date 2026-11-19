@@ -11,6 +11,11 @@ export comp Decorators() {
             inlined into every component it is applied to, and each of them gets its own state.
         </p>
         <Example name="decorators" />
+        <p>
+            As the board grows, a decorator can add the same behavior to each task row, such as a
+            shared counter or a wrapper that handles a component's failure. Keep task data in the
+            board; the decorator contributes reusable component behavior.
+        </p>
         <ul>
             <li>
                 The component sees only what is <b>public</b>: it reads <code>public state</code>,

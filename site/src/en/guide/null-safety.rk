@@ -12,6 +12,8 @@ export comp NullSafety() {
         <p>
             After <code>if todo != null</code> the type narrows to <code>Todo</code>. The familiar
             {" "}<code>?.</code> and <code>??</code> work with <code>?T</code> too.
+            When the board has no selected task, its selection can be <code>?Task</code>; check it
+            before reading task fields.
         </p>
         <p>
             Where the program knows more than the compiler, <code>todo!</code> takes a value not

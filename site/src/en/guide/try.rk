@@ -18,6 +18,11 @@ export comp Try() {
             {" "}<code>(User, error)</code>, so one check covers both ways to fail. A
             {" "}<code>try</code> whose error is not kept is a compile error.
         </p>
+        <p>
+            Loading or saving the task board can fail because storage or the network is unavailable.
+            Use <code>try</code> at those boundaries to turn a thrown error or rejected request into
+            the error value the app can report or handle.
+        </p>
         <Example name="try" />
     </>
 }

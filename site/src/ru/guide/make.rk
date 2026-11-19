@@ -10,6 +10,8 @@ export comp Make() {
             {" "}<code>{'{ title: "", seconds: 0 }'}</code>, <code>make(Song[])</code> —
             {" "}<code>[]</code>, <code>make(Seconds)</code> для <code>type Seconds number</code> —
             {" "}<code>0</code>.
+            Для доски <code>make(Task[])</code> создаёт пустой типизированный список задач; он не
+            заполняет список и не инициализирует дополнительное поведение хранилища.
         </p>
         <p>
             Интерфейс даёт объект своих полей, у каждого своё значение; поле, которого может не

@@ -1,13 +1,24 @@
-// Компонент существует только при компиляции: каждое использование
-// заменяется его кодом, поэтому в JS нет ни функции Card, ни библиотеки
-comp Card(title string, kind string = "info", children Content) {
-    return <section class={`card ${kind}`}>
-        <h4>{title}</h4>
-        {children}
-    </section>
+type Priority "low" | "normal" | "high"
+
+interface Task {
+    id number
+    title string
+    done bool
+    priority Priority
 }
 
+comp TaskRow(task Task) {
+    return <li>
+        <label><input type="checkbox" checked={task.done} />{task.title}</label>
+        <small>{task.priority}</small>
+    </li>
+}
+
+const tasks Task[] = [
+    { id: 1, title: "Описать модель задачи", done: true, priority: "normal" },
+    { id: 2, title: "Собрать доску задач", done: false, priority: "high" },
+]
+
 document.body.append(
-    <Card title="Гуава">Сладкий тропический фрукт.</Card>,
-    <Card title="Осторожно" kind="warning">Косточка несъедобна.</Card>,
+    <ul>{for task in tasks { <TaskRow task={task} /> }}</ul>,
 )

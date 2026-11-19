@@ -12,6 +12,8 @@ export comp Queues() {
             taking the first value costs the same for ten values and for a million.
             {" "}<code>queue&lt;T&gt;()</code> makes an empty queue, <code>queue&lt;T&gt;(items)</code>
             {" "}one with the values of an array, and an empty queue is the zero value.
+            In the board, a queue can group pending work: adding at the back and taking from the
+            front processes the oldest item first.
         </p>
         <Example name="queues" />
     </>

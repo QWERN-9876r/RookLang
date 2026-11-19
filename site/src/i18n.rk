@@ -3,6 +3,7 @@
 // language before the page is drawn, and the shared code reads them here.
 
 import { NavLink } from "../ui/nav-list.rk"
+import { StageStrings } from "./stage/strings.rk"
 
 export const REPOSITORY = "https://github.com/QWERN-9876r/RookLang"
 export const MARKETPLACE = "https://marketplace.visualstudio.com/items?itemName=Qwern9876r.rooklang"
@@ -17,6 +18,41 @@ export interface Section {
     title string
     group string
     content comp()
+}
+
+/** The scene of a section of the guide, shown above its text: the id of the section and the scene. */
+export interface SectionStage {
+    id string
+    content comp()
+}
+
+/** Texts of the language map and its trace-checked puzzle. */
+export interface DocsMapStrings {
+    mapEyebrow string
+    mapTitle string
+    mapLead string
+    current string
+    visited string
+    ahead string
+    clearProgress string
+    progress func(number, number) string
+    taskEyebrow string
+    taskTitle string
+    taskLead string
+    buffer string
+    tryMove string
+    taskReady string
+    taskRunning string
+    taskWaiting string
+    taskStalemate string
+    taskSent func(number) string
+    taskReceived func(string) string
+    taskFinished string
+    taskSolved string
+    taskOutput func(string) string
+    taskError func(string) string
+    traceTitle string
+    channel func(number) string
 }
 
 /** Texts of the pages around the guide itself. */
@@ -64,11 +100,18 @@ export interface Strings {
     editor string
     run string
     openInPlayground string
+    playOnBoard string
+    sourceLanguage string
+    sourceJavaScript string
+    sourceTypeScript string
+    sourceGo string
+    jsOutput string
     /** The tab of an example with the same program written in JS by hand. */
     withoutRook string
     /** The panes of the page of examples, the switch between them, and the button that runs it again. */
     code string
     result string
+    board string
     both string
     runAgain string
     reset string
@@ -93,6 +136,9 @@ export interface Strings {
     /** The label of the commands in "Tools". */
     terminal string
     home HomeStrings
+    /** Texts of the scene of a section (stage/). */
+    stage StageStrings
+    docsMap DocsMapStrings
 }
 
 /** Texts of the home page. */
@@ -104,6 +150,8 @@ export interface HomeStrings {
     titleAccent string
     lead string
     openPlayground string
+    /** The link under the first screen to the section whose scene it plays. */
+    watchGame string
     lanesTitle string
     lanesLead string
     oneThread string
@@ -111,23 +159,38 @@ export interface HomeStrings {
     faster string
     lanesNote string
     replay string
+    /** Under the array of the scene of go for: how much it holds. */
+    goForArray string
+    /** The name of the line of time of the scene. */
+    goForMoment string
+    /**
+     * The captions of the six steps of the scene, from the array on the board to the end: the
+     * milliseconds of the loop in one thread and of go for, and how many times faster go for is.
+     */
+    goForSteps func(number, number, number) string[]
+    /** A time in milliseconds, and "8.1×". */
+    ms func(number) string
+    ratio func(number) string
     featuresTitle string
     featuresLead string
     goroutinesTitle string
     goroutinesText string
     channelsTitle string
     channelsText string
+    /** The link of the card to the scene of select in the guide. */
+    channelsMore string
     typesTitle string
     typesText string
-    jsTitle string
+    /** Under the title of the block where Rook turns into JavaScript. */
     jsText string
     componentsTitle string
     componentsText string
+    serverTitle string
+    serverText string
     clicks func(number) string
     toolsTitle string
     toolsText string
     compareTitle string
-    compareLead string
     compareGoroutines string
     compareComponents string
     compareErrors string
@@ -140,6 +203,8 @@ export interface HomeStrings {
     startCode string
     startOutput string
     ctaTitle string
+    /** Under the rook of the last board: the next move is the reader's. */
+    ctaMove string
     ctaLead string
 }
 
@@ -221,6 +286,8 @@ export func sectionHref(target Page, id string) string {
 /** A link to the same page in the other language, at the same section. */
 export func otherLanguageHref() string {
     const parts = location.pathname.split("/").filter(part => part != "")
-    const section = hasSections(page) && parts.length > 0 ? `${parts.at(-1)}/` : ""
+    const pageFolder = PATHS[page].split("/").filter(part => part != "").at(-1)
+    const last = parts.at(-1) ?? ""
+    const section = hasSections(page) && last != pageFolder ? `${last}/` : ""
     return root() + text().otherRoot + PATHS[page] + section
 }

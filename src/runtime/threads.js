@@ -12,6 +12,7 @@ import { $$deque } from './queue.js';
 export function $$registry() {
   return (globalThis[Symbol.for('rook.threads')] ??= {
     key: Math.random().toString(36).slice(2),
+    routes: new Map(),
     channels: 0,
     states: new Map(),
     held: new FinalizationRegistry((id) => $$hold(id, -1)),
@@ -23,6 +24,8 @@ export function $$registry() {
     main: null,
     requests: new Map(),
     asks: 0,
+    // How many traced operations on channels this thread has seen (trace.js).
+    order: 0,
     selects: new Map(),
     moved: new WeakSet(),
     cancels: new WeakMap(),
@@ -44,7 +47,7 @@ export function $$ownerOf(id) {
 // Sends a message to a thread. The channels in it are counted first, as the thread gets copies,
 // and the buffers of transfer() move there. A message waits for the port of a thread that has just
 // started.
-export function $$post(key, message) {
+export function $$post(key, message, route = true) {
   const registry = $$registry();
 
   if (registry.gone.has(key)) return;
@@ -55,11 +58,28 @@ export function $$post(key, message) {
   // The copies of the instances of data classes are listed in the copy, by reference.
   if (instances.length > 0) message = { ...message, $$instances: instances };
 
-  const port = registry.ports.get(key);
+  let next = key;
+  let routed = false;
+
+  if (route) {
+    const nextRoute = registry.routes.get(key);
+
+    if (nextRoute) {
+      next = nextRoute;
+      routed = true;
+    } else if (registry.main && (key === registry.main || !registry.ports.has(key))) {
+      next = registry.main;
+      routed = true;
+    }
+  }
+
+  if (routed) message = { route: key, source: registry.key, message };
+
+  const port = registry.ports.get(next);
 
   if (port) return port.postMessage(message, moved);
-  if (!registry.waiting.has(key)) registry.waiting.set(key, []);
-  registry.waiting.get(key).push([message, moved]);
+  if (!registry.waiting.has(next)) registry.waiting.set(next, []);
+  registry.waiting.get(next).push([message, moved]);
 }
 
 // A request to a thread, answered by a message with its number.
@@ -143,6 +163,25 @@ export function $$gone(key) {
 // A message from another thread: an answer to a request, or an operation on a channel of this one.
 export function $$incoming(key, data) {
   const registry = $$registry();
+
+  if ('route' in data) {
+    if (data.source !== registry.key && !registry.ports.has(data.source)) {
+      registry.routes.set(data.source, key);
+    }
+
+    if (data.route === registry.key) return $$incoming(data.source, data.message);
+
+    const next = registry.ports.has(data.route)
+      ? data.route
+      : (registry.routes.get(data.route) ?? registry.main);
+    const port = registry.ports.get(next);
+
+    if (port) return port.postMessage(data);
+    if (!registry.waiting.has(next)) registry.waiting.set(next, []);
+    registry.waiting.get(next).push([data, []]);
+
+    return;
+  }
 
   $$adopt(data);
   $$reclassed(data);

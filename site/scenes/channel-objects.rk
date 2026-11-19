@@ -1,0 +1,6 @@
+// Channel objects do the same work as channel syntax and can be passed as functions.
+const results = Channel.make(1, 0)
+const received = Channel.receive(results)
+await Channel.send(results, 42)
+console.log(await received)
+Channel.close(results)

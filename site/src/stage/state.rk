@@ -1,0 +1,201 @@
+// The state of a trace at a moment: who runs and who waits, what the buffers hold, which move is
+// being played and how far it is. Everything the scene draws comes from here, so the line of moves
+// can be dragged both ways, and tests check the scene without a canvas.
+
+import { Event, Trace, Wait } from "./trace.rk"
+
+/** What a goroutine is doing: not started yet, running, waiting on a channel, finished. */
+export type Status "none" | "run" | "wait" | "done"
+
+/** The program between two moves. The arrays go by the actors and the channels of the trace. */
+export interface Snapshot {
+    statuses Status[]
+    /** The line of the code where each goroutine is; null before its first move. */
+    lines (?number)[]
+    /** What each waiting goroutine waits for. */
+    waits (?Wait)[]
+    /** The values in the buffer of each channel, the oldest first. */
+    buffers string[][]
+    closed bool[]
+}
+
+/** The moment `t`: `t` moves are played, and the next one is `progress` of the way through. */
+export interface Frame {
+    /** The index of the move being played; the number of events when all are played. */
+    index number
+    /** From 0 to 1; 0 when no move is being played. */
+    progress number
+    /** The move being played, or null. */
+    current ?Event
+    before Snapshot
+    /** The state after the move being played; `before` when there is none. */
+    after Snapshot
+}
+
+func indexOf(ids string[], id string) number {
+    return ids.indexOf(id)
+}
+
+/** The program before its first move: only `main` runs. */
+export func initial(trace Trace) Snapshot {
+    return {
+        statuses: trace.actors.map((actor, i) => i == 0 ? "run" : "none"),
+        lines: trace.actors.map(actor => null),
+        waits: trace.actors.map(actor => null),
+        buffers: trace.channels.map(channel => []),
+        closed: trace.channels.map(channel => false),
+    }
+}
+
+/** The state after `event`; `snapshot` is not changed. */
+export func apply(trace Trace, snapshot Snapshot, event Event) Snapshot {
+    const actors = trace.actors.map(actor => actor.id)
+    const channels = trace.channels.map(channel => channel.id)
+    const next Snapshot = {
+        statuses: snapshot.statuses.slice(),
+        lines: snapshot.lines.slice(),
+        waits: snapshot.waits.slice(),
+        buffers: snapshot.buffers.map(buffer => buffer.slice()),
+        closed: snapshot.closed.slice(),
+    }
+    func resume(id string) {
+        const i = indexOf(actors, id)
+        next.statuses[i] = "run"
+        next.waits[i] = null
+    }
+
+    switch event.kind {
+    case "go":
+        next.lines[indexOf(actors, event.actor)] = event.line
+        resume(event.task)
+    case "return":
+        next.lines[indexOf(actors, event.actor)] = event.line
+        resume(event.to)
+    case "select":
+    case "turn":
+    case "publish":
+    case "cancel":
+        next.lines[indexOf(actors, event.actor)] = event.line
+        if event.kind == "cancel" {
+            const i = indexOf(actors, event.task)
+            next.statuses[i] = "done"
+            next.waits[i] = null
+        }
+    case "wait":
+        const i = indexOf(actors, event.actor)
+        next.statuses[i] = "wait"
+        next.waits[i] = event
+        next.lines[i] = event.line
+    case "pass":
+        const buffer = next.buffers[indexOf(channels, event.channel)]
+        next.lines[indexOf(actors, event.actor)] = event.line
+        if event.from == null {
+            buffer.shift()
+        } else {
+            resume(event.from)
+        }
+        if event.to == null {
+            buffer.push(event.value)
+        } else {
+            resume(event.to)
+        }
+    case "close":
+        next.closed[indexOf(channels, event.channel)] = true
+        next.lines[indexOf(actors, event.actor)] = event.line
+        // The receivers that wait on a closed channel get its zero value and go on.
+        for i, wait in snapshot.waits {
+            if wait != null && wait.op == "receive" && wait.channel == event.channel {
+                resume(actors[i])
+            }
+        }
+    case "end":
+        const i = indexOf(actors, event.actor)
+        next.statuses[i] = "done"
+        next.waits[i] = null
+    default:
+    }
+    return next
+}
+
+/** The states of a trace: before its first move, then after each one. */
+export func snapshots(trace Trace) Snapshot[] {
+    const all Snapshot[] = [initial(trace)]
+    for event in trace.events {
+        all.push(apply(trace, all[all.length - 1], event))
+    }
+    return all
+}
+
+/** The frame at `t`, which is kept between 0 and the number of moves. */
+export func frameAt(trace Trace, states Snapshot[], t number) Frame {
+    const count = trace.events.length
+    const time = Math.max(0, Math.min(count, t))
+    const index = Math.min(Math.floor(time), count)
+    if index >= count {
+        return { index: count, progress: 0, current: null, before: states[count], after: states[count] }
+    }
+    return {
+        index: index,
+        progress: time - index,
+        current: trace.events[index],
+        before: states[index],
+        after: states[index + 1],
+    }
+}
+
+/** Whether the trace ends in a stalemate. */
+export func isStalemate(trace Trace) bool {
+    return trace.events.at(-1)?.kind == "stalemate"
+}
+
+/**
+ * The files of the board, left to right: `main`, the channels, then the other goroutines, so that
+ * every message crosses the channels on its way. Each is the id of an actor or of a channel.
+ */
+export func files(trace Trace) string[] {
+    const actors = trace.actors.map(actor => actor.id)
+    return [actors[0], ...trace.channels.map(channel => channel.id), ...actors.slice(1)]
+}
+
+/** A move along a rank: from one file to another, maybe through the file of a channel. */
+export interface Move {
+    from number
+    to number
+    /** The file of the channel the value goes through from hand to hand; -1 without one. */
+    via number
+    /** What is shown on the piece; arguments on a goroutine call, or "" when there are none. */
+    value string
+    /** The index of the actor whose colour the move has. */
+    colour number
+}
+
+/** The move of an event on the board, or null: waiting, finishing and a stalemate move nothing. */
+export func moveOf(trace Trace, event Event) ?Move {
+    const board = files(trace)
+    const actors = trace.actors.map(actor => actor.id)
+    switch event.kind {
+    case "go":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.task), via: -1, value: event.args ?? "", colour: actors.indexOf(event.task) }
+    case "return":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.to), via: -1, value: event.value, colour: actors.indexOf(event.actor) }
+    case "publish":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.channel), via: -1, value: event.value, colour: actors.indexOf(event.actor) }
+    case "cancel":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.task), via: -1, value: "×", colour: actors.indexOf(event.actor) }
+    case "pass":
+        const channel = board.indexOf(event.channel)
+        const from = event.from
+        const to = event.to
+        if from != null && to != null {
+            return { from: board.indexOf(from), to: board.indexOf(to), via: channel, value: event.value, colour: actors.indexOf(from) }
+        }
+        if from != null {
+            return { from: board.indexOf(from), to: channel, via: -1, value: event.value, colour: actors.indexOf(from) }
+        }
+        return { from: channel, to: board.indexOf(to ?? ""), via: -1, value: event.value, colour: actors.indexOf(to ?? "") }
+    case "close":
+        return { from: board.indexOf(event.actor), to: board.indexOf(event.channel), via: -1, value: "×", colour: actors.indexOf(event.actor) }
+    default:
+        return null
+    }
+}

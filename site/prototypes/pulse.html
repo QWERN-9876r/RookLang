@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Сцена «Импульс» — прототип</title>
+    <link rel="stylesheet" href="./pulse.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="top">
+        <div class="brand" data-en="ROOK · STAGE 6 PROTOTYPE" data-ru="ROOK · ПРОТОТИП ЭТАПА 6">
+          ROOK · ПРОТОТИП ЭТАПА 6
+        </div>
+        <button class="language" id="language" type="button">EN</button>
+      </header>
+
+      <p class="eyebrow" data-en="Pulse / concept 01" data-ru="Импульс / концепт 01">
+        Импульс / концепт 01
+      </p>
+      <h1 data-en="One state.<br />Two updates." data-ru="Одно состояние.<br />Два обновления.">
+        Одно состояние.<br />Два обновления.
+      </h1>
+      <p
+        class="lead"
+        data-en="Change a value and follow the pulse through its dependency graph. Only the DOM nodes that read it update; the independent label stays still."
+        data-ru="Измените значение и проследите импульс по графу зависимостей. Обновятся только DOM-узлы, которые его читают; независимая подпись останется на месте."
+      >
+        Измените значение и проследите импульс по графу зависимостей. Обновятся только DOM-узлы,
+        которые его читают; независимая подпись останется на месте.
+      </p>
+
+      <div class="controls">
+        <button class="run" id="run" type="button" data-en="Change count" data-ru="Изменить count">
+          Изменить count
+        </button>
+        <button class="reset" id="reset" type="button" data-en="Reset" data-ru="Сбросить">
+          Сбросить
+        </button>
+      </div>
+      <p
+        class="status"
+        id="status"
+        aria-live="polite"
+        data-en="Ready · count = 0"
+        data-ru="Готово · count = 0"
+      >
+        Готово · count = 0
+      </p>
+
+      <section class="grid" aria-label="State dependency prototype">
+        <article class="panel">
+          <div class="panel-head">
+            <span data-en="Rook source" data-ru="Код на Rook">Код на Rook</span>
+            <span>counter.rk</span>
+          </div>
+          <pre><span class="kw">comp</span> Counter() {
+  <span class="kw">state</span> <span class="name">count</span> = <span class="number" id="code-count">0</span>
+  <span class="kw">return</span> &lt;main&gt;
+    &lt;button&gt;{<span class="name">count</span>}&lt;/button&gt;
+    &lt;p&gt;{<span class="name">count</span> * 2}&lt;/p&gt;
+    &lt;small&gt;always here&lt;/small&gt;
+  &lt;/main&gt;
+}</pre>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head">
+            <span data-en="Dependency graph" data-ru="Граф зависимостей">Граф зависимостей</span>
+            <span data-en="only readers" data-ru="только читатели">только читатели</span>
+          </div>
+          <div class="graph" id="graph">
+            <svg viewBox="0 0 400 306" preserveAspectRatio="none" aria-hidden="true">
+              <path class="edge" d="M200 86 C200 132 105 136 105 198" />
+              <path class="edge" d="M200 86 C200 132 295 136 295 198" />
+              <path class="pulse-edge" d="M200 86 C200 132 105 136 105 198" />
+              <path class="pulse-edge" d="M200 86 C200 132 295 136 295 198" />
+            </svg>
+            <div class="source-node">
+              <span class="state-label">state</span>
+              <strong>count = <span id="state-count">0</span></strong>
+            </div>
+            <div class="target-node target-a">
+              <span class="node-kind" data-en="button text" data-ru="текст кнопки"
+                >текст кнопки</span
+              >
+              <strong id="graph-count">0</strong>
+            </div>
+            <div class="target-node target-b">
+              <span class="node-kind" data-en="paragraph" data-ru="абзац">абзац</span>
+              <strong id="graph-double">0</strong>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel preview">
+          <div class="panel-head">
+            <span data-en="DOM preview" data-ru="Превью DOM">Превью DOM</span>
+            <span data-en="updated nodes flash" data-ru="обновлённые узлы вспыхивают">
+              обновлённые узлы вспыхивают
+            </span>
+          </div>
+          <div class="dom">
+            <div class="dom-row" id="button-node">
+              <span>&lt;button&gt;</span>
+              <strong id="button-value">0</strong>
+            </div>
+            <div class="dom-row" id="paragraph-node">
+              <span>&lt;p&gt;</span>
+              <strong id="paragraph-value">0</strong>
+            </div>
+            <div class="dom-row static" id="static-node">
+              <span>&lt;small&gt;</span>
+              <strong data-en="always here" data-ru="всегда здесь">всегда здесь</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+      <p
+        class="footnote"
+        data-en="The pulse follows dependencies, not the shape of the markup: unrelated nodes do not flash."
+        data-ru="Импульс идёт по зависимостям, а не по дереву разметки: посторонние узлы не вспыхивают."
+      >
+        Импульс идёт по зависимостям, а не по дереву разметки: посторонние узлы не вспыхивают.
+      </p>
+    </main>
+    <script src="./pulse.js" defer></script>
+  </body>
+</html>

@@ -14,6 +14,10 @@ export comp WebComponents() {
             compile error.
         </p>
         <Example name="html-tag" />
+        <p>
+            If the board is added to a page built with another framework, expose it as a custom
+            element and pass its task collection as a JavaScript property.
+        </p>
         <ul>
             <li>
                 The markup goes into the element's <b>shadow root</b> when the element gets into

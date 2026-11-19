@@ -1,6 +1,7 @@
 // Раздел «Channel и Topic» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { ConcurrencyStage } from "../../stage/concurrency.rk"
 
 export comp ChannelObjects() {
     return <>
@@ -17,6 +18,11 @@ export comp ChannelObjects() {
             {" "}<code>Topic.make</code> не проверяет, что значения могут уйти в другие вкладки.
         </p>
         <p>
+            По мере развития доски её API для задач может принимать операции каналов и топиков
+            как значения там, где нужен callback, а остальное приложение по-прежнему использует
+            краткую запись каналов и топиков.
+        </p>
+        <p>
             <code>Channel.EMPTY</code> и <code>Topic.EMPTY</code> — нулевые значения
             {" "}<code>chan T</code> и <code>topic T</code>, одни на все типы, и они закрыты: приём
             сразу даёт нулевое значение типа, а <code>ok</code> равно <code>false</code>,
@@ -27,4 +33,8 @@ export comp ChannelObjects() {
         </p>
         <Example name="channel-objects" />
     </>
+}
+
+export comp ChannelObjectsStage() {
+    return <ConcurrencyStage name="channel-objects" title="Channel и Topic" />
 }

@@ -2,6 +2,7 @@
 
 import { Strings } from "../i18n.rk"
 import { HOME } from "./home-strings.rk"
+import { STAGE } from "./stage-strings.rk"
 
 export const STRINGS Strings = {
     tagline: "JavaScript on every core.",
@@ -42,9 +43,16 @@ export const STRINGS Strings = {
     editor: "Rook code",
     run: "▶ Run",
     openInPlayground: "Open in playground",
+    playOnBoard: "Play on the board",
+    sourceLanguage: "I come from",
+    sourceJavaScript: "JavaScript",
+    sourceTypeScript: "TypeScript",
+    sourceGo: "Go",
+    jsOutput: "JavaScript output",
     withoutRook: "Without Rook",
     code: "Code",
     result: "Result",
+    board: "Board",
     both: "Both",
     runAgain: "Run again",
     reset: "Reset",
@@ -62,6 +70,34 @@ export const STRINGS Strings = {
     copied: "Copied",
     terminal: "Terminal",
     home: HOME,
+    stage: STAGE,
+    docsMap: {
+        mapEyebrow: "Language map",
+        mapTitle: "The guide, as a route",
+        mapLead: "Each square is a section of the guide. The rook marks where you are; visited sections stay gold. Your progress is saved in this browser.",
+        current: "you are here",
+        visited: "visited",
+        ahead: "ahead",
+        clearProgress: "Clear progress",
+        progress: (visited, total) => `${visited} of ${total} sections`,
+        taskEyebrow: "One move",
+        taskTitle: "Let the message through.",
+        taskLead: "The send is waiting and the program is stuck. Change one number so the value can enter the channel before the receive.",
+        buffer: "buffer",
+        tryMove: "Try this move",
+        taskReady: "Choose a buffer and run the program.",
+        taskRunning: "Running the program…",
+        taskWaiting: "The send is waiting for a receiver.",
+        taskStalemate: "The send waits on an unbuffered channel. The trace confirms a stalemate.",
+        taskSent: size => `Value entered the channel buffer (${size}).`,
+        taskReceived: value => `Received ${value} from the buffer.`,
+        taskFinished: "The program finished.",
+        taskSolved: "Stalemate removed. The trace confirms the value was sent and received.",
+        taskOutput: value => `Program output: ${value}`,
+        taskError: error => `Program error: ${error}`,
+        traceTitle: "Runtime trace",
+        channel: size => `jobs: channel created with buffer ${size}`,
+    },
     playgroundStart: `// The code compiles on every change. "Run" (Ctrl+Enter) runs it:
 // document.body is the result area, and console.log prints below it.
 

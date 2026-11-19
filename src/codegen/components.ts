@@ -233,7 +233,7 @@ export abstract class ComponentEmitter extends StyleEmitter {
       ),
     );
     // The setters may change arguments of decorators, so their markers are resolved too.
-    const code = resolveMarkers(this.placeSetters(block, result), reactive);
+    const code = resolveMarkers(this.placeSetters(block, result), reactive, this.options.trace);
 
     this.line(label ? `${label}: ${code}` : code);
 
@@ -287,7 +287,7 @@ export abstract class ComponentEmitter extends StyleEmitter {
       const exported = component.exported ? 'export ' : '';
 
       this.line(
-        `${exported}function $$${component.name.name}(${params}) ${resolveMarkers(body, reactive)}`,
+        `${exported}function $$${component.name.name}(${params}) ${resolveMarkers(body, reactive, this.options.trace)}`,
       );
     });
   }

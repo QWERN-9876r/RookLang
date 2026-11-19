@@ -1,16 +1,20 @@
-// What Rook has, as a grid of cards of different sizes, each with a glimpse of it: cores that a
-// goroutine lights up, select, an error of the checker, Rook beside its JavaScript, a counter
-// that is a real component, and the tools.
+// What Rook has, as a grid of cards of different sizes, each with a glimpse of it: small boards
+// that play `go`, select and the border between threads (small-board.rk), a counter that is a
+// real component, a component of a server, and the tools.
 
 import { Icon, IconName } from "../../ui/icon.rk"
 import { highlight } from "../highlight.rk"
-import { text } from "../i18n.rk"
+import { sectionHref, text } from "../i18n.rk"
 import { Reveal } from "../layout/reveal.rk"
-import { CORES, COUNTER, GOROUTINE, MAPPINGS, SELECT, TYPE_ERROR } from "./code.rk"
+import { GO_SCENE } from "../stage/small-go.rk"
+import { SELECT_SCENE } from "../stage/small-select.rk"
+import { TYPES_SCENE } from "../stage/small-types.rk"
+import { GOROUTINE, SELECT_CASES, SERVER, TYPE_ERROR } from "./code.rk"
 import common from "./section.module.css"
 import styles from "./features.module.css"
 import { Feature } from "./feature.rk"
 import { Counter } from "./counter.rk"
+import { SmallBoard } from "./small-board.rk"
 
 interface Tool {
     icon IconName
@@ -25,15 +29,6 @@ const TOOLS Tool[] = [
     { icon: "layers", label: ".d.ts" },
 ]
 
-/** The numbers of the cores, which light up one after another as goroutines take them. */
-func cores() number[] {
-    const all number[] = []
-    for let i = 0; i < CORES; i++ {
-        all.push(i)
-    }
-    return all
-}
-
 export comp Features() {
     const h = text().home
     return <section class={common.section}>
@@ -47,32 +42,34 @@ export comp Features() {
             <Reveal>
                 <div class={styles.grid}>
                     <Feature title={h.goroutinesTitle} body={h.goroutinesText} icon="cpu" span="two">
-                        <pre class={styles.line}>{highlight(GOROUTINE, "rook")}</pre>
-                        <div class={styles.cores} aria-hidden="true">
-                            {for core in cores() {
-                                <span style={`--i: ${core}`} />
-                            }}
-                        </div>
+                        <SmallBoard scene={GO_SCENE} tall={true}>
+                            <pre class={styles.line}>{highlight(GOROUTINE, "rook")}</pre>
+                        </SmallBoard>
                     </Feature>
                     <Feature title={h.channelsTitle} body={h.channelsText} icon="zap">
-                        <pre class={styles.snippet}>{highlight(SELECT, "rook")}</pre>
+                        <SmallBoard scene={SELECT_SCENE}>
+                            <pre class={styles.snippet}>
+                                {highlight("select {", "rook")}
+                                <span class={styles.first}>{highlight(SELECT_CASES[0], "rook")}</span>
+                                <span class={styles.second}>{highlight(SELECT_CASES[1], "rook")}</span>
+                                {"}"}
+                            </pre>
+                            <a class={styles.more} href={sectionHref("docs", "select")}>
+                                {h.channelsMore}
+                                <Icon name="arrow-right" size={14} />
+                            </a>
+                        </SmallBoard>
                     </Feature>
                     <Feature title={h.typesTitle} body={h.typesText} icon="shield">
-                        <pre class={styles.error}>{TYPE_ERROR}</pre>
-                    </Feature>
-                    <Feature title={h.jsTitle} body={h.jsText} icon="code">
-                        <div class={styles.mappings}>
-                            {for mapping in MAPPINGS {
-                                <div class={styles.mapping}>
-                                    <code>{highlight(mapping[0], "rook")}</code>
-                                    <code>{highlight(mapping[1], "js")}</code>
-                                </div>
-                            }}
-                        </div>
+                        <SmallBoard scene={TYPES_SCENE}>
+                            <pre class={[styles.error, styles.alarm]}>{TYPE_ERROR}</pre>
+                        </SmallBoard>
                     </Feature>
                     <Feature title={h.componentsTitle} body={h.componentsText} icon="layers">
-                        <pre class={styles.line}>{highlight(COUNTER, "rook")}</pre>
                         <Counter />
+                    </Feature>
+                    <Feature title={h.serverTitle} body={h.serverText} icon="terminal">
+                        <pre class={styles.snippet}>{highlight(SERVER, "rook")}</pre>
                     </Feature>
                     <Feature title={h.toolsTitle} body={h.toolsText} icon="package" span="row">
                         <div class={styles.tools}>

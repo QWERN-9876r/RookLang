@@ -1,0 +1,14 @@
+// The trace of the program in the "Goroutines" section, recorded when the site is built.
+
+import { SCENES } from "virtual:scenes"
+import { Program } from "./stage.rk"
+import { Trace } from "./trace.rk"
+
+const traces Trace[] = SCENES.goroutines.traces
+
+export const GOROUTINES Program = {
+    lines: SCENES.goroutines.lines,
+    initial: SCENES.goroutines.initial,
+    next: (value number) => value,
+    trace: (_ number) => traces[0],
+}

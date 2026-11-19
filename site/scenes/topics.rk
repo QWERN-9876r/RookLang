@@ -1,0 +1,19 @@
+// A topic sends a copy from its worker to every listening thread.
+const progress = topic<number>("scene-progress")
+
+async func show(t topic number) {
+    for value in t {
+        console.log("progress:", value)
+    }
+}
+
+func work(t topic number) number {
+    t <- 1
+    t <- 2
+    return 2
+}
+
+show(progress)
+console.log("done:", await go work(progress))
+<-after(20)
+close(progress)

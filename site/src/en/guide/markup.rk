@@ -30,6 +30,10 @@ export comp Markup() {
         </p>
         <Example name="markup" />
         <p>
+            This is the first frame of our task board: a heading, a form for a new task and an
+            empty list. We will make the rows components and connect them to task data next.
+        </p>
+        <p>
             Inside <code>{"{...}"}</code> you can write ordinary <code>if</code>, <code>for</code>
             and <code>switch</code>: the elements in their blocks become the content.
         </p>

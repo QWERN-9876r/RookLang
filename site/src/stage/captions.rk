@@ -1,0 +1,141 @@
+// The words of the scene for a move: the caption under the board, its label, and where the move
+// is in the code.
+
+import { Snapshot } from "./state.rk"
+import { StageStrings } from "./strings.rk"
+import { Trace } from "./trace.rk"
+
+export interface Caption {
+    label string
+    text string
+}
+
+/** A piece of a caption: plain text, or code that was between backticks. */
+export interface Part {
+    text string
+    code bool
+}
+
+/** The line of the code that a move is on, and the actor whose colour marks it. */
+export interface Mark {
+    /** 0 when the move has no line. */
+    line number
+    actor number
+    lines number[]
+}
+
+func labelOf(trace Trace, id string) string {
+    for actor in trace.actors {
+        if actor.id == id {
+            return actor.label
+        }
+    }
+    for channel in trace.channels {
+        if channel.id == id {
+            return channel.label
+        }
+    }
+    return id
+}
+
+/** The caption of the move `index` of the trace; -1 is the start, before any move. */
+export func captionOf(strings StageStrings, trace Trace, states Snapshot[], index number) Caption {
+    if index < 0 {
+        return { label: strings.startLabel, text: strings.start }
+    }
+    const event = trace.events[index]
+    const count = trace.events.length
+    const name = (id string) => labelOf(trace, id)
+    const by = (id string) => strings.moveLabel(index + 1, count, name(id))
+    switch event.kind {
+    case "go":
+        return { label: by(event.actor), text: strings.go(name(event.task), event.args) }
+    case "return":
+        return {
+            label: by(event.actor),
+            text: strings.returnResult(name(event.actor), name(event.to), event.value),
+        }
+    case "select":
+        return { label: by(event.actor), text: strings.select(name(event.actor)) }
+    case "turn":
+        return { label: by(event.actor), text: strings.turn(event.task, event.phase) }
+    case "publish":
+        return { label: by(event.actor), text: strings.publish(name(event.channel), event.value) }
+    case "cancel":
+        return { label: by(event.actor), text: strings.cancel(name(event.task)) }
+    case "wait":
+        const channel = trace.channels.find(each => each.id == event.channel)
+        const who = name(event.actor)
+        if event.op == "receive" {
+            return { label: by(event.actor), text: strings.waitReceive(who, name(event.channel)) }
+        }
+        const full = channel != null && channel.size > 0
+        return {
+            label: by(event.actor),
+            text: full ? strings.waitFull(who, name(event.channel)) : strings.waitNoBuffer(who, name(event.channel)),
+        }
+    case "pass":
+        const through = name(event.channel)
+        const from = event.from
+        const to = event.to
+        if from != null && to != null {
+            return {
+                label: by(event.actor),
+                text: event.actor == from
+                    ? strings.handSend(through, event.value, name(to))
+                    : strings.handReceive(through, name(to), event.value, name(from)),
+            }
+        }
+        if from != null {
+            const at = trace.channels.findIndex(each => each.id == event.channel)
+            const used = states[index + 1].buffers[at].length
+            return { label: by(event.actor), text: strings.intoBuffer(through, event.value, used, trace.channels[at].size) }
+        }
+        return { label: by(event.actor), text: strings.outOfBuffer(name(event.actor), event.value, through) }
+    case "close":
+        return { label: by(event.actor), text: strings.close(name(event.channel)) }
+    case "end":
+        if event.actor == trace.actors[0].id {
+            return { label: strings.moveLabel(index + 1, count, strings.won), text: strings.endMain }
+        }
+        return { label: by(event.actor), text: strings.end(name(event.actor)) }
+    default:
+        return { label: strings.stalemateLabel, text: strings.stalemate }
+    }
+}
+
+/** Where the move `index` is in the code. */
+export func markOf(trace Trace, index number) Mark {
+    if index < 0 {
+        return { line: 0, actor: 0, lines: [] }
+    }
+    const event = trace.events[index]
+    const actor = (id string) => Math.max(0, trace.actors.findIndex(each => each.id == id))
+    switch event.kind {
+    case "select":
+        return { line: event.line, actor: actor(event.actor), lines: event.lines }
+    case "go":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "return":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "turn":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "publish":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "cancel":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "wait":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "pass":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    case "close":
+        return { line: event.line, actor: actor(event.actor), lines: [] }
+    default:
+        return { line: 0, actor: 0, lines: [] }
+    }
+}
+
+/** A caption as its pieces: what is between backticks is code. */
+export func partsOf(text string) Part[] {
+    return text.split("`").map((piece, i) => ({ text: piece, code: i % 2 == 1 })).filter(part => part.text != "")
+}

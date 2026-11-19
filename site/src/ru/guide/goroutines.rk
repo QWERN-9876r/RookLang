@@ -1,6 +1,9 @@
 // Раздел «Горутины» русского гайда; разделы перечислены в guide.rk.
 
 import { Example } from "../../example.rk"
+import { GoNote } from "../../source-language.rk"
+import { GOROUTINES } from "../../stage/goroutines.rk"
+import { Stage } from "../../stage/stage.rk"
 
 export comp Goroutines() {
     return <>
@@ -17,7 +20,13 @@ export comp Goroutines() {
             копию результата, поэтому это данные, а функция не может пользоваться
             {" "}<code>let</code>-переменными модуля. Компилятор проверяет и то, и другое.
         </p>
+        <GoNote message="В отличие от Go, горутины Rook не разделяют память: аргументы и результаты копируются между потоками-воркерами. Чтобы передать значение, используйте канал." />
         <Example name="goroutines" />
+        <p>
+            Доска использует горутины для фоновой обработки задач, которая занимает процессор.
+            Воркер получает данные задачи и возвращает результат; каналы передают команды и
+            результаты между воркером и остальным приложением.
+        </p>
         <p>
             <code>{"go func(n number) { ... }(i)"}</code> выполняет функциональный литерал
             горутиной: локальные имена, которыми он пользуется, копируются в неё, как его
@@ -46,4 +55,8 @@ export comp Goroutines() {
         </p>
         <Example name="data-classes" />
     </>
+}
+
+export comp GoroutinesStage() {
+    return <Stage title="Горутины" program={GOROUTINES} />
 }

@@ -20,6 +20,11 @@ export comp Reactivity() {
             again only when the condition changes, and the blocks of a list are found by the array
             item itself and moved, not created again.
         </p>
+        <p>
+            The task list is now the board's first working version: adding or removing a task
+            changes the list, and its empty state follows the same data. The example below is that
+            small app.
+        </p>
         <Example name="todos" />
         <p>
             A list that comes again as new objects with the same data, as one loaded again from a

@@ -4,13 +4,25 @@
 
 import { $$finish, $$pump, $$zero } from './chan.js';
 import { $$ask, $$isEmpty, $$ownerOf, $$pin, $$post, $$registry, $$stopped } from './threads.js';
+import { $$tracer } from './trace.js';
 
 // `select`: the index of the case that went on, and what it received. A case is { channel } to
 // receive or { channel, value } to send, with the zero value that Channel.EMPTY gives, if it is
 // not null; from another thread, { channel, send, value }. One that can go on at once wins, a
 // random one as in Go; else `default`, -1, if there is one; else the first that can go on later.
 // A case with a null channel never goes on, and one with Channel.EMPTY always can.
-export async function $$select(cases, hasDefault) {
+export async function $$select(cases, hasDefault, at) {
+  if (at) {
+    const trace = $$tracer();
+
+    trace?.emit({
+      kind: 'select',
+      actor: trace?.actor(),
+      line: at.line,
+      lines: at.lines,
+    });
+  }
+
   const registry = $$registry();
   const all = cases.map((each, i) => ({
     i,
@@ -38,12 +50,16 @@ export async function $$select(cases, hasDefault) {
   for (const i of order) {
     const { id, send, value, zero } = all[i];
     const owner = $$ownerOf(id);
+    const place = at && {
+      actor: $$tracer()?.actor(),
+      line: at.cases[i] || at.line,
+    };
     const ready = $$isEmpty(id)
       ? send
         ? []
         : [zero, false]
       : owner === registry.key
-        ? $$try(id, send, value)
+        ? $$try(id, send, value, place)
         : await $$ask(owner, { op: 'try', channel: id, send, value });
 
     if (ready) return [i, ...ready];
@@ -76,7 +92,7 @@ export async function $$select(cases, hasDefault) {
 
 // What a case of a select gets at once, if it can go on: [] for a send, [value, ok] for a receive.
 // A receiver or sender that a select of another thread waits with is left to $$pump.
-export function $$try(id, send, value) {
+export function $$try(id, send, value, at) {
   const state = $$registry().states.get(id);
 
   if (!state) throw $$stopped();
@@ -84,6 +100,18 @@ export function $$try(id, send, value) {
   if (send && state.closed) throw new Error('send on a closed channel');
   if (!send && state.buffer.length > 0) {
     const received = state.buffer.shift();
+
+    if (at) {
+      $$tracer()?.emit({
+        kind: 'pass',
+        actor: at.actor,
+        channel: id,
+        from: null,
+        to: at.actor,
+        value: received,
+        line: at.line,
+      });
+    }
 
     $$pump(id);
 
@@ -104,17 +132,51 @@ export function $$try(id, send, value) {
     if (lock === 'done') continue;
     if (!send) {
       $$finish(entry);
+      if (at) {
+        $$tracer()?.emit({
+          kind: 'pass',
+          actor: at.actor,
+          channel: id,
+          from: entry.at?.actor ?? null,
+          to: at.actor,
+          value: entry.value,
+          line: at.line,
+        });
+      }
 
       return [entry.value, true];
     }
 
     $$finish(entry, [value, true]);
+    if (at) {
+      $$tracer()?.emit({
+        kind: 'pass',
+        actor: at.actor,
+        channel: id,
+        from: at.actor,
+        to: entry.at?.actor ?? null,
+        value,
+        line: at.line,
+      });
+    }
 
     return [];
   }
 
   if (send && state.buffer.length < state.size) {
     state.buffer.push(value);
+    if (at) {
+      $$tracer()?.emit({
+        kind: 'pass',
+        actor: at.actor,
+        channel: id,
+        from: at.actor,
+        to: null,
+        value,
+        line: at.line,
+      });
+    }
+
     $$pump(id);
 
     return [];

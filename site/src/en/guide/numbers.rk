@@ -11,6 +11,9 @@ export comp Numbers() {
             {" "}<code>BigInt(n)</code> or <code>Number(b)</code>. They compare with
             {" "}<code>&lt;</code>, and <code>==</code> between them is an error, since it is always
             false.
+            For the board, use <code>bigint</code> for IDs or a counter only if they may exceed
+            <code>Number.MAX_SAFE_INTEGER</code>: it keeps integer values exact, but does not by
+            itself make an ID stable or unique. Otherwise, <code>number</code> is enough.
         </p>
         <Example name="bigint" />
         <p>

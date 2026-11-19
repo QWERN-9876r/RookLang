@@ -1,13 +1,24 @@
-// A component exists only at compile time: every use is replaced
-// by its code, so JS has neither a Card function nor a library
-comp Card(title string, kind string = "info", children Content) {
-    return <section class={`card ${kind}`}>
-        <h4>{title}</h4>
-        {children}
-    </section>
+type Priority "low" | "normal" | "high"
+
+interface Task {
+    id number
+    title string
+    done bool
+    priority Priority
 }
 
+comp TaskRow(task Task) {
+    return <li>
+        <label><input type="checkbox" checked={task.done} />{task.title}</label>
+        <small>{task.priority}</small>
+    </li>
+}
+
+const tasks Task[] = [
+    { id: 1, title: "Write the task model", done: true, priority: "normal" },
+    { id: 2, title: "Build the task board", done: false, priority: "high" },
+]
+
 document.body.append(
-    <Card title="Guava">A sweet tropical fruit.</Card>,
-    <Card title="Careful" kind="warning">The stone is not edible.</Card>,
+    <ul>{for task in tasks { <TaskRow task={task} /> }}</ul>,
 )

@@ -3,8 +3,8 @@
 import { EXAMPLES, HANDWRITTEN } from "virtual:examples/ru"
 import { renderDocs } from "../docs/page.rk"
 import { setLanguage } from "../i18n.rk"
-import { SECTIONS } from "./guide.rk"
+import { SECTIONS, STAGES } from "./guide.rk"
 import { STRINGS } from "./strings.rk"
 
 setLanguage(STRINGS, EXAMPLES, HANDWRITTEN, "docs")
-renderDocs(SECTIONS)
+renderDocs(SECTIONS, STAGES)

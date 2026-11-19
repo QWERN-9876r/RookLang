@@ -9,6 +9,8 @@ export comp Modules() {
             Modules are ES modules: <code>import</code> and <code>export</code> as in JS. Imports of
             {" "}<code>.rk</code> modules are checked: the compiler reads their exports and knows
             their types.
+            As the board grows, its task definition, collection operations and entry point can live
+            in separate <code>.rk</code> modules; checked imports carry exported types between them.
         </p>
         <p>
             Types of npm packages, <code>.ts</code> files and Node modules (<code>node:fs</code>)

@@ -1,13 +1,52 @@
-// "Write Rook, ship JavaScript": a piece of Rook beside the JavaScript it compiles to, for a few
-// topics. The JavaScript is fixed text, so the home page does not load the compiler.
+// "Write Rook. Ship JavaScript": one card where a piece of Rook turns into the JavaScript it
+// compiles to, for a few topics. Every word stands by itself (words.rk): the words the two
+// languages share stay on the screen and go to their new places, the others leave and come. The
+// JavaScript is fixed text, so the home page does not load the compiler.
 
-import { CodeBlock } from "../../ui/code-block.rk"
-import { highlight } from "../highlight.rk"
 import { text } from "../i18n.rk"
 import { Reveal } from "../layout/reveal.rk"
-import { COMPARISONS } from "./code.rk"
+import { COMPARISONS, Comparison, Topic } from "./code.rk"
+import { Piece, linesOf, piecesOf, widthOf } from "./words.rk"
 import styles from "./compare.module.css"
 import common from "./section.module.css"
+
+/** How long the Rook of a topic stays before it turns into JavaScript by itself, in milliseconds. */
+const PAUSE = 1100
+
+/** The height of a line of the code, in em. */
+const LINE = 1.75
+
+type Language "rook" | "js"
+
+/**
+ * Where a word stands in a language and whether it is seen there. What leaves goes first, then
+ * the shared words move, then the new ones come: `--move` and `--fade` are the delays.
+ */
+func placeOf(piece Piece, language Language) string {
+    const here = language == "rook" ? piece.rook : piece.js
+    const at = here ?? piece.rook ?? piece.js
+    if at == null {
+        return ""
+    }
+    const shared = piece.rook != null && piece.js != null
+    const shown = here == null ? 0 : 1
+    const move = shared ? 0.15 : 0
+    const fade = here == null || shared ? 0 : 0.6
+    return `transform: translate(${at.col}ch, ${at.line * LINE}em); opacity: ${shown}; --move: ${move}s; --fade: ${fade}s`
+}
+
+/** The room the code of a language takes: as tall as its lines, as wide as the longest line of both. */
+func roomOf(comparison Comparison, language Language) string {
+    const lines = linesOf(language == "rook" ? comparison.rook : comparison.js)
+    const width = Math.max(widthOf(comparison.rook), widthOf(comparison.js))
+    return `height: ${lines * LINE}em; min-width: ${width}ch`
+}
+
+/** The class of the colour of a word in a language. */
+func kindOf(piece Piece, language Language) string {
+    const here = language == "rook" ? piece.rook : piece.js
+    return (here ?? piece.rook ?? piece.js)?.kind ?? ""
+}
 
 export comp Compare() {
     const t = text()
@@ -17,39 +56,103 @@ export comp Compare() {
         components: h.compareComponents,
         errors: h.compareErrors,
     }
-    state active = COMPARISONS[0].id
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches
+    state active Topic = COMPARISONS[0].id
+    state language Language = "rook"
+    derived comparison = COMPARISONS.find(each => each.id == active) ?? COMPARISONS[0]
+    derived pieces = piecesOf(comparison.rook, comparison.js)
+    ref host
+    let timer = 0
+
+    /** The topic turns into JavaScript by itself once; then the switch is the reader's. */
+    func turn() {
+        clearTimeout(timer)
+        if !still {
+            timer = setTimeout(() => {
+                language = "js"
+            }, PAUSE)
+        }
+    }
+
+    func open(topic Topic) {
+        active = topic
+        language = "rook"
+        turn()
+    }
+
+    func show(next Language) {
+        clearTimeout(timer)
+        language = next
+    }
+
+    mount {
+        const observer = new IntersectionObserver(entries => {
+            if entries.some(entry => entry.isIntersecting) {
+                turn()
+                observer.disconnect()
+            }
+        }, { threshold: 0.6 })
+        observer.observe(host)
+        defer {
+            observer.disconnect()
+            clearTimeout(timer)
+        }
+    }
+
     return <section class={common.section}>
         <div class={common.container}>
             <Reveal>
                 <div class={common.heading}>
                     <h2>{h.compareTitle}</h2>
-                    <p>{h.compareLead}</p>
+                    <p>{h.jsText}</p>
                 </div>
             </Reveal>
             <Reveal>
                 <div class={styles.switch} role="tablist">
-                    {for comparison in COMPARISONS {
+                    {for each in COMPARISONS {
                         <button
-                            class={[styles.option, comparison.id == active ? styles.active : null]}
+                            class={[styles.option, each.id == active ? styles.active : null]}
                             type="button"
                             role="tab"
-                            aria-selected={comparison.id == active}
-                            onClick={active = comparison.id}
+                            aria-selected={each.id == active}
+                            onClick={open(each.id)}
                         >
-                            {labels[comparison.id]}
+                            {labels[each.id]}
                         </button>
                     }}
                 </div>
-                {for comparison in COMPARISONS {
-                    <div class={styles.pair} hidden={comparison.id != active}>
-                        <CodeBlock code={comparison.rook} label="app.rk" copyLabel={t.copy} copiedLabel={t.copied}>
-                            {highlight(comparison.rook, "rook")}
-                        </CodeBlock>
-                        <CodeBlock code={comparison.js} label="app.js" copyLabel={t.copy} copiedLabel={t.copied}>
-                            {highlight(comparison.js, "js")}
-                        </CodeBlock>
+                <div class={styles.card} ref={host}>
+                    <div class={styles.bar}>
+                        <span class={styles.file}>app.<b>{language == "rook" ? "rk" : "js"}</b></span>
+                        <div class={styles.languages}>
+                            <button
+                                class={[styles.language, language == "rook" ? styles.chosen : null]}
+                                type="button"
+                                aria-pressed={language == "rook"}
+                                onClick={show("rook")}
+                            >
+                                Rook
+                            </button>
+                            <button
+                                class={[styles.language, language == "js" ? styles.chosen : null]}
+                                type="button"
+                                aria-pressed={language == "js"}
+                                onClick={show("js")}
+                            >
+                                {t.stage.javascript}
+                            </button>
+                        </div>
                     </div>
-                }}
+                    <div class={styles.scroll}>
+                        <div class={styles.code} style={roomOf(comparison, language)}>
+                            {for piece in pieces {
+                                <span class={[styles.word, kindOf(piece, language)]} style={placeOf(piece, language)}>
+                                    {piece.text}
+                                </span>
+                            }}
+                        </div>
+                    </div>
+                </div>
             </Reveal>
         </div>
     </section>

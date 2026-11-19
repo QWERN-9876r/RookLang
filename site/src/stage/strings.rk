@@ -1,0 +1,77 @@
+// The texts of the scene. Each language has them in its stage-strings.rk; the captions of the
+// moves are built from them by captions.rk. In a caption, text between backticks is code.
+
+import { Labels } from "./camera.rk"
+
+export interface PulseLabels {
+    title string
+    lead string
+    change string
+    reset string
+    ready func(number) string
+    changed func(number) string
+    source string
+    graph string
+    preview string
+    state string
+    button string
+    paragraph string
+    independent string
+    updated string
+}
+
+export interface StageStrings {
+    /** What the board means, under the title of the scene. */
+    lead string
+    /** The tab with the JavaScript the code compiles to. */
+    javascript string
+    /** Before the first move: the label and the caption. */
+    startLabel string
+    start string
+    /** `move 3 of 22 · main`: the number of the move, how many there are, who made it. */
+    moveLabel func(number, number, string) string
+    /** Instead of the one who made the move, when the game is won. */
+    won string
+    /** The stalemate: its label, its word over the board, its caption. */
+    stalemateLabel string
+    stalemateWord string
+    stalemate string
+    /** Under the code: what the live number does, and what to do after a stalemate. */
+    hint string
+    hintStalemate string
+    /** The name of the live number for screen readers, with its value. */
+    liveNumber func(number) string
+    play string
+    pause string
+    /** The name of the line of moves. */
+    timeline string
+    /** What the canvas writes under the files. */
+    labels Labels
+    pulse PulseLabels
+    /** `go`: the name of the new goroutine and the copied arguments, if any. */
+    go func(string, ?string) string
+    /** The result of a goroutine returning to the one that started it. */
+    returnResult func(string, string, string) string
+    select func(string) string
+    turn func(number, string) string
+    publish func(string, string) string
+    cancel func(string) string
+    /** A receive that waits: who, and on which channel. */
+    waitReceive func(string, string) string
+    /** A send that waits on a channel without a buffer, and on a full buffer: who, the channel. */
+    waitNoBuffer func(string, string) string
+    waitFull func(string, string) string
+    /** A send to a goroutine that already waited: the channel, the value, who got it. */
+    handSend func(string, string, string) string
+    /** A receive from a goroutine that waited to send: the channel, who took, the value, from whom. */
+    handReceive func(string, string, string, string) string
+    /** A send into the buffer: the channel, the value, how many places are taken, of how many. */
+    intoBuffer func(string, string, number, number) string
+    /** A receive from the buffer: who, the value, the channel. */
+    outOfBuffer func(string, string, string) string
+    /** `close`: the channel. */
+    close func(string) string
+    /** A goroutine has finished: its name. And the program itself has. */
+    end func(string) string
+    endMain string
+}

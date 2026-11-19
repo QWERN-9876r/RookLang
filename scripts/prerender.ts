@@ -20,7 +20,7 @@ import { openTab, type Tab } from './chrome.ts';
 // headless Chrome, as a visitor sees it, and what it has drawn is saved to its index.html; when the
 // page loads, its scripts draw it again, alive. The guide and the examples get a page for each
 // section, docs/goroutines/, with its own title, description and tags (site/seo.ts), and the
-// sitemap lists them; docs/ itself leads to its first section. `npm run site:build` runs it after
+// sitemap lists them; docs/ itself is the language map. `npm run site:build` runs it after
 // Vite. The path to Chrome is taken from $CHROME, else the usual ones are tried.
 
 const dist = new URL('../site/dist/', import.meta.url).pathname;
@@ -82,7 +82,7 @@ async function draw(tab: Tab, url: string): Promise<void> {
 /** The sections of the page, in order: the links to the folders next to the current one. */
 const SECTION_IDS = `(() => {
   const folder = (path) => path.slice(0, path.lastIndexOf('/', path.length - 2) + 1);
-  const here = folder(location.pathname);
+  const here = location.pathname.endsWith('/docs/') ? location.pathname : folder(location.pathname);
   const ids = [...document.querySelectorAll('a[href]')]
     .map((link) => new URL(link.href))
     .filter((url) => url.origin === location.origin && url.pathname !== here && folder(url.pathname) === here)
@@ -95,7 +95,7 @@ const SECTION_IDS = `(() => {
  * first paragraph of a section of the guide, by the line of an example in the list.
  */
 const ONE_SECTION = `(() => {
-  for (const hidden of document.querySelectorAll('article[hidden]')) hidden.remove();
+  for (const hidden of document.querySelectorAll('article[hidden], [data-stage][hidden]')) hidden.remove();
   const source = document.querySelector('article p') ?? document.querySelector('[aria-current="page"] span');
   const text = (source?.textContent ?? '').replace(/\\s+/g, ' ').trim();
   if (text === '') return;
@@ -108,7 +108,13 @@ async function save(tab: Tab, page: Page): Promise<void> {
   const drawn = await tab.evaluate<string>('document.documentElement.outerHTML');
   // The scripts gave some elements absolute addresses on this server, as an image from new URL().
   const up = '../'.repeat(pagePath(page).split('/').length - 1) || './';
-  const html = `<!doctype html>\n${drawn.replaceAll(origin, up)}\n`;
+  const saved = drawn
+    .replaceAll(origin, up)
+    .replace(
+      /url\((['"]?)(?:\.\/|\.\.\/)*assets\/([^)'"]+)\1\)/g,
+      (_url, quote: string, asset: string) => `url(${quote}${up}assets/${asset}${quote})`,
+    );
+  const html = `<!doctype html>\n${saved}\n`;
   const tags = tagsHtml(headTags(html, page));
   const folder = join(dist, pagePath(page));
 
@@ -119,7 +125,7 @@ async function save(tab: Tab, page: Page): Promise<void> {
   );
 }
 
-/** docs/ leads to its first section, for search engines and for pages without scripts too. */
+/** A sectioned page other than the docs map leads to its first section without scripts. */
 function lead(page: Page, first: string): void {
   const file = join(dist, pagePath(page), 'index.html');
   const html = withoutTags(readFileSync(file, 'utf8')).replace(
@@ -152,7 +158,10 @@ try {
     for (const folder of SECTIONED) {
       const page = { language, page: folder };
 
-      // The page goes to the address of its first section before it draws.
+      if (folder === 'docs') {
+        await tab.evaluate('localStorage.removeItem("rook.docs.visited")');
+      }
+
       await draw(tab, origin + pagePath(page));
 
       const ids = await tab.evaluate<string[]>(SECTION_IDS);
@@ -166,6 +175,11 @@ try {
       }
 
       sections.set(folder, ids);
+      if (folder === 'docs') {
+        await save(tab, page);
+        written++;
+      }
+
       for (const id of ids) {
         const section = { language, page: `${folder}/${id}` };
 
@@ -175,7 +189,7 @@ try {
         written++;
       }
 
-      lead(page, ids[0]!);
+      if (folder !== 'docs') lead(page, ids[0]!);
     }
   }
 } finally {
@@ -185,6 +199,7 @@ try {
 
 const pages = [
   ...PLAIN_PAGES,
+  'docs',
   ...SECTIONED.flatMap((folder) => (sections.get(folder) ?? []).map((id) => `${folder}/${id}`)),
   'playground',
 ];

@@ -1,0 +1,89 @@
+// A small board in a card of the home page: it plays the round of its scene (stage/small.rk)
+// again and again while it is on the screen. What stands under the board is given as children;
+// the mark of the frame is in `data-mark`, and the styles light up the text it is about.
+
+import { drawBoardAt } from "../stage/board.rk"
+import { View } from "../stage/camera.rk"
+import { SmallScene, smallView } from "../stage/small.rk"
+import styles from "./small-board.module.css"
+
+export comp SmallBoard(scene SmallScene, tall bool = false, children Content) {
+    // The reader asked the system for less motion: the moment that shows the scene best.
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches
+    state mark = 0
+    ref canvas
+
+    // The time since the scene started, in seconds; its first frame is its best moment too.
+    let time = scene.rest
+    let view ?View = null
+    let context ?CanvasRenderingContext2D = null
+
+    func layout() {
+        const box = canvas.getBoundingClientRect()
+        if box.width == 0 || context == null {
+            return
+        }
+        const ratio = Math.min(devicePixelRatio, 2)
+        canvas.width = Math.round(box.width * ratio)
+        canvas.height = Math.round(box.height * ratio)
+        context.setTransform(ratio, 0, 0, ratio, 0, 0)
+        view = smallView(box.width, box.height, scene.files)
+    }
+
+    func paint(now number) {
+        if view == null || context == null {
+            return
+        }
+        const cycle = Math.floor(time / scene.period)
+        context.clearRect(0, 0, view.width, view.height)
+        drawBoardAt(context, view, 0, !still, 0, [], 2.4)
+        const shown = scene.draw({ ctx: context, view: view, now: now, moving: !still }, time - cycle * scene.period, cycle)
+        if shown != mark {
+            mark = shown
+        }
+    }
+
+    mount {
+        context = canvas.getContext("2d")
+        const redraw = () => {
+            layout()
+            paint(performance.now())
+        }
+        const sizes = new ResizeObserver(redraw)
+        sizes.observe(canvas)
+        document.fonts.ready.then(redraw)
+        redraw()
+
+        let request = 0
+        let last = 0
+        let running = false
+        func tick(now number) {
+            time += Math.min(now - last, 60) / 1000
+            last = now
+            paint(now)
+            request = requestAnimationFrame(tick)
+        }
+        // A board that is off the screen does not play.
+        const watcher = new IntersectionObserver(entries => {
+            const seen = entries[0].isIntersecting && !still
+            if seen && !running {
+                last = performance.now()
+                request = requestAnimationFrame(tick)
+            } else if !seen && running {
+                cancelAnimationFrame(request)
+            }
+            running = seen
+        })
+        watcher.observe(canvas)
+        defer {
+            cancelAnimationFrame(request)
+            sizes.disconnect()
+            watcher.disconnect()
+        }
+    }
+
+    return <div class={[styles.board, tall ? styles.tall : null]} data-mark={`${mark}`}>
+        <canvas class={styles.canvas} ref={canvas} aria-hidden="true" />
+        {children}
+    </div>
+}

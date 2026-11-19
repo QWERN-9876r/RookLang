@@ -323,7 +323,15 @@ export abstract class AttributeEmitter extends UpdateEmitter {
       const body = this.block(() => {
         this.line(`${target} = ${current};`);
         for (const name of rootsOf(value, this.shared)) {
-          this.line(`$$changed(${this.shared.listeners.get(name)!});`);
+          const listeners = this.shared.listeners.get(name)!;
+
+          if (this.options.trace) {
+            this.line(
+              `$$traceReactive({ kind: "state", name: ${JSON.stringify(name)}, value: ${this.name(name)} });`,
+            );
+          }
+
+          this.line(`$$changed(${listeners});`);
         }
 
         for (const source of written) {

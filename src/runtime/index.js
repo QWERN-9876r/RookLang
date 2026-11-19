@@ -18,4 +18,6 @@ export * from './streams.js';
 export * from './threads.js';
 export * from './timers.js';
 export * from './topic.js';
+export * from './trace.js';
 export * from './try.js';
+export * from './worker.js';
